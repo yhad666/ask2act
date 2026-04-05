@@ -18,6 +18,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--width", type=int, default=1280)
     parser.add_argument("--height", type=int, default=720)
     parser.add_argument("--camera-name", default=None)
+    parser.add_argument("--rotate-k", type=int, default=0, help="Apply np.rot90(image, k) before saving.")
     parser.add_argument("--azimuth", type=float, default=145.0)
     parser.add_argument("--elevation", type=float, default=-20.0)
     parser.add_argument("--distance", type=float, default=2.2)
@@ -67,7 +68,13 @@ def main() -> int:
     renderer = mujoco.Renderer(model, width=args.width, height=args.height)
     try:
         if args.camera_name:
-            renderer.update_scene(data, camera=args.camera_name)
+            camera_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, args.camera_name)
+            if camera_id < 0:
+                raise ValueError(f"Camera not found: {args.camera_name}")
+            fixed_camera = mujoco.MjvCamera()
+            fixed_camera.type = mujoco.mjtCamera.mjCAMERA_FIXED
+            fixed_camera.fixedcamid = camera_id
+            renderer.update_scene(data, camera=fixed_camera)
         else:
             free_camera = mujoco.MjvCamera()
             free_camera.azimuth = args.azimuth
@@ -77,6 +84,8 @@ def main() -> int:
             renderer.update_scene(data, camera=free_camera)
 
         image = renderer.render()
+        if args.rotate_k:
+            image = np.rot90(image, args.rotate_k)
     finally:
         renderer.close()
 

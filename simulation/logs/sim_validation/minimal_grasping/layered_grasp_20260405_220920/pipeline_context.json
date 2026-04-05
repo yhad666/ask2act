@@ -1,0 +1,27 @@
+{
+  "baseline_params": {
+    "base_descend_delta_m": 0.06,
+    "close_gripper_m": -0.02,
+    "head_pan_rad": 0.0,
+    "head_tilt_rad": -1.1,
+    "lift_after_grasp_delta_m": 0.08,
+    "max_descend_delta_m": 0.09,
+    "min_descend_delta_m": 0.03,
+    "nominal_target_depth_m": 0.28,
+    "open_gripper_m": 0.03,
+    "pregrasp_arm_m": 0.24,
+    "pregrasp_lift_m": 0.8,
+    "pregrasp_wrist_pitch_rad": -0.55,
+    "pregrasp_wrist_roll_rad": 0.0,
+    "pregrasp_wrist_yaw_rad": 0.0,
+    "retract_arm_target_m": 0.08
+  },
+  "candidate_attempts": [],
+  "effective_scene_xml_path": "/home/yhad/robot/logs/sim_validation/minimal_grasping/layered_grasp_20260405_220920/head_locked_scene.xml",
+  "output_dir": "/home/yhad/robot/logs/sim_validation/minimal_grasping/layered_grasp_20260405_220920",
+  "record_video": true,
+  "recovery_path": [],
+  "scene_xml_path": "/home/yhad/robot/sim_grasping/tabletop_single_cup_scene.xml",
+  "status": "started",
+  "target_selection_json": "/home/yhad/robot/sim_grasping/targets/single_cup_manual_target.json"
+}

@@ -1,0 +1,15 @@
+{
+  "target_id": "single-cup-1",
+  "label": "cup",
+  "primitive_hint": "cup",
+  "camera_name": "head_d435i",
+  "bbox_xyxy": [
+    140,
+    70,
+    300,
+    220
+  ],
+  "mask_path": null,
+  "confidence": 0.99,
+  "source": "manual_json"
+}

@@ -6,6 +6,7 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOG_DIR="${ROOT_DIR}/logs/sim_validation"
 DEFAULT_SCENE="${ROOT_DIR}/stretch_mujoco/stretch_mujoco/models/scene.xml"
 TABLETOP_SCENE="${ROOT_DIR}/sim_grasping/tabletop_minimal_scene.xml"
+SINGLE_CUP_SCENE="${ROOT_DIR}/sim_grasping/tabletop_single_cup_scene.xml"
 
 mkdir -p "${LOG_DIR}"
 
@@ -47,4 +48,12 @@ source "${SCRIPT_DIR}/source_sim.sh" >/dev/null
 
   echo "-- Scene snapshots --"
   "${SCRIPT_DIR}/run_sim_scene_snapshots.sh"
+  echo
+
+  echo "-- Layered grasp acceptance: single cup with video --"
+  if [[ -f "${SINGLE_CUP_SCENE}" ]]; then
+    "${SCRIPT_DIR}/run_layered_grasp_acceptance.sh" || true
+  else
+    echo "[WARN] single cup scene not found; skip layered grasp acceptance"
+  fi
 } | tee "${LOG_DIR}/acceptance_run.log"

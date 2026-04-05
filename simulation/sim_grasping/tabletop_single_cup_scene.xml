@@ -1,0 +1,40 @@
+<mujoco model="stretch tabletop single cup validation">
+  <compiler angle="radian" assetdir="../stretch_mujoco/stretch_mujoco/models/assets"/>
+  <include file="../stretch_mujoco/stretch_mujoco/models/stretch.xml"/>
+
+  <statistic center="0 -0.78 0.8" extent="1.4" meansize="0.06"/>
+
+  <visual>
+    <headlight diffuse="0.75 0.75 0.75" ambient="0.28 0.28 0.28" specular="0.12 0.12 0.12"/>
+    <rgba haze="0.18 0.22 0.28 1"/>
+    <global azimuth="-112" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <material name="floor_mat" rgba="0.16 0.16 0.16 1"/>
+    <material name="table_top_mat" rgba="0.70 0.58 0.42 1"/>
+    <material name="table_leg_mat" rgba="0.38 0.28 0.19 1"/>
+    <material name="target_body_mat" rgba="0.88 0.20 0.18 1"/>
+    <material name="target_cap_mat" rgba="0.97 0.94 0.88 1"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0.0 -0.2 1.9" dir="0 0 -1" directional="true"/>
+    <light pos="0.55 -0.95 1.3" dir="-0.2 0.25 -1" directional="true"/>
+    <geom name="floor" type="plane" size="0 0 0.05" material="floor_mat"/>
+
+    <body name="table" pos="-0.02 -0.42 0.76">
+      <geom name="table_top" type="box" size="0.30 0.22 0.02" material="table_top_mat"/>
+      <geom name="table_leg_fl" type="box" pos="0.24 0.16 -0.58" size="0.025 0.025 0.58" material="table_leg_mat"/>
+      <geom name="table_leg_fr" type="box" pos="0.24 -0.16 -0.58" size="0.025 0.025 0.58" material="table_leg_mat"/>
+      <geom name="table_leg_rl" type="box" pos="-0.24 0.16 -0.58" size="0.025 0.025 0.58" material="table_leg_mat"/>
+      <geom name="table_leg_rr" type="box" pos="-0.24 -0.16 -0.58" size="0.025 0.025 0.58" material="table_leg_mat"/>
+    </body>
+
+    <body name="target_cup" pos="-0.12 -0.34 0.855">
+      <freejoint name="target_cup_freejoint"/>
+      <geom name="target_cup_body" type="box" size="0.038 0.038 0.075" material="target_body_mat" mass="0.10" friction="1.0 0.05 0.01"/>
+      <geom name="target_cup_cap" type="box" pos="0 0 0.082" size="0.028 0.028 0.010" material="target_cap_mat" mass="0.01" friction="1.0 0.05 0.01"/>
+    </body>
+  </worldbody>
+</mujoco>
