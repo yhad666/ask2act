@@ -19,13 +19,15 @@ fi
 set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SIMULATION_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SIMULATION_ROOT}/.." && pwd)"
+WORKSPACE_ROOT="$(cd "${REPO_ROOT}/.." && pwd)"
 ROS_SETUP="/opt/ros/humble/setup.bash"
-WS_SETUP="${ROOT_DIR}/ament_ws/install/setup.bash"
-SIM_ROOT="${ROOT_DIR}/stretch_mujoco"
-SIM_LOG_DIR="${ROOT_DIR}/logs/sim"
-SIM_NOTES_DIR="${ROOT_DIR}/notes"
-SIM_GRASP_DIR="${ROOT_DIR}/sim_grasping"
+WS_SETUP="${WORKSPACE_ROOT}/ament_ws/install/setup.bash"
+SIM_ROOT="${WORKSPACE_ROOT}/stretch_mujoco"
+SIM_LOG_DIR="${SIMULATION_ROOT}/logs/sim"
+SIM_NOTES_DIR="${SIMULATION_ROOT}/notes"
+SIM_GRASP_DIR="${SIMULATION_ROOT}/sim_grasping"
 
 source_with_nounset_guard() {
   local target="$1"
@@ -53,11 +55,12 @@ mkdir -p "${SIM_LOG_DIR}" "${SIM_NOTES_DIR}" "${SIM_GRASP_DIR}"
 
 export PATH="${HOME}/.local/bin:${PATH}"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
-export ROS_LOG_DIR="${ROS_LOG_DIR:-${ROOT_DIR}/logs/ros}"
+export ROS_LOG_DIR="${ROS_LOG_DIR:-${SIMULATION_ROOT}/logs/ros}"
 export STRETCH_SIM_ROOT="${SIM_ROOT}"
 export STRETCH_SIM_LOG_DIR="${SIM_LOG_DIR}"
 export STRETCH_SIM_GRASP_ROOT="${SIM_GRASP_DIR}"
 export STRETCH_SIM_HEADLESS_MUJOCO_GL="${STRETCH_SIM_HEADLESS_MUJOCO_GL:-egl}"
+export STRETCH_WORKSPACE_ROOT="${WORKSPACE_ROOT}"
 
 mkdir -p "${UV_CACHE_DIR}" "${ROS_LOG_DIR}"
 
