@@ -1,0 +1,13 @@
+.DS_Store
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+# Local dependency checkout
+simulation/stretch_mujoco/
+
+# Temporary artifacts regenerated at runtime
+simulation/logs/sim_validation/tabletop_scene_resolved.xml

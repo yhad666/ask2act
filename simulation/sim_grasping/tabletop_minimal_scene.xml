@@ -1,0 +1,55 @@
+<mujoco model="stretch tabletop validation">
+  <compiler angle="radian" assetdir="../stretch_mujoco/stretch_mujoco/models/assets"/>
+  <include file="../stretch_mujoco/stretch_mujoco/models/stretch.xml"/>
+
+  <statistic center="0 -0.8 0.8" extent="1.4" meansize="0.06"/>
+
+  <visual>
+    <headlight diffuse="0.7 0.7 0.7" ambient="0.25 0.25 0.25" specular="0.1 0.1 0.1"/>
+    <rgba haze="0.2 0.25 0.3 1"/>
+    <global azimuth="-110" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <material name="floor_mat" rgba="0.18 0.18 0.18 1"/>
+    <material name="table_top_mat" rgba="0.55 0.42 0.28 1"/>
+    <material name="table_leg_mat" rgba="0.35 0.25 0.18 1"/>
+    <material name="cup_mat" rgba="0.84 0.88 0.93 1"/>
+    <material name="plate_mat" rgba="0.90 0.91 0.93 1"/>
+    <material name="fork_mat" rgba="0.74 0.76 0.79 1"/>
+    <material name="spoon_mat" rgba="0.80 0.82 0.84 1"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0.0 -0.3 1.8" dir="0 0 -1" directional="true"/>
+    <light pos="0.6 -1.0 1.2" dir="-0.2 0.3 -1" directional="true"/>
+    <geom name="floor" type="plane" size="0 0 0.05" material="floor_mat"/>
+
+    <body name="table" pos="0.0 -0.95 0.38">
+      <geom name="table_top" type="box" size="0.45 0.30 0.02" material="table_top_mat"/>
+      <geom name="table_leg_fl" type="box" pos="0.38 0.23 -0.34" size="0.03 0.03 0.34" material="table_leg_mat"/>
+      <geom name="table_leg_fr" type="box" pos="0.38 -0.23 -0.34" size="0.03 0.03 0.34" material="table_leg_mat"/>
+      <geom name="table_leg_rl" type="box" pos="-0.38 0.23 -0.34" size="0.03 0.03 0.34" material="table_leg_mat"/>
+      <geom name="table_leg_rr" type="box" pos="-0.38 -0.23 -0.34" size="0.03 0.03 0.34" material="table_leg_mat"/>
+    </body>
+
+    <body name="cup" pos="-0.10 -0.97 0.45">
+      <geom type="cylinder" size="0.035 0.05" material="cup_mat"/>
+      <geom type="cylinder" pos="0 0 0.004" size="0.022 0.051" rgba="0.70 0.76 0.83 1"/>
+    </body>
+
+    <body name="plate" pos="0.09 -0.87 0.39">
+      <geom type="cylinder" size="0.075 0.008" material="plate_mat"/>
+    </body>
+
+    <body name="fork" pos="0.12 -1.03 0.386" euler="0 0 0.42">
+      <geom type="capsule" fromto="-0.07 0 0 0.03 0 0" size="0.006" material="fork_mat"/>
+      <geom type="box" pos="0.045 0 0" size="0.014 0.018 0.003" material="fork_mat"/>
+    </body>
+
+    <body name="spoon" pos="-0.03 -1.05 0.386" euler="0 0 -0.58">
+      <geom type="capsule" fromto="-0.06 0 0 -0.005 0 0" size="0.006" material="spoon_mat"/>
+      <geom type="ellipsoid" pos="0.018 0 0" size="0.025 0.014 0.005" material="spoon_mat"/>
+    </body>
+  </worldbody>
+</mujoco>

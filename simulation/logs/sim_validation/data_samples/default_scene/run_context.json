@@ -1,0 +1,32 @@
+{
+  "camera_hz": 15.0,
+  "capture_sessions": [
+    {
+      "cameras": [
+        "cam_d435i_rgb",
+        "cam_d435i_depth"
+      ],
+      "name": "head",
+      "required": true
+    },
+    {
+      "cameras": [
+        "cam_d405_rgb",
+        "cam_d405_depth"
+      ],
+      "name": "wrist",
+      "required": true
+    },
+    {
+      "cameras": [
+        "cam_nav_rgb"
+      ],
+      "name": "nav",
+      "required": false
+    }
+  ],
+  "scene_xml_path": "/home/yhad/robot/stretch_mujoco/stretch_mujoco/models/scene.xml",
+  "settle_seconds": 1.5,
+  "tag": "default_scene",
+  "wall_time_utc": "2026-04-05T09:06:01.612390+00:00"
+}
