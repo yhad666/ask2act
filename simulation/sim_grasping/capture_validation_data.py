@@ -31,16 +31,22 @@ CAPTURE_SESSIONS = [
         "name": "head",
         "required": True,
         "cameras": [StretchCameras.cam_d435i_rgb, StretchCameras.cam_d435i_depth],
+        "pose_targets": {
+            Actuators.head_pan: 0.0,
+            Actuators.head_tilt: -1.0,
+        },
     },
     {
         "name": "wrist",
         "required": True,
         "cameras": [StretchCameras.cam_d405_rgb, StretchCameras.cam_d405_depth],
+        "pose_targets": {},
     },
     {
         "name": "nav",
         "required": False,
         "cameras": [StretchCameras.cam_nav_rgb],
+        "pose_targets": {},
     },
 ]
 
@@ -83,6 +89,7 @@ def capture_session(
     cameras_to_use: list[StretchCameras],
     camera_hz: float,
     settle_seconds: float,
+    pose_targets: dict[Actuators, float] | None = None,
 ) -> dict[str, object]:
     sim = StretchMujocoSimulator(
         scene_xml_path=str(scene_xml_path),
@@ -93,6 +100,15 @@ def capture_session(
     sim.start(headless=True)
     try:
         time.sleep(settle_seconds)
+        if pose_targets:
+            for actuator, target in pose_targets.items():
+                sim.move_to(actuator, target)
+                sim.wait_until_at_setpoint(
+                    actuator,
+                    timeout=30.0,
+                    position_tolerance=0.02 if actuator in [Actuators.head_pan, Actuators.head_tilt, Actuators.arm] else 0.03,
+                )
+            time.sleep(settle_seconds)
 
         camera_data = wait_for_camera_data(sim, cameras_to_use)
         status = sim.pull_status()
@@ -248,6 +264,7 @@ def main() -> int:
                 cameras_to_use=session["cameras"],
                 camera_hz=args.camera_hz,
                 settle_seconds=args.settle_seconds,
+                pose_targets=session.get("pose_targets"),
             )
             session_summaries.append(session_summary)
             intrinsics_payload.update(session_summary.get("intrinsics", {}))
