@@ -61,6 +61,10 @@ def main() -> int:
     workspace_root = simulation_root.parent
     run_dir = build_run_dir(simulation_root, args.run_dir)
 
+    os.environ.setdefault("MESA_D3D12_DEFAULT_ADAPTER_NAME", "NVIDIA")
+    os.environ.setdefault("__NV_PRIME_RENDER_OFFLOAD", "1")
+    os.environ.setdefault("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+
     scene_config, head_config = load_scene_config(args.scene_config)
     grasp_config = load_grasp_config(args.grasp_config)
     scene_setup = SceneSetup(scene_config)

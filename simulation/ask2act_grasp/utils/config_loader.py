@@ -62,6 +62,15 @@ def load_grasp_config(path: str | Path) -> GraspConfig:
         contact_graspnet_checkpoint=grasp.get("contact_graspnet_checkpoint"),
         enable_contact_graspnet=bool(grasp["enable_contact_graspnet"]),
         enable_fallback_generator=bool(grasp["enable_fallback_generator"]),
+        oracle_grasp_height_ratio=float(grasp.get("oracle_grasp_height_ratio", 0.42)),
+        oracle_approach_height_offset_m=float(grasp.get("oracle_approach_height_offset_m", 0.02)),
+        oracle_postgrasp_lift_delta_m=float(grasp.get("oracle_postgrasp_lift_delta_m", 0.10)),
+        oracle_side_grasp_wrist_pitch_rad=float(grasp.get("oracle_side_grasp_wrist_pitch_rad", 0.02)),
+        oracle_arm_backoff_m=float(grasp.get("oracle_arm_backoff_m", 0.22)),
+        oracle_final_arm_delta_m=float(grasp.get("oracle_final_arm_delta_m", 0.02)),
+        oracle_tucked_wrist_yaw_rad=float(grasp.get("oracle_tucked_wrist_yaw_rad", 1.20)),
+        oracle_side_open_width_cmd=float(grasp.get("oracle_side_open_width_cmd", 0.52)),
+        oracle_lateral_offset_m=float(grasp.get("oracle_lateral_offset_m", 0.0)),
+        oracle_forward_offset_m=float(grasp.get("oracle_forward_offset_m", 0.0)),
         planner_backend=str(planner["backend"]),
     )
-

@@ -10,6 +10,15 @@ grasp:
   contact_graspnet_checkpoint:
   enable_contact_graspnet: true
   enable_fallback_generator: true
+  oracle_grasp_height_ratio: 0.30
+  oracle_approach_height_offset_m: 0.015
+  oracle_postgrasp_lift_delta_m: 0.10
+  oracle_side_grasp_wrist_pitch_rad: 0.00
+  oracle_arm_backoff_m: 0.18
+  oracle_final_arm_delta_m: 0.04
+  oracle_tucked_wrist_yaw_rad: 2.50
+  oracle_side_open_width_cmd: 0.18
+  oracle_lateral_offset_m: 0.02
+  oracle_forward_offset_m: -0.02
 planner:
   backend: geometric_fallback
-

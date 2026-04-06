@@ -48,6 +48,16 @@ class GraspConfig:
     contact_graspnet_checkpoint: str | None
     enable_contact_graspnet: bool
     enable_fallback_generator: bool
+    oracle_grasp_height_ratio: float
+    oracle_approach_height_offset_m: float
+    oracle_postgrasp_lift_delta_m: float
+    oracle_side_grasp_wrist_pitch_rad: float
+    oracle_arm_backoff_m: float
+    oracle_final_arm_delta_m: float
+    oracle_tucked_wrist_yaw_rad: float
+    oracle_side_open_width_cmd: float
+    oracle_lateral_offset_m: float
+    oracle_forward_offset_m: float
     planner_backend: str
 
 
@@ -120,4 +130,3 @@ class PipelineResult:
     trajectory: list[dict[str, Any]]
     intermediate: dict[str, Any] = field(default_factory=dict)
     error: str | None = None
-
