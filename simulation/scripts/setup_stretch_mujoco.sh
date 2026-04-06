@@ -21,10 +21,10 @@ fi
 # shellcheck source=/dev/null
 source "${SCRIPT_DIR}/source_sim.sh" >/dev/null
 
-cd "${SIM_ROOT}"
+cd "${STRETCH_SIM_ROOT}"
 
 echo "== Stretch MuJoCo Setup =="
-echo "repo: ${SIM_ROOT}"
+echo "repo: ${STRETCH_SIM_ROOT}"
 echo "commit: $(git rev-parse --short HEAD)"
 echo
 
@@ -35,12 +35,15 @@ echo
 
 echo "-- Syncing uv environment --"
 "${UV_BIN}" sync
+UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}" "${UV_BIN}" pip install --python .venv/bin/python PyYAML
 echo
 
 echo "-- Verifying core imports --"
 "${UV_BIN}" run python - <<'PY'
 import mujoco
 import stretch_mujoco
+import yaml
 print("mujoco", mujoco.__version__)
 print("stretch_mujoco", stretch_mujoco.__file__)
+print("pyyaml", yaml.__version__)
 PY

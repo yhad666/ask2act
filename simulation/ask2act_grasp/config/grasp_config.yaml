@@ -1,0 +1,15 @@
+grasp:
+  score_threshold: 0.5
+  forward_passes: 5
+  z_range_m: [0.2, 1.1]
+  pregrasp_offset_m: 0.12
+  top_down_grasp_pitch_rad: -1.57
+  max_gripper_width_m: 0.08
+  approach_preference_cosine: 0.6
+  contact_graspnet_repo: /home/yhad/robot/contact_graspnet_pytorch
+  contact_graspnet_checkpoint:
+  enable_contact_graspnet: true
+  enable_fallback_generator: true
+planner:
+  backend: geometric_fallback
+

@@ -1,11 +1,11 @@
 # ask2act
 
-This repository contains the simulation-side workspace under [`simulation/`](./simulation).
+This repository currently focuses on the `simulation/` half of Ask2Act: a Stretch 3 simulation grasp pipeline that is being prepared for cleaner GitHub handoff and lab-machine execution.
 
-Current focus:
+Current active target:
 
-- Stretch MuJoCo simulation validation
-- tabletop scene preparation for grasping
-- reusable data capture and motion validation scripts
+- one table
+- one cup
+- one head-camera-first grasp pipeline
 
-See [`simulation/README.md`](./simulation/README.md) for setup and usage.
+See [`simulation/README.md`](./simulation/README.md) for setup, status, and usage.
