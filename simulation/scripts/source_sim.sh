@@ -19,13 +19,12 @@ fi
 set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SIMULATION_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SIMULATION_ROOT}/.." && pwd)"
 ROS_SETUP="/opt/ros/humble/setup.bash"
-WS_SETUP="${ROOT_DIR}/ament_ws/install/setup.bash"
-SIM_ROOT="${ROOT_DIR}/stretch_mujoco"
-SIM_LOG_DIR="${ROOT_DIR}/logs/sim"
-SIM_NOTES_DIR="${ROOT_DIR}/notes"
-SIM_GRASP_DIR="${ROOT_DIR}/sim_grasping"
+SIM_ROOT="${SIMULATION_ROOT}/stretch_mujoco"
+SIM_LOG_DIR="${SIMULATION_ROOT}/logs/sim"
+SIM_GRASP_DIR="${SIMULATION_ROOT}/sim_grasping"
 
 source_with_nounset_guard() {
   local target="$1"
@@ -49,15 +48,19 @@ source_with_nounset_guard() {
   return "${source_rc}"
 }
 
-mkdir -p "${SIM_LOG_DIR}" "${SIM_NOTES_DIR}" "${SIM_GRASP_DIR}"
+mkdir -p "${SIM_LOG_DIR}" "${SIM_GRASP_DIR}"
 
 export PATH="${HOME}/.local/bin:${PATH}"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
-export ROS_LOG_DIR="${ROS_LOG_DIR:-${ROOT_DIR}/logs/ros}"
+export ROS_LOG_DIR="${ROS_LOG_DIR:-${SIMULATION_ROOT}/logs/ros}"
 export STRETCH_SIM_ROOT="${SIM_ROOT}"
 export STRETCH_SIM_LOG_DIR="${SIM_LOG_DIR}"
 export STRETCH_SIM_GRASP_ROOT="${SIM_GRASP_DIR}"
 export STRETCH_SIM_HEADLESS_MUJOCO_GL="${STRETCH_SIM_HEADLESS_MUJOCO_GL:-egl}"
+export STRETCH_WORKSPACE_ROOT="${REPO_ROOT}"
+export MESA_D3D12_DEFAULT_ADAPTER_NAME="${MESA_D3D12_DEFAULT_ADAPTER_NAME:-NVIDIA}"
+export __NV_PRIME_RENDER_OFFLOAD="${__NV_PRIME_RENDER_OFFLOAD:-1}"
+export __GLX_VENDOR_LIBRARY_NAME="${__GLX_VENDOR_LIBRARY_NAME:-nvidia}"
 
 mkdir -p "${UV_CACHE_DIR}" "${ROS_LOG_DIR}"
 
@@ -65,15 +68,14 @@ if [[ -f "${ROS_SETUP}" ]]; then
   source_with_nounset_guard "${ROS_SETUP}"
 fi
 
-if [[ -f "${WS_SETUP}" ]]; then
-  source_with_nounset_guard "${WS_SETUP}"
-fi
-
 echo "Simulation environment ready"
 echo "  STRETCH_SIM_ROOT=${STRETCH_SIM_ROOT}"
 echo "  STRETCH_SIM_LOG_DIR=${STRETCH_SIM_LOG_DIR}"
 echo "  STRETCH_SIM_GRASP_ROOT=${STRETCH_SIM_GRASP_ROOT}"
 echo "  STRETCH_SIM_HEADLESS_MUJOCO_GL=${STRETCH_SIM_HEADLESS_MUJOCO_GL}"
+echo "  MESA_D3D12_DEFAULT_ADAPTER_NAME=${MESA_D3D12_DEFAULT_ADAPTER_NAME}"
+echo "  __NV_PRIME_RENDER_OFFLOAD=${__NV_PRIME_RENDER_OFFLOAD}"
+echo "  __GLX_VENDOR_LIBRARY_NAME=${__GLX_VENDOR_LIBRARY_NAME}"
 echo "  UV_CACHE_DIR=${UV_CACHE_DIR}"
 
 if [[ "${_sourced}" -eq 1 ]]; then

@@ -1,0 +1,10 @@
+<mujoco model="ask2act single cup pipeline">
+  <compiler angle="radian" assetdir="../../stretch_mujoco/stretch_mujoco/models/assets"/>
+  <include file="../../stretch_mujoco/stretch_mujoco/models/stretch.xml"/>
+
+  <worldbody>
+    <geom name="floor" type="plane" size="0 0 0.05" rgba="0.16 0.16 0.16 1"/>
+    <!-- Runtime scene generation rewrites this file with tuned table/cup poses. -->
+  </worldbody>
+</mujoco>
+

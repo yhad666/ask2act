@@ -1,0 +1,21 @@
+grasp_method: geometric
+
+scene:
+  table_position_m: [0.0, -0.66, 0.76]
+  table_size_m: [0.30, 0.22, 0.02]
+  cup_position_m: [0.00, -0.60, 0.86]
+  cup_body_name: "target_cup"
+  cup_radius_m: 0.035
+  cup_height_m: 0.10
+  cup_mass_kg: 0.08
+  cup_friction: [1.0, 0.05, 0.01]
+  robot_start_translation_m: [0.0, 0.0, 0.0]
+  robot_start_rotation_quat_xyzw: [1.0, 0.0, 0.0, 0.0]
+  cup_randomization_range_m: [0.08, 0.05]
+  table_clearance_margin_m: 0.005
+head_alignment:
+  # Locked for the current single-cup pipeline. Do not change casually.
+  head_pan_rad: -1.57
+  head_tilt_rad: -0.55
+  settle_seconds: 1.5
+  camera_hz: 2.0
