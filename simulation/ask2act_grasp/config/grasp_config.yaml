@@ -1,13 +1,22 @@
 grasp:
   score_threshold: 0.5
   forward_passes: 5
+  d435i_render_resolution_px: [1280, 720]
+  d435i_sensor_resolution_px: [1280, 720]
   z_range_m: [0.2, 1.1]
+  cgn_crop_radius: 0.08
+  cgn_subsample_n: 2048
+  add_depth_noise: true
+  depth_noise_sigma: 0.001
+  depth_dropout_ratio: 0.01
   pregrasp_offset_m: 0.12
   top_down_grasp_pitch_rad: -1.57
   max_gripper_width_m: 0.08
   approach_preference_cosine: 0.6
-  contact_graspnet_repo: /home/yhad/robot/contact_graspnet_pytorch
+  contact_graspnet_repo: /home/yhad/robot/ask2act/simulation/third_party/contact_graspnet_pytorch
   contact_graspnet_checkpoint:
+  contact_graspnet_python: /home/yhad/robot/ask2act/simulation/third_party/contact_graspnet_pytorch/.venv/bin/python
+  cgn_device: cuda
   enable_contact_graspnet: true
   enable_fallback_generator: true
   oracle_grasp_height_ratio: 0.30
@@ -20,5 +29,18 @@ grasp:
   oracle_side_open_width_cmd: 0.18
   oracle_lateral_offset_m: 0.02
   oracle_forward_offset_m: -0.02
+  cgn_execution_mode: guided_oracle
+  use_simple_ik_for_topdown: true
+  allow_approximate_topdown_fallback: false
+  enable_base_preposition: true
+  base_preposition_trigger_distance_m: 0.62
+  base_preposition_goal_distance_m: 0.54
+  base_preposition_max_translate_m: 0.40
+  base_preposition_heading_tolerance_rad: 0.10
+  base_preposition_longitudinal_extra_m: 0.07
+  base_preposition_table_clearance_m: 0.12
+  base_preposition_rotate_clearance_m: 0.26
+  base_preposition_lidar_backoff_step_m: 0.04
+  base_preposition_lidar_max_backoff_m: 0.16
 planner:
   backend: geometric_fallback

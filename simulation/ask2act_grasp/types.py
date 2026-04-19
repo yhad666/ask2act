@@ -9,9 +9,11 @@ import numpy as np
 
 @dataclass
 class SceneConfig:
+    grasp_method: str
     table_position_m: tuple[float, float, float]
     table_size_m: tuple[float, float, float]
     cup_position_m: tuple[float, float, float]
+    cup_body_name: str
     cup_radius_m: float
     cup_height_m: float
     cup_mass_kg: float
@@ -38,14 +40,23 @@ class HeadAlignmentConfig:
 class GraspConfig:
     score_threshold: float
     forward_passes: int
+    d435i_render_resolution_px: tuple[int, int]
+    d435i_sensor_resolution_px: tuple[int, int]
     z_min_m: float
     z_max_m: float
+    cgn_crop_radius_m: float
+    cgn_subsample_n: int
+    add_depth_noise: bool
+    depth_noise_sigma_m: float
+    depth_dropout_ratio: float
     pregrasp_offset_m: float
     top_down_grasp_pitch_rad: float
     max_gripper_width_m: float
     approach_preference_cosine: float
     contact_graspnet_repo: str
     contact_graspnet_checkpoint: str | None
+    contact_graspnet_python: str | None
+    cgn_device: str
     enable_contact_graspnet: bool
     enable_fallback_generator: bool
     oracle_grasp_height_ratio: float
@@ -58,6 +69,19 @@ class GraspConfig:
     oracle_side_open_width_cmd: float
     oracle_lateral_offset_m: float
     oracle_forward_offset_m: float
+    cgn_execution_mode: str
+    use_simple_ik_for_topdown: bool
+    allow_approximate_topdown_fallback: bool
+    enable_base_preposition: bool
+    base_preposition_trigger_distance_m: float
+    base_preposition_goal_distance_m: float
+    base_preposition_max_translate_m: float
+    base_preposition_heading_tolerance_rad: float
+    base_preposition_longitudinal_extra_m: float
+    base_preposition_table_clearance_m: float
+    base_preposition_rotate_clearance_m: float
+    base_preposition_lidar_backoff_step_m: float
+    base_preposition_lidar_max_backoff_m: float
     planner_backend: str
 
 
@@ -86,6 +110,9 @@ class GraspCandidate:
     width_m: float
     source: str
     metadata: dict[str, Any] = field(default_factory=dict)
+    preferred_approach: str = "any"
+    needs_wrist_refinement: bool = False
+    approach_type: str = "unknown"
 
     @property
     def position_m(self) -> np.ndarray:
@@ -100,6 +127,7 @@ class GraspCandidate:
 class MotionWaypoint:
     name: str
     joint_targets: dict[str, float]
+    settle_s: float = 0.0
 
 
 @dataclass
@@ -118,6 +146,7 @@ class PipelineContext:
     scene_config: SceneConfig
     grasp_config: GraspConfig
     head_config: HeadAlignmentConfig
+    runtime_metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
