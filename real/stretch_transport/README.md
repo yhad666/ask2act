@@ -34,7 +34,6 @@ After pulling the repo onto the robot:
 
 ```bash
 cd /path/to/ask2act
-python3 -m pip install -r real/stretch_transport/requirements.txt
 bash real/stretch_transport/run_robot_server.sh
 ```
 
@@ -42,6 +41,13 @@ That is the one command to keep using once the environment is set up:
 
 ```bash
 bash real/stretch_transport/run_robot_server.sh
+```
+
+The launcher auto-installs `pyzmq` on first boot if the selected Python does not
+have it yet. If you want to disable that behavior, set:
+
+```bash
+export ASK2ACT_STRETCH_SERVER_AUTO_INSTALL=0
 ```
 
 The server listens on:
