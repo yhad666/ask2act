@@ -22,10 +22,78 @@ def _truthy(name: str, default: str = "0") -> bool:
     return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _head_pose_stamp_path() -> Path:
+    instance_id = os.getenv("ASK2ACT_STRETCH_SERVER_INSTANCE_ID", "").strip()
+    raw = os.getenv(
+        "ASK2ACT_STRETCH_HEAD_POSE_STAMP_PATH",
+        str(
+            _artifact_root().parent
+            / (
+                f"head_pose_initialized_{instance_id}.json"
+                if instance_id
+                else "head_pose_initialized.json"
+            )
+        ),
+    )
+    return Path(raw).expanduser()
+
+
+def _ensure_initial_head_pose() -> dict | None:
+    if not _truthy("ASK2ACT_STRETCH_INIT_HEAD_POSE_ON_START", "1"):
+        return None
+
+    stamp_path = _head_pose_stamp_path()
+    if stamp_path.exists():
+        return None
+
+    import stretch_body.robot
+
+    head_pan = float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD", "-1.57"))
+    head_tilt = float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD", "-0.55"))
+    settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_SETTLE_S", "2.0")))
+
+    robot = stretch_body.robot.Robot()
+    if not robot.startup():
+        raise RuntimeError("Failed to startup Stretch robot for initial head positioning")
+
+    try:
+        robot.head.move_to("head_pan", head_pan)
+        robot.head.move_to("head_tilt", head_tilt)
+        robot.push_command()
+        if settle_s > 0.0:
+            time.sleep(settle_s)
+        try:
+            robot.pull_status()
+            actual_pan = float(robot.head.status["head_pan"]["pos"])
+            actual_tilt = float(robot.head.status["head_tilt"]["pos"])
+        except Exception:
+            actual_pan = None
+            actual_tilt = None
+
+        payload = {
+            "initialized_at_epoch_s": time.time(),
+            "commanded_head_pan_rad": head_pan,
+            "commanded_head_tilt_rad": head_tilt,
+            "actual_head_pan_rad": actual_pan,
+            "actual_head_tilt_rad": actual_tilt,
+            "settle_s": settle_s,
+        }
+        stamp_path.parent.mkdir(parents=True, exist_ok=True)
+        stamp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        return payload
+    finally:
+        try:
+            robot.stop()
+        except Exception:
+            pass
+
+
 def _capture_with_realsense() -> dict:
     import numpy as np
     import pyrealsense2 as rs
     from PIL import Image
+
+    head_pose_result = _ensure_initial_head_pose()
 
     serial = (
         os.getenv("ASK2ACT_STRETCH_D435I_SERIAL", "").strip()
@@ -107,6 +175,7 @@ def _capture_with_realsense() -> dict:
             "depth_scale_m_per_unit": depth_scale,
             "camera_intrinsics_path": str(intrinsics_path),
             "camera_intrinsics": intrinsics_payload,
+            "head_pose_init": head_pose_result,
         }
     finally:
         if profile is not None:
