@@ -38,22 +38,39 @@ def _head_pose_stamp_path() -> Path:
     return Path(raw).expanduser()
 
 
-def _head_pose_failure_payload(error: str, note: str) -> dict:
-    return {
+def _head_pose_mode() -> str:
+    raw = os.getenv("ASK2ACT_STRETCH_INIT_HEAD_POSE_MODE", "once_per_server").strip().lower()
+    if raw in {"", "once", "once_per_server"}:
+        return "once_per_server"
+    if raw in {"every", "every_observe", "per_observe"}:
+        return "every_observe"
+    if raw in {"0", "false", "no", "off", "disabled"}:
+        return "disabled"
+    return "once_per_server"
+
+
+def _head_pose_failure_payload(error: str, note: str, **extra: object) -> dict:
+    payload = {
         "ok": False,
         "status": "failed",
         "error": error,
         "note": note,
         "timestamp_epoch_s": time.time(),
     }
+    payload.update(extra)
+    return payload
 
 
 def _ensure_initial_head_pose() -> dict | None:
     if not _truthy("ASK2ACT_STRETCH_INIT_HEAD_POSE_ON_START", "1"):
         return None
 
+    mode = _head_pose_mode()
+    if mode == "disabled":
+        return None
+
     stamp_path = _head_pose_stamp_path()
-    if stamp_path.exists():
+    if mode == "once_per_server" and stamp_path.exists():
         return None
 
     try:
@@ -67,6 +84,7 @@ def _ensure_initial_head_pose() -> dict | None:
     head_pan = float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD", "-1.57"))
     head_tilt = float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD", "-0.55"))
     settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_SETTLE_S", "2.0")))
+    tolerance_rad = max(0.0, float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_TOLERANCE_RAD", "0.15")))
 
     robot = stretch_body.robot.Robot()
     if not robot.startup():
@@ -77,6 +95,7 @@ def _ensure_initial_head_pose() -> dict | None:
                 "or temporarily disable ASK2ACT_STRETCH_INIT_HEAD_POSE_ON_START if you only "
                 "want to capture the current camera view."
             ),
+            mode=mode,
         )
 
     try:
@@ -93,23 +112,62 @@ def _ensure_initial_head_pose() -> dict | None:
             actual_pan = None
             actual_tilt = None
 
+        if actual_pan is None or actual_tilt is None:
+            return _head_pose_failure_payload(
+                error="Unable to verify actual Stretch head pose after commanding it",
+                note="The head command was sent, but the final pan/tilt positions could not be read back.",
+                mode=mode,
+                commanded_head_pan_rad=head_pan,
+                commanded_head_tilt_rad=head_tilt,
+                actual_head_pan_rad=actual_pan,
+                actual_head_tilt_rad=actual_tilt,
+                settle_s=settle_s,
+                tolerance_rad=tolerance_rad,
+            )
+
+        pan_error = abs(actual_pan - head_pan)
+        tilt_error = abs(actual_tilt - head_tilt)
+        if pan_error > tolerance_rad or tilt_error > tolerance_rad:
+            return _head_pose_failure_payload(
+                error="Stretch head pose did not settle near the required tabletop pose",
+                note=(
+                    "Observation capture should not proceed to detection with the wrong head view. "
+                    "Check for robot contention or increase settle time if the motion is simply slow."
+                ),
+                mode=mode,
+                commanded_head_pan_rad=head_pan,
+                commanded_head_tilt_rad=head_tilt,
+                actual_head_pan_rad=actual_pan,
+                actual_head_tilt_rad=actual_tilt,
+                pan_error_rad=pan_error,
+                tilt_error_rad=tilt_error,
+                settle_s=settle_s,
+                tolerance_rad=tolerance_rad,
+            )
+
         payload = {
             "ok": True,
             "status": "initialized",
             "initialized_at_epoch_s": time.time(),
+            "mode": mode,
             "commanded_head_pan_rad": head_pan,
             "commanded_head_tilt_rad": head_tilt,
             "actual_head_pan_rad": actual_pan,
             "actual_head_tilt_rad": actual_tilt,
+            "pan_error_rad": pan_error,
+            "tilt_error_rad": tilt_error,
             "settle_s": settle_s,
+            "tolerance_rad": tolerance_rad,
         }
-        stamp_path.parent.mkdir(parents=True, exist_ok=True)
-        stamp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        if mode == "once_per_server":
+            stamp_path.parent.mkdir(parents=True, exist_ok=True)
+            stamp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return payload
     except Exception as exc:
         return _head_pose_failure_payload(
             error=str(exc),
             note="The initial head pose command failed, but observation capture will continue.",
+            mode=mode,
         )
     finally:
         try:
@@ -124,6 +182,11 @@ def _capture_with_realsense() -> dict:
     from PIL import Image
 
     head_pose_result = _ensure_initial_head_pose()
+    if head_pose_result and not bool(head_pose_result.get("ok", False)):
+        if _truthy("ASK2ACT_STRETCH_INIT_HEAD_POSE_REQUIRED", "0"):
+            error = str(head_pose_result.get("error") or "Initial head pose failed")
+            note = str(head_pose_result.get("note") or "")
+            raise RuntimeError(error if not note else f"{error}. {note}")
 
     serial = (
         os.getenv("ASK2ACT_STRETCH_D435I_SERIAL", "").strip()

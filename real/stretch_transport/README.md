@@ -93,6 +93,18 @@ Then minimally set the real camera serial:
 ASK2ACT_STRETCH_D435I_SERIAL=239122073910
 ```
 
+For the current tabletop flow, the bundled observation script can also force the
+head D435i to a known tabletop pose before every observation:
+
+```bash
+ASK2ACT_STRETCH_INIT_HEAD_POSE_MODE=every_observe
+ASK2ACT_STRETCH_INIT_HEAD_POSE_REQUIRED=1
+ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD=-1.57
+ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD=-0.55
+ASK2ACT_STRETCH_INIT_HEAD_SETTLE_S=2.0
+ASK2ACT_STRETCH_INIT_HEAD_TOLERANCE_RAD=0.15
+```
+
 After that, a single command is enough:
 
 ```bash
