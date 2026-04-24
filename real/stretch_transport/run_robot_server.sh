@@ -28,7 +28,7 @@ export ASK2ACT_STRETCH_SERVER_ARTIFACT_ROOT
 cd "${REPO_ROOT}"
 
 if [[ "${ASK2ACT_STRETCH_SERVER_AUTO_INSTALL}" == "1" ]]; then
-  if ! "${ASK2ACT_STRETCH_SERVER_PYTHON_BIN}" -c "import zmq" >/dev/null 2>&1; then
+  if ! "${ASK2ACT_STRETCH_SERVER_PYTHON_BIN}" -c "import zmq, numpy; from PIL import Image" >/dev/null 2>&1; then
     "${ASK2ACT_STRETCH_SERVER_PYTHON_BIN}" -m pip install -r "${ASK2ACT_STRETCH_SERVER_REQUIREMENTS_FILE}"
   fi
 fi
