@@ -20,9 +20,13 @@ The design goal is:
 - `runtime.py`
   Shared request handling and hook execution.
 - `hooks/observe_hook.py`
-  Default observation hook. Serves a local image unless you wire a real capture command.
+  Default observation hook. It now tries the bundled D435i capture script first.
 - `hooks/execute_hook.py`
-  Default execution hook. Accepts dry-runs and records payloads; it rejects live execution until you wire a real command.
+  Default execution hook. It now tries the bundled robot dispatch script first.
+- `scripts/capture_observation.py`
+  Bundled real-robot D435i capture path using `pyrealsense2`.
+- `scripts/dispatch_grasp.py`
+  Bundled robot-side dispatcher. It accepts dry-runs and can execute a waypoint trajectory with `stretch_body`.
 - `run_robot_server.sh`
   One-command launcher.
 - `robot_server.env.example`
@@ -63,18 +67,19 @@ by default.
 If you launch with the bundled defaults:
 
 - `observe` uses `hooks/observe_hook.py`
-- the observe hook serves a local image from the repo or from `ASK2ACT_STRETCH_OBSERVATION_IMAGE_PATH`
+- the observe hook first tries `scripts/capture_observation.py`
 - `execute_grasp` uses `hooks/execute_hook.py`
-- the execute hook accepts `dry_run=true`
-- the execute hook records live requests to `real/stretch_transport/artifacts/` and returns `ok=false` for non-dry-run requests
+- the execute hook first tries `scripts/dispatch_grasp.py`
+- the dispatch script accepts `dry_run=true`
+- the dispatch script can execute a real waypoint trajectory when the request contains `grasp_plan.trajectory`
 
-This makes the first bring-up safe: you can verify the A6000 can reach Stretch without moving the robot.
+This makes the first bring-up practical: you can verify real observation immediately, and still keep execution safe until the A6000 is sending a real waypoint trajectory.
 
 ## Real-robot wiring
 
 There are two easy ways to connect your actual Stretch code while keeping the same server entrypoint.
 
-### Option A. Forward to your own scripts
+### Option A. Use the bundled robot scripts
 
 Copy:
 
@@ -82,21 +87,35 @@ Copy:
 cp real/stretch_transport/robot_server.env.example real/stretch_transport/robot_server.env
 ```
 
-Then fill in:
+Then minimally set the real camera serial:
+
+```bash
+ASK2ACT_STRETCH_D435I_SERIAL=239122073910
+```
+
+After that, a single command is enough:
+
+```bash
+bash real/stretch_transport/run_robot_server.sh
+```
+
+### Option B. Forward to your own scripts
+
+If your lab already has mature robot-side code, point the env file at it:
 
 ```bash
 ASK2ACT_STRETCH_OBSERVE_FORWARD_COMMAND="python /abs/path/to/capture_observation.py"
 ASK2ACT_STRETCH_EXECUTE_FORWARD_COMMAND="python /abs/path/to/dispatch_grasp.py"
 ```
 
-Each forward command is called with:
+Each forward command is still called with:
 
 1. request JSON path
 2. response JSON path
 
 The forward script should write a JSON object to the response path.
 
-### Option B. Edit the bundled hooks in place
+### Option C. Edit the bundled hooks in place
 
 If you prefer to keep everything in this repo, edit:
 
@@ -166,6 +185,40 @@ Recommended minimal shape:
   "execution_status": "completed"
 }
 ```
+
+## Bundled real-robot behavior
+
+### Observation
+
+`scripts/capture_observation.py`:
+
+- opens the head D435i through `pyrealsense2`
+- captures one RGB frame
+- captures depth by default as `.npy`
+- saves it under `real/stretch_transport/artifacts/observations/`
+- returns `image_path`
+- also returns `depth_npy_path` and `camera_intrinsics`
+
+It uses:
+
+- `ASK2ACT_STRETCH_D435I_SERIAL`
+- `ASK2ACT_STRETCH_CAMERA_WIDTH`
+- `ASK2ACT_STRETCH_CAMERA_HEIGHT`
+- `ASK2ACT_STRETCH_CAMERA_FPS`
+
+### Execution
+
+`scripts/dispatch_grasp.py`:
+
+- accepts `dry_run=true` without moving the robot
+- records every request under `real/stretch_transport/artifacts/executions/`
+- if `grasp_plan.trajectory` is present, it will try to execute the waypoints with `stretch_body`
+
+Important:
+
+- this bundled executor does not invent a grasp on the robot side
+- it only executes a waypoint trajectory that the A6000 already produced
+- if the A6000 sends no trajectory, the robot will reject live execution with a clear error
 
 ## What the robot-side scripts need to do
 
