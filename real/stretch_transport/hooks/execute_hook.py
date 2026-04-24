@@ -22,6 +22,20 @@ def _forward_if_configured(request_path: Path, response_path: Path) -> bool:
     return True
 
 
+def _run_bundled_executor(request_path: Path, response_path: Path) -> bool:
+    if os.getenv("ASK2ACT_STRETCH_USE_BUNDLED_EXECUTOR", "1").strip().lower() not in {"1", "true", "yes", "on"}:
+        return False
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "dispatch_grasp.py"
+    completed = subprocess.run(
+        [sys.executable, str(script_path), str(request_path), str(response_path)],
+        text=True,
+        capture_output=True,
+    )
+    if completed.returncode == 0:
+        return True
+    raise RuntimeError(completed.stderr.strip() or completed.stdout.strip() or "bundled executor failed")
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 3:
         raise SystemExit("usage: execute_hook.py REQUEST_JSON RESPONSE_JSON")
@@ -30,7 +44,19 @@ def main(argv: list[str]) -> int:
     response_path = Path(argv[2]).expanduser()
     payload = json.loads(request_path.read_text(encoding="utf-8"))
 
-    if _forward_if_configured(request_path, response_path):
+    try:
+        if _forward_if_configured(request_path, response_path):
+            return 0
+        if _run_bundled_executor(request_path, response_path):
+            return 0
+    except Exception as exc:
+        response = {
+            "ok": False,
+            "execution_status": "failed",
+            "error": str(exc),
+            "note": "Bundled robot executor failed before fallback behavior.",
+        }
+        response_path.write_text(json.dumps(response, indent=2), encoding="utf-8")
         return 0
 
     artifact_dir = Path(
