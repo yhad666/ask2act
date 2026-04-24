@@ -98,7 +98,7 @@ export ASK2ACT_GRASP_CONFIG_PATH=/abs/path/to/grasp_config.yaml
 Use port `7862`.
 
 ```bash
-./services/a6000_web/run_real_service.sh
+bash services/a6000_web/run_real_service.sh
 ```
 
 ### 5. Launch the Stretch-side server
@@ -106,7 +106,6 @@ Use port `7862`.
 The Stretch server is now included in this repo:
 
 ```bash
-python3 -m pip install -r real/stretch_transport/requirements.txt
 bash real/stretch_transport/run_robot_server.sh
 ```
 
