@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ask2Act Workspace</title>
+  <style>
+    body { font-family: "Avenir Next", "Segoe UI", sans-serif; margin: 0; background: #f4f8f4; color: #13302d; }
+    .shell { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .hero, .panel { background: white; border-radius: 24px; padding: 24px; box-shadow: 0 16px 48px rgba(14,85,80,0.08); margin-bottom: 20px; }
+    .hero h1 { margin: 0 0 12px; font-size: 48px; line-height: 1.05; }
+    .hero p { margin: 0; color: #5e7770; }
+    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+    .stack { display: grid; gap: 20px; }
+    textarea, input[type="text"] { width: 100%; padding: 14px 16px; border-radius: 16px; border: 1px solid #d7e5df; background: #fbfdfb; }
+    textarea { min-height: 120px; resize: vertical; }
+    button { border: 0; border-radius: 999px; padding: 12px 18px; cursor: pointer; font: inherit; }
+    .primary { background: #0e5550; color: white; }
+    .ghost { background: white; border: 1px solid #d7e5df; }
+    .secondary { background: #e7f5e3; color: #184943; }
+    .danger { background: #b5574f; color: white; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .meta { color: #5e7770; font-size: 14px; line-height: 1.5; }
+    .banner { padding: 12px 14px; border-radius: 16px; margin-bottom: 16px; }
+    .banner.ok { background: #e6f7ee; color: #155b47; }
+    .banner.err { background: #fdeceb; color: #9b3329; }
+    .hidden { display: none; }
+    img { width: 100%; border-radius: 18px; background: #edf3ee; min-height: 240px; object-fit: contain; }
+    .list { display: grid; gap: 12px; max-height: 320px; overflow: auto; }
+    .item { background: #f8fbf9; border: 1px solid #dfe9e4; border-radius: 16px; padding: 12px 14px; }
+    .chip { display: inline-block; padding: 8px 12px; border-radius: 999px; background: #e7f5e3; margin: 0 8px 8px 0; }
+    .status { display: inline-block; padding: 8px 12px; border-radius: 999px; background: #eaf1ec; color: #34554f; }
+    .kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 16px; }
+    .kpi { background: #0e5550; color: white; border-radius: 18px; padding: 16px; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } .hero h1 { font-size: 38px; } .kpis { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="status" id="statusPill">Idle</div>
+      <h1>Resolve the object before execution.</h1>
+      <p>Review the scene, answer one good question at a time, and dispatch the final target to Stretch.</p>
+      <div class="kpis">
+        <div class="kpi"><div>Session</div><strong id="sessionStateStat">Idle</strong></div>
+        <div class="kpi"><div>Candidates</div><strong id="candidateCountStat">0</strong></div>
+        <div class="kpi"><div>Round</div><strong id="roundStat">0</strong></div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <div class="stack">
+        <section class="panel">
+          <h2>Instruction</h2>
+          <div id="globalBanner" class="banner hidden"></div>
+          <textarea id="instructionInput" placeholder="Pick up my cup."></textarea>
+          <div class="meta" style="margin-top:10px;">Optionally override the observation image for debugging.</div>
+          <input id="imageInput" type="file" accept="image/*" style="margin-top:12px;" />
+          <div class="actions">
+            <button class="primary" id="startBtn">Start Session</button>
+            <button class="ghost" id="reloadBtn">Refresh State</button>
+            <button class="secondary" id="clearBtn">Reset View</button>
+          </div>
+          <input id="sessionId" type="text" readonly placeholder="No session yet" style="margin-top:16px;" />
+        </section>
+
+        <section class="panel">
+          <h2>Current Question</h2>
+          <div id="questionText">No question yet.</div>
+          <div class="meta" id="questionMeta" style="margin-top:10px;">Start a session to see the next question.</div>
+          <div class="actions">
+            <button class="primary" id="yesBtn" disabled>Yes</button>
+            <button class="danger" id="noBtn" disabled>No</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Final Target</h2>
+          <div id="resolvedTarget" class="meta">No resolved target yet.</div>
+          <div class="actions">
+            <button class="secondary" id="previewBtn" disabled>Preview Payload</button>
+            <button class="primary" id="executeBtn" disabled>Execute Grasp</button>
+          </div>
+          <div class="meta" id="graspPlanMeta" style="margin-top:12px;">No plan prepared yet.</div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel">
+          <h2>Workspace View</h2>
+          <div class="actions" style="margin-top:0; margin-bottom:12px;">
+            <button class="ghost active" data-mode="overlay">Candidate Overlay</button>
+            <button class="ghost" data-mode="raw">Observation</button>
+            <button class="ghost" data-mode="final">Final Result</button>
+          </div>
+          <img id="mainImage" alt="Ask2Act session image" />
+          <div class="meta" id="imageCaption" style="margin-top:10px;">Start a session to load an image.</div>
+          <div class="meta" id="observationMeta" style="margin-top:12px;">No observation loaded.</div>
+          <div class="meta" id="detectionPrompt" style="margin-top:12px;">Waiting for session…</div>
+          <div id="phraseChips" style="margin-top:14px;"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Candidates</h2>
+          <div id="candidateList" class="list"><div class="item meta">No candidates yet.</div></div>
+        </section>
+
+        <section class="panel">
+          <h2>Question History</h2>
+          <div id="historyList" class="list"><div class="item meta">No answered questions yet.</div></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let uploadedImageDataUrl = null;
+    let currentMode = "overlay";
+    let currentSession = null;
+    const $ = (id) => document.getElementById(id);
+    const statusPill = $("statusPill");
+    const globalBanner = $("globalBanner");
+    const instructionInput = $("instructionInput");
+    const imageInput = $("imageInput");
+    const sessionIdInput = $("sessionId");
+    const mainImage = $("mainImage");
+    const imageCaption = $("imageCaption");
+    const phraseChips = $("phraseChips");
+    const detectionPrompt = $("detectionPrompt");
+    const observationMeta = $("observationMeta");
+    const graspPlanMeta = $("graspPlanMeta");
+    const questionText = $("questionText");
+    const questionMeta = $("questionMeta");
+    const resolvedTarget = $("resolvedTarget");
+    const candidateList = $("candidateList");
+    const historyList = $("historyList");
+    const yesBtn = $("yesBtn");
+    const noBtn = $("noBtn");
+    const previewBtn = $("previewBtn");
+    const executeBtn = $("executeBtn");
+    const sessionStateStat = $("sessionStateStat");
+    const candidateCountStat = $("candidateCountStat");
+    const roundStat = $("roundStat");
+
+    function setBanner(kind, text) {
+      if (!text) { globalBanner.className = "banner hidden"; globalBanner.textContent = ""; return; }
+      globalBanner.className = `banner ${kind}`;
+      globalBanner.textContent = text;
+    }
+
+    function renderPhraseChips(phrases) {
+      phraseChips.innerHTML = "";
+      if (!phrases || !phrases.length) { phraseChips.innerHTML = '<span class="chip">No extracted phrase</span>'; return; }
+      for (const phrase of phrases) {
+        const chip = document.createElement("span"); chip.className = "chip"; chip.textContent = phrase; phraseChips.appendChild(chip);
+      }
+    }
+
+    function pickImageSource(session) {
+      if (!session) return "";
+      if (currentMode === "raw") return session.observation_image_data_url || "";
+      if (currentMode === "final" && session.final_image_data_url) return session.final_image_data_url;
+      return session.candidate_overlay_data_url || session.observation_image_data_url || "";
+    }
+
+    function renderCandidates(candidates) {
+      candidateList.innerHTML = "";
+      if (!candidates?.length) { candidateList.innerHTML = '<div class="item meta">No candidates detected.</div>'; return; }
+      for (const cand of candidates) {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<div><strong>${cand.candidate_id}</strong> · ${cand.label || "unlabeled"}</div><div class="meta">score=${cand.score.toFixed(3)} · bbox=${cand.bbox_xyxy.map(v => v.toFixed(1)).join(", ")}</div>`;
+        candidateList.appendChild(div);
+      }
+    }
+
+    function renderHistory(history) {
+      historyList.innerHTML = "";
+      if (!history?.length) { historyList.innerHTML = '<div class="item meta">No answered questions yet.</div>'; return; }
+      for (const turn of history) {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<div><strong>Round ${turn.round_index}</strong> · Q${turn.question_id} · answer=${turn.answer.toUpperCase()}</div><div style="margin-top:6px;">${turn.text}</div><div class="meta" style="margin-top:6px;">P(y)=${turn.score_py.toFixed(3)} · P(n)=${turn.score_pn.toFixed(3)} · EFE=${turn.efe_score.toFixed(4)}</div>`;
+        historyList.appendChild(div);
+      }
+    }
+
+    function renderCurrentQuestion(session) {
+      const question = session?.current_question;
+      if (!question) {
+        questionText.textContent = session?.status === "resolved" ? "Clarification complete." : "No active question.";
+        questionMeta.textContent = session?.status === "failed_no_candidates" ? "Detection did not return any candidate boxes." : "Start a session to see the next question.";
+        yesBtn.disabled = true; noBtn.disabled = true; return;
+      }
+      questionText.textContent = question.text;
+      questionMeta.textContent = `Round ${session.current_round} · total/y/n=${question.count.total}/${question.count.y}/${question.count.n} · P(y)=${question.score_py.toFixed(3)} · P(n)=${question.score_pn.toFixed(3)} · EFE=${question.efe_score.toFixed(4)}`;
+      const enabled = session.status === "awaiting_answer";
+      yesBtn.disabled = !enabled; noBtn.disabled = !enabled;
+    }
+
+    function renderResolvedTarget(session) {
+      if (!session?.resolved_target) { resolvedTarget.textContent = "No resolved target yet."; previewBtn.disabled = true; executeBtn.disabled = true; return; }
+      const target = session.resolved_target;
+      resolvedTarget.innerHTML = `<strong>${target.candidate_id}</strong> · ${target.label || "unlabeled"}<br><span class="meta">bbox=${target.bbox_xyxy.map(v => v.toFixed(1)).join(", ")} · score=${target.score.toFixed(3)}</span>`;
+      previewBtn.disabled = false; executeBtn.disabled = false;
+    }
+
+    function renderSession(session) {
+      currentSession = session;
+      statusPill.textContent = session?.status || "Idle";
+      sessionIdInput.value = session?.session_id || "";
+      sessionStateStat.textContent = session?.status || "Idle";
+      candidateCountStat.textContent = String(session?.candidates?.length || 0);
+      roundStat.textContent = String(session?.current_round || 0);
+      renderPhraseChips(session?.instruction_phrases || []);
+      detectionPrompt.textContent = session?.detection_prompt || "Waiting for session…";
+      observationMeta.textContent = session ? `${session.observation_source} · observation_id=${session.observation_id || "n/a"}` : "No observation loaded.";
+      graspPlanMeta.textContent = session?.grasp_plan_result ? JSON.stringify(session.grasp_plan_result) : "No plan prepared yet.";
+      const imageSrc = pickImageSource(session);
+      if (imageSrc) { mainImage.src = imageSrc; } else { mainImage.removeAttribute("src"); }
+      imageCaption.textContent = currentMode === "final" ? "Final resolved view." : (currentMode === "raw" ? "Current observation image." : "Candidate overlay view.");
+      renderCandidates(session?.candidates || []);
+      renderHistory(session?.question_history || []);
+      renderCurrentQuestion(session);
+      renderResolvedTarget(session);
+      if (session?.error_message) setBanner("err", session.error_message);
+      else if (session?.execution_result?.dry_run) setBanner("ok", "Previewed the local grasp handoff and Stretch dispatch payload.");
+      else if (session?.status === "executed") setBanner("ok", "Resolved target planned locally and dispatched successfully.");
+      else setBanner(null, "");
+    }
+
+    async function postJson(url, payload) {
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail || data);
+        throw new Error(detail || `Request failed with ${res.status}`);
+      }
+      return data;
+    }
+
+    async function startSession() {
+      const instruction = instructionInput.value.trim();
+      if (!instruction) { setBanner("err", "Please enter one instruction before starting."); return; }
+      try {
+        const session = await postJson("/api/sessions/start", { instruction, fetch_observation: !uploadedImageDataUrl, observation_image_data_url: uploadedImageDataUrl });
+        renderSession(session);
+      } catch (err) { setBanner("err", err.message); }
+    }
+
+    async function answerCurrent(answer) {
+      if (!currentSession?.session_id) return;
+      try { renderSession(await postJson(`/api/sessions/${currentSession.session_id}/step`, { answer })); }
+      catch (err) { setBanner("err", err.message); }
+    }
+
+    async function reloadSession() {
+      if (!currentSession?.session_id) { setBanner("err", "No active session to reload."); return; }
+      const res = await fetch(`/api/sessions/${currentSession.session_id}`); renderSession(await res.json());
+    }
+
+    async function executeResolved(dryRun) {
+      if (!currentSession?.session_id) return;
+      try { renderSession(await postJson(`/api/sessions/${currentSession.session_id}/execute`, { dry_run: dryRun })); }
+      catch (err) { setBanner("err", err.message); }
+    }
+
+    document.querySelectorAll("[data-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        currentMode = button.dataset.mode;
+        document.querySelectorAll("[data-mode]").forEach((node) => node.classList.toggle("active", node === button));
+        renderSession(currentSession);
+      });
+    });
+
+    imageInput.addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) { uploadedImageDataUrl = null; return; }
+      uploadedImageDataUrl = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
+      setBanner("ok", "Loaded browser-side image override. Starting will use this image.");
+    });
+
+    $("startBtn").addEventListener("click", startSession);
+    $("reloadBtn").addEventListener("click", reloadSession);
+    $("clearBtn").addEventListener("click", () => { uploadedImageDataUrl = null; imageInput.value = ""; currentSession = null; sessionIdInput.value = ""; instructionInput.value = ""; renderSession(null); setBanner(null, ""); });
+    yesBtn.addEventListener("click", () => answerCurrent("y"));
+    noBtn.addEventListener("click", () => answerCurrent("n"));
+    previewBtn.addEventListener("click", () => executeResolved(true));
+    executeBtn.addEventListener("click", () => executeResolved(false));
+
+    renderSession(null);
+  </script>
+</body>
+</html>
