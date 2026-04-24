@@ -38,6 +38,16 @@ def _head_pose_stamp_path() -> Path:
     return Path(raw).expanduser()
 
 
+def _head_pose_failure_payload(error: str, note: str) -> dict:
+    return {
+        "ok": False,
+        "status": "failed",
+        "error": error,
+        "note": note,
+        "timestamp_epoch_s": time.time(),
+    }
+
+
 def _ensure_initial_head_pose() -> dict | None:
     if not _truthy("ASK2ACT_STRETCH_INIT_HEAD_POSE_ON_START", "1"):
         return None
@@ -46,7 +56,13 @@ def _ensure_initial_head_pose() -> dict | None:
     if stamp_path.exists():
         return None
 
-    import stretch_body.robot
+    try:
+        import stretch_body.robot
+    except Exception as exc:
+        return _head_pose_failure_payload(
+            error=str(exc),
+            note="stretch_body is unavailable, so the initial head pose could not be commanded.",
+        )
 
     head_pan = float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD", "-1.57"))
     head_tilt = float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD", "-0.55"))
@@ -54,7 +70,14 @@ def _ensure_initial_head_pose() -> dict | None:
 
     robot = stretch_body.robot.Robot()
     if not robot.startup():
-        raise RuntimeError("Failed to startup Stretch robot for initial head positioning")
+        return _head_pose_failure_payload(
+            error="Failed to startup Stretch robot for initial head positioning",
+            note=(
+                "Another process may already be using Stretch. Free the robot process, "
+                "or temporarily disable ASK2ACT_STRETCH_INIT_HEAD_POSE_ON_START if you only "
+                "want to capture the current camera view."
+            ),
+        )
 
     try:
         robot.head.move_to("head_pan", head_pan)
@@ -71,6 +94,8 @@ def _ensure_initial_head_pose() -> dict | None:
             actual_tilt = None
 
         payload = {
+            "ok": True,
+            "status": "initialized",
             "initialized_at_epoch_s": time.time(),
             "commanded_head_pan_rad": head_pan,
             "commanded_head_tilt_rad": head_tilt,
@@ -81,6 +106,11 @@ def _ensure_initial_head_pose() -> dict | None:
         stamp_path.parent.mkdir(parents=True, exist_ok=True)
         stamp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return payload
+    except Exception as exc:
+        return _head_pose_failure_payload(
+            error=str(exc),
+            note="The initial head pose command failed, but observation capture will continue.",
+        )
     finally:
         try:
             robot.stop()
