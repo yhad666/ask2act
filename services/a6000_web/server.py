@@ -84,6 +84,7 @@ def build_session_view(session: SessionState) -> Dict[str, Any]:
         "detection_prompt": session.detection_prompt,
         "observation_id": session.observation_id,
         "observation_source": session.observation_source,
+        "observation_metadata": _public_observation_metadata(session.observation_raw_response),
         "observation_image_data_url": session.observation_image_data_url,
         "candidate_overlay_data_url": session.candidate_overlay_data_url,
         "final_image_data_url": session.final_image_data_url,
@@ -99,6 +100,21 @@ def build_session_view(session: SessionState) -> Dict[str, Any]:
         "stretch_transport_mode": stretch_transport.mode,
         "pipeline_mode": grasp_runtime.mode,
     }
+
+
+def _public_observation_metadata(raw_response: Dict[str, Any] | None) -> Dict[str, Any] | None:
+    if not raw_response:
+        return None
+    hidden_keys = {"image_base64", "image_data_url", "depth_npy_base64"}
+    out: Dict[str, Any] = {}
+    for key, value in raw_response.items():
+        if key in hidden_keys:
+            continue
+        if key == "detail" and isinstance(value, dict):
+            out[key] = {inner_key: inner_value for inner_key, inner_value in value.items() if inner_key not in hidden_keys}
+        else:
+            out[key] = value
+    return out
 
 
 def finalize_resolved_target(session: SessionState, success: bool | None = None, banner_text: str | None = None) -> None:
@@ -124,11 +140,13 @@ def create_session(request: StartSessionRequest) -> SessionState:
             image_bytes = decode_data_url(request.observation_image_data_url)
             observation_id = request.observation_id or session_id
             observation_source = "browser_upload"
+            observation_raw_response = None
         elif request.fetch_observation:
             observation = stretch_transport.fetch_observation(session_id=session_id, instruction=instruction)
             image_bytes = observation.image_bytes
             observation_id = observation.observation_id or session_id
             observation_source = f"stretch_{stretch_transport.mode}"
+            observation_raw_response = observation.raw_response
         else:
             raise HTTPException(
                 status_code=400,
@@ -148,6 +166,7 @@ def create_session(request: StartSessionRequest) -> SessionState:
             candidate_overlay_data_url=detection.overlay_data_url,
             candidates=detection.candidates,
             vlm_messages=[],
+            observation_raw_response=observation_raw_response,
         )
         if not session.candidates:
             session.status = "failed_no_candidates"
@@ -225,7 +244,12 @@ def execute_session(session_id: str, request: ExecuteSessionRequest):
         raise HTTPException(status_code=409, detail="session has no resolved target")
 
     try:
-        plan_result = grasp_runtime.plan_for_target(session.resolved_target, dry_run=request.dry_run)
+        plan_result = grasp_runtime.plan_for_target(
+            session.resolved_target,
+            observation_metadata=session.observation_raw_response,
+            dry_run=request.dry_run,
+            rotate_clockwise_90=detector.rotate_clockwise_90,
+        )
         # Normalize through the Pydantic model for a stable schema.
         session.grasp_plan_result = GraspPlanResult.model_validate(plan_result["plan_summary"])
 

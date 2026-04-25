@@ -208,7 +208,8 @@ Recommended minimal shape:
 - captures one RGB frame
 - captures depth by default as `.npy`
 - saves it under `real/stretch_transport/artifacts/observations/`
-- returns `image_path`
+- returns `image_path`; the transport server also inlines the depth npy as
+  `depth_npy_base64` so the A6000 can plan from the same observation
 - also returns `depth_npy_path` and `camera_intrinsics`
 
 It uses:

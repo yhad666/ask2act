@@ -121,7 +121,7 @@ class StretchRobotRuntime:
             reply.get("observation_id")
             or f"stretch-{request_payload.get('session_id', 'session')}-{int(time.time())}"
         )
-        return {
+        normalized = {
             "ok": True,
             "observation_id": observation_id,
             "mime_type": mime_type,
@@ -129,6 +129,25 @@ class StretchRobotRuntime:
             "source": reply.get("source") or self.observe_mode,
             "detail": reply,
         }
+        depth_path = reply.get("depth_npy_path")
+        if depth_path:
+            depth_bytes, _depth_mime_type = self._load_image_bytes(str(depth_path))
+            normalized["depth_npy_base64"] = base64.b64encode(depth_bytes).decode("utf-8")
+            normalized["depth_npy_mime_type"] = "application/octet-stream"
+            normalized["depth_npy_path"] = str(depth_path)
+        for key in (
+            "depth_scale_m_per_unit",
+            "camera_intrinsics",
+            "camera_intrinsics_path",
+            "camera_extrinsics",
+            "camera_extrinsics_path",
+            "camera_serial",
+            "width",
+            "height",
+        ):
+            if key in reply:
+                normalized[key] = reply[key]
+        return normalized
 
     def observe(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
         if self.observe_mode == "file":

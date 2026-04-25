@@ -92,21 +92,27 @@ class GroundingDinoDetector:
         phrase_extractor: InstructionPhraseExtractor,
         model_id: str = "IDEA-Research/grounding-dino-base",
         base_terms: Sequence[str] = DEFAULT_BASE_TERMS,
-        box_threshold: float = 0.20,
-        text_threshold: float = 0.30,
+        box_threshold: float | None = None,
+        text_threshold: float | None = None,
         nms_iou: float = 0.50,
         max_per_image: int = 100,
-        rotate_clockwise_90: bool = True,
+        rotate_clockwise_90: bool | None = None,
         device: str | None = None,
     ) -> None:
         self.phrase_extractor = phrase_extractor
         self.model_id = model_id
         self.base_terms = tuple(base_terms)
-        self.box_threshold = box_threshold
-        self.text_threshold = text_threshold
+        self.box_threshold = float(os.getenv("ASK2ACT_DINO_BOX_THRESHOLD", "0.38")) if box_threshold is None else box_threshold
+        self.text_threshold = (
+            float(os.getenv("ASK2ACT_DINO_TEXT_THRESHOLD", "0.30")) if text_threshold is None else text_threshold
+        )
         self.nms_iou = nms_iou
         self.max_per_image = max_per_image
-        self.rotate_clockwise_90 = rotate_clockwise_90
+        self.rotate_clockwise_90 = (
+            os.getenv("ASK2ACT_DINO_ROTATE_CLOCKWISE_90", "1").strip().lower() in {"1", "true", "yes", "on"}
+            if rotate_clockwise_90 is None
+            else rotate_clockwise_90
+        )
         self.device = self._resolve_device(device)
         self.processor = None
         self.model = None

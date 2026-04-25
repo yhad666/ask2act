@@ -92,6 +92,9 @@ class StretchTransportClient:
                 "instruction": instruction,
             }
         )
+        if reply.get("ok") is False:
+            detail = reply.get("error") or reply.get("note") or reply
+            raise RuntimeError(f"Stretch observation failed: {detail}")
         image_bytes: bytes
         if reply.get("image_data_url"):
             _, encoded = str(reply["image_data_url"]).split(",", 1)

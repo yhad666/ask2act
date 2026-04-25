@@ -81,6 +81,7 @@ class SessionState:
     candidate_overlay_data_url: str
     candidates: List[Candidate]
     vlm_messages: List[Dict[str, Any]]
+    observation_raw_response: Optional[Dict[str, Any]] = None
     current_round: int = 1
     current_questions: List[ScoredQuestion] = field(default_factory=list)
     current_question: Optional[ScoredQuestion] = None

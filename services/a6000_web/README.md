@@ -56,6 +56,7 @@ For no-robot validation:
 export ASK2ACT_VLLM_BASE_URL=http://127.0.0.1:8000/v1
 export ASK2ACT_VLLM_MODEL=mimo-vl
 export ASK2ACT_DETECTOR_DEVICE=cuda:1
+export ASK2ACT_DINO_BOX_THRESHOLD=0.38
 export ASK2ACT_GEN_MAX_TOKENS=8000
 export ASK2ACT_THINK_HINT=1
 export ASK2ACT_STRETCH_TRANSPORT=mock
@@ -67,7 +68,10 @@ For direct Stretch integration:
 ```bash
 export ASK2ACT_STRETCH_TRANSPORT=zmq
 export ASK2ACT_STRETCH_ZMQ_ENDPOINT=tcp://STRETCH_HOST:5557
-export ASK2ACT_PIPELINE_MODE=local_sim
+export ASK2ACT_STRETCH_TIMEOUT_MS=120000
+export ASK2ACT_PIPELINE_MODE=real_pointcloud
+export ASK2ACT_HEAD_CAMERA_EXTRINSICS_PATH=/abs/path/to/head_camera_extrinsics.json
+export ASK2ACT_REAL_ALLOW_APPROXIMATE_TOPDOWN_FALLBACK=1
 ```
 
 For the real-robot browser service, you can also copy:
@@ -91,6 +95,7 @@ export ASK2ACT_PIPELINE_SHOW_VIEWER=0
 export ASK2ACT_PIPELINE_RUN_ROOT=/abs/path/to/run_logs
 export ASK2ACT_SCENE_CONFIG_PATH=/abs/path/to/scene_config.yaml
 export ASK2ACT_GRASP_CONFIG_PATH=/abs/path/to/grasp_config.yaml
+export ASK2ACT_REAL_MIN_POINT_CLOUD_COUNT=30
 ```
 
 ### 4. Launch the A6000 web service
@@ -135,7 +140,7 @@ python services/a6000_web/dev/stretch_zmq_smoke_test.py
 6. Each answer updates the candidate belief state.
 7. Once resolved, press:
    - `Preview Payload` for a dry run
-   - `Confirm Handoff` to run the local pipeline and dispatch the result to Stretch
+   - `Execute Grasp` to plan from the latest head D435i depth frame and dispatch the trajectory to Stretch
 
 ## Operator Flow
 
@@ -230,7 +235,17 @@ Expected Stretch reply:
   "ok": true,
   "observation_id": "obs-001",
   "mime_type": "image/jpeg",
-  "image_base64": "..."
+  "image_base64": "...",
+  "depth_npy_base64": "...",
+  "depth_scale_m_per_unit": 0.001,
+  "camera_intrinsics": {
+    "width": 1280,
+    "height": 720,
+    "fx": 913.0,
+    "fy": 913.0,
+    "cx": 640.0,
+    "cy": 360.0
+  }
 }
 ```
 
