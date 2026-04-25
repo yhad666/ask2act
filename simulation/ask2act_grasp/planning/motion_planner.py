@@ -1233,6 +1233,18 @@ class MotionPlanner:
                 ),
             ]
         )
+        if approach_type == "top_down":
+            waypoints.append(
+                MotionWaypoint(
+                    name="retract_arm_after_grasp",
+                    joint_targets={
+                        "lift": postgrasp_lift,
+                        "arm": 0.0,
+                        "stretch_gripper": gripper_close_cmd,
+                    },
+                    settle_s=0.8,
+                )
+            )
 
         return MotionPlan(
             backend=self.grasp_config.planner_backend,
