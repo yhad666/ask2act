@@ -35,6 +35,47 @@ def _trajectory_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return trajectory
 
 
+def _truthy(name: str, default: str = "0") -> bool:
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _default_pose_targets() -> dict[str, float]:
+    return {
+        "lift": float(os.getenv("ASK2ACT_STRETCH_HOME_LIFT_M", "0.60")),
+        "arm": float(os.getenv("ASK2ACT_STRETCH_HOME_ARM_M", "0.0")),
+        "wrist_yaw": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_YAW_RAD", "0.0")),
+        "wrist_pitch": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_PITCH_RAD", "0.18")),
+        "wrist_roll": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_ROLL_RAD", "0.0")),
+        "stretch_gripper": float(os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "0.56")),
+    }
+
+
+def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> dict[str, Any]:
+    targets = _default_pose_targets()
+    if include_gripper:
+        robot.end_of_arm.move_to("stretch_gripper", targets["stretch_gripper"])
+    robot.arm.move_to(targets["arm"])
+    robot.end_of_arm.move_to("wrist_yaw", targets["wrist_yaw"])
+    robot.end_of_arm.move_to("wrist_pitch", targets["wrist_pitch"])
+    robot.end_of_arm.move_to("wrist_roll", targets["wrist_roll"])
+    robot.lift.move_to(targets["lift"])
+    robot.push_command()
+    settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_HOME_SETTLE_S", "2.0")))
+    if settle_s > 0.0:
+        time.sleep(settle_s)
+    try:
+        robot.pull_status()
+    except Exception:
+        pass
+    return {
+        "name": f"default_pose_{reason}",
+        "joint_targets": targets if include_gripper else {key: value for key, value in targets.items() if key != "stretch_gripper"},
+        "include_gripper": include_gripper,
+        "ok": True,
+        "settle_s": settle_s,
+    }
+
+
 def _current_base_theta(robot: Any) -> float:
     try:
         robot.pull_status()
@@ -104,6 +145,14 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
     trace: list[dict[str, Any]] = []
     default_settle_s = float(os.getenv("ASK2ACT_STRETCH_WAYPOINT_SETTLE_S", "2.0"))
     try:
+        if _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_EXECUTE_START", "1"):
+            trace.append(
+                _command_default_pose(
+                    robot,
+                    include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_START", "1"),
+                    reason="execute_start",
+                )
+            )
         base_reference_theta = _current_base_theta(robot)
         for waypoint in trajectory:
             name = str(waypoint.get("name") or "unnamed_waypoint")
@@ -136,6 +185,14 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                     "ok": True,
                     "settle_s": settle_s,
                 }
+            )
+        if _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_EXECUTE_END", "1"):
+            trace.append(
+                _command_default_pose(
+                    robot,
+                    include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_END", "0"),
+                    reason="execute_end",
+                )
             )
         return trace
     finally:

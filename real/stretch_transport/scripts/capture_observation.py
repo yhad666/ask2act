@@ -61,6 +61,76 @@ def _head_pose_failure_payload(error: str, note: str, **extra: object) -> dict:
     return payload
 
 
+def _default_pose_targets() -> dict[str, float]:
+    return {
+        "lift": float(os.getenv("ASK2ACT_STRETCH_HOME_LIFT_M", "0.60")),
+        "arm": float(os.getenv("ASK2ACT_STRETCH_HOME_ARM_M", "0.0")),
+        "wrist_yaw": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_YAW_RAD", "0.0")),
+        "wrist_pitch": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_PITCH_RAD", "0.18")),
+        "wrist_roll": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_ROLL_RAD", "0.0")),
+        "stretch_gripper": float(os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "0.56")),
+    }
+
+
+def _command_default_pose(robot, *, include_gripper: bool, reason: str) -> dict:
+    targets = _default_pose_targets()
+    if include_gripper:
+        robot.end_of_arm.move_to("stretch_gripper", targets["stretch_gripper"])
+    robot.arm.move_to(targets["arm"])
+    robot.end_of_arm.move_to("wrist_yaw", targets["wrist_yaw"])
+    robot.end_of_arm.move_to("wrist_pitch", targets["wrist_pitch"])
+    robot.end_of_arm.move_to("wrist_roll", targets["wrist_roll"])
+    robot.lift.move_to(targets["lift"])
+    robot.push_command()
+    settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_HOME_SETTLE_S", "2.0")))
+    if settle_s > 0.0:
+        time.sleep(settle_s)
+    try:
+        robot.pull_status()
+    except Exception:
+        pass
+    return {
+        "ok": True,
+        "status": "default_pose_commanded",
+        "reason": reason,
+        "include_gripper": include_gripper,
+        "targets": targets if include_gripper else {key: value for key, value in targets.items() if key != "stretch_gripper"},
+        "settle_s": settle_s,
+        "timestamp_epoch_s": time.time(),
+    }
+
+
+def _ensure_default_pose_before_observe() -> dict | None:
+    if not _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_OBSERVE", "1"):
+        return None
+    try:
+        import stretch_body.robot
+    except Exception as exc:
+        return _head_pose_failure_payload(
+            error=str(exc),
+            note="stretch_body is unavailable, so the default observe-start pose could not be commanded.",
+        )
+
+    robot = stretch_body.robot.Robot()
+    if not robot.startup():
+        return _head_pose_failure_payload(
+            error="Failed to startup Stretch robot for observe-start default pose",
+            note="Another process may already be using Stretch.",
+        )
+    try:
+        return _command_default_pose(robot, include_gripper=True, reason="observe_start")
+    except Exception as exc:
+        return _head_pose_failure_payload(
+            error=str(exc),
+            note="Failed to command Stretch default pose before observation.",
+        )
+    finally:
+        try:
+            robot.stop()
+        except Exception:
+            pass
+
+
 def _ensure_initial_head_pose() -> dict | None:
     if not _truthy("ASK2ACT_STRETCH_INIT_HEAD_POSE_ON_START", "1"):
         return None
@@ -181,6 +251,13 @@ def _capture_with_realsense() -> dict:
     import pyrealsense2 as rs
     from PIL import Image
 
+    default_pose_result = _ensure_default_pose_before_observe()
+    if default_pose_result and not bool(default_pose_result.get("ok", False)):
+        if _truthy("ASK2ACT_STRETCH_HOME_POSE_REQUIRED", "1"):
+            error = str(default_pose_result.get("error") or "Default observe-start pose failed")
+            note = str(default_pose_result.get("note") or "")
+            raise RuntimeError(error if not note else f"{error}. {note}")
+
     head_pose_result = _ensure_initial_head_pose()
     if head_pose_result and not bool(head_pose_result.get("ok", False)):
         if _truthy("ASK2ACT_STRETCH_INIT_HEAD_POSE_REQUIRED", "0"):
@@ -272,6 +349,7 @@ def _capture_with_realsense() -> dict:
             "depth_scale_m_per_unit": depth_scale,
             "camera_intrinsics_path": str(intrinsics_path),
             "camera_intrinsics": intrinsics_payload,
+            "default_pose_init": default_pose_result,
             "head_pose_init": head_pose_result,
         }
     finally:

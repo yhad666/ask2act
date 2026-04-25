@@ -206,6 +206,7 @@ Recommended minimal shape:
 
 `scripts/capture_observation.py`:
 
+- moves the manipulator to the configured default pose before capture
 - opens the head D435i through `pyrealsense2`
 - captures one RGB frame
 - captures depth by default as `.npy`
@@ -227,9 +228,11 @@ It uses:
 
 `scripts/dispatch_grasp.py`:
 
+- moves the manipulator to the configured default pose before execution
 - accepts `dry_run=true` without moving the robot
 - records every request under `real/stretch_transport/artifacts/executions/`
 - if `grasp_plan.trajectory` is present, it will try to execute the waypoints with `stretch_body`
+- moves the manipulator back to the configured default pose after execution; by default the gripper is not opened after execution
 
 Important:
 
