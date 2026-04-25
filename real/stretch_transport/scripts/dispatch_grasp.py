@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import sys
 import time
@@ -45,7 +46,11 @@ def _current_base_theta(robot: Any) -> float:
         raise RuntimeError("Unable to read current Stretch base theta") from exc
 
 
-def _move_component(robot: Any, joint_name: str, target: float) -> None:
+def _angle_diff_rad(target: float, current: float) -> float:
+    return float((target - current + math.pi) % (2.0 * math.pi) - math.pi)
+
+
+def _move_component(robot: Any, joint_name: str, target: float, *, base_reference_theta: float) -> dict[str, Any] | None:
     if joint_name == "lift":
         robot.lift.move_to(target)
     elif joint_name == "arm":
@@ -56,9 +61,37 @@ def _move_component(robot: Any, joint_name: str, target: float) -> None:
         robot.head.move_to(joint_name, target)
     elif joint_name == "base_rotate":
         current_theta = _current_base_theta(robot)
-        robot.base.rotate_by(float(target - current_theta))
+        target_theta = float(base_reference_theta + target)
+        delta = _angle_diff_rad(target_theta, current_theta)
+        eps = float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_EPS_RAD", "0.02"))
+        if abs(delta) <= eps:
+            return {
+                "joint_name": joint_name,
+                "target_relative_rad": float(target),
+                "target_theta_rad": target_theta,
+                "current_theta_rad": current_theta,
+                "delta_rad": delta,
+                "skipped": True,
+                "skip_reason": f"abs(delta) <= {eps}",
+            }
+        max_delta = float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_MAX_DELTA_RAD", "0.40"))
+        if abs(delta) > max_delta:
+            raise RuntimeError(
+                f"Refusing large base rotation delta {delta:.3f} rad for target {target:.3f} rad. "
+                "Planner base_rotate is expected to be relative to the execution start pose."
+            )
+        robot.base.rotate_by(delta)
+        return {
+            "joint_name": joint_name,
+            "target_relative_rad": float(target),
+            "target_theta_rad": target_theta,
+            "current_theta_rad": current_theta,
+            "delta_rad": delta,
+            "skipped": False,
+        }
     else:
         raise RuntimeError(f"Unsupported real-robot joint target: {joint_name}")
+    return None
 
 
 def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -71,13 +104,22 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
     trace: list[dict[str, Any]] = []
     default_settle_s = float(os.getenv("ASK2ACT_STRETCH_WAYPOINT_SETTLE_S", "2.0"))
     try:
+        base_reference_theta = _current_base_theta(robot)
         for waypoint in trajectory:
             name = str(waypoint.get("name") or "unnamed_waypoint")
             joint_targets = waypoint.get("joint_targets") or {}
             if not isinstance(joint_targets, dict):
                 raise RuntimeError(f"{name}: joint_targets must be an object")
+            command_trace: list[dict[str, Any]] = []
             for joint_name, target in joint_targets.items():
-                _move_component(robot, str(joint_name), float(target))
+                command_result = _move_component(
+                    robot,
+                    str(joint_name),
+                    float(target),
+                    base_reference_theta=base_reference_theta,
+                )
+                if command_result is not None:
+                    command_trace.append(command_result)
             robot.push_command()
             settle_s = max(default_settle_s, float(waypoint.get("settle_s") or 0.0))
             if settle_s > 0.0:
@@ -90,6 +132,7 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                 {
                     "name": name,
                     "joint_targets": joint_targets,
+                    "command_trace": command_trace,
                     "ok": True,
                     "settle_s": settle_s,
                 }
