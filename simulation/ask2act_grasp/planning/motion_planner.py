@@ -29,6 +29,14 @@ APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M = -0.065
 APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M = float(
     os.getenv("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M", "0.0")
 )
+GEOMETRIC_TOP_DOWN_GRASP_Z_MODE = os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_Z_MODE", "center").strip().lower()
+GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M", "0.0")
+)
+GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M", "0.12")
+)
+GEOMETRIC_TOP_DOWN_POSTGRASP_LIFT_M = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_POSTGRASP_LIFT_M", "0.12"))
 
 
 class MotionPlanner:
@@ -106,6 +114,29 @@ class MotionPlanner:
     def _world_y_to_arm(self, y_world_m: float) -> float:
         desired = max(-float(y_world_m) - self.grasp_config.oracle_arm_backoff_m, 0.0)
         return float(np.clip(desired, STRETCH3_JOINT_LIMITS["arm"][0], STRETCH3_JOINT_LIMITS["arm"][1]))
+
+    @staticmethod
+    def _geometric_topdown_pregrasp_clearance_m(grasp_config: GraspConfig) -> float:
+        return max(0.10, float(grasp_config.pregrasp_offset_m), GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M)
+
+    @staticmethod
+    def _geometric_topdown_postgrasp_lift_m(grasp_config: GraspConfig) -> float:
+        return max(0.08, float(grasp_config.oracle_postgrasp_lift_delta_m), GEOMETRIC_TOP_DOWN_POSTGRASP_LIFT_M)
+
+    @staticmethod
+    def _geometric_topdown_grasp_z(geometric_grasp: dict[str, object]) -> float:
+        center_z = float(geometric_grasp["grasp_z"])
+        top_z = float(geometric_grasp.get("object_top_z", center_z))
+        bottom_z = float(geometric_grasp.get("object_bottom_z", center_z))
+        mode = GEOMETRIC_TOP_DOWN_GRASP_Z_MODE
+        if mode in {"upper", "top", "rim"}:
+            return float(top_z + GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M)
+        if mode in {"upper_inside", "below_top"}:
+            return float(top_z - abs(GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M))
+        if mode in {"ratio", "height_ratio"}:
+            ratio = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_HEIGHT_RATIO", "0.75"))
+            return float(bottom_z + np.clip(ratio, 0.0, 1.2) * max(top_z - bottom_z, 0.0))
+        return center_z
 
     def plan_to_grasp(self, candidate: GraspCandidate, current_state: dict[str, float]) -> MotionPlan:
         if candidate.source == "scene_oracle_single_cup":
@@ -338,13 +369,14 @@ class MotionPlanner:
             - wrist_model_error_world
         )
 
+        pregrasp_clearance_m = self._geometric_topdown_pregrasp_clearance_m(self.grasp_config)
         pregrasp_rubber_xyz = desired_rubber_xyz.copy()
-        pregrasp_rubber_xyz[2] += max(0.08, float(self.grasp_config.pregrasp_offset_m))
+        pregrasp_rubber_xyz[2] += pregrasp_clearance_m
         pregrasp_grasp_center_xyz = pregrasp_rubber_xyz.copy()
         pregrasp_ik = None
         pregrasp_lift = min(
             STRETCH3_JOINT_LIMITS["lift"][1],
-            lift_val + max(0.08, float(self.grasp_config.pregrasp_offset_m)),
+            lift_val + pregrasp_clearance_m,
         )
         pregrasp_arm = arm_val
         pregrasp_wrist_pos = np.zeros(3, dtype=float)
@@ -482,7 +514,7 @@ class MotionPlanner:
         grasp_y_correction = APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M
         grasp_x = float(raw_grasp_x + grasp_x_correction)
         grasp_y = float(raw_grasp_y + grasp_y_correction)
-        contact_grasp_z = float(geometric_grasp["grasp_z"])
+        contact_grasp_z = self._geometric_topdown_grasp_z(geometric_grasp)
         grip_angle = float(geometric_grasp.get("grip_angle_rad", 0.0))
         requested_open_width = min(
             float(geometric_grasp["gripper_open_width"]),
@@ -494,7 +526,7 @@ class MotionPlanner:
         # offset works better here than the generic CGN-frame conversion.
         wrist_vertical_offset = APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M
         wrist_grasp_z = float(contact_grasp_z + wrist_vertical_offset)
-        pregrasp_z = float(wrist_grasp_z + max(0.08, float(self.grasp_config.pregrasp_offset_m)))
+        pregrasp_z = float(wrist_grasp_z + self._geometric_topdown_pregrasp_clearance_m(self.grasp_config))
 
         wrist_yaw = 0.0
         if requested_open_width < 0.04:
@@ -521,6 +553,9 @@ class MotionPlanner:
             "approach_type": "top_down",
             "approach_direction": [0.0, 0.0, -1.0],
             "contact_point": [grasp_x, grasp_y, contact_grasp_z],
+            "raw_grasp_z": float(geometric_grasp["grasp_z"]),
+            "z_execution_mode": GEOMETRIC_TOP_DOWN_GRASP_Z_MODE,
+            "top_clearance_m": GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M,
             "planning_mode": "geometric_point_cloud",
             "grip_angle_rad": grip_angle,
             "raw_grasp_x": raw_grasp_x,
@@ -551,7 +586,7 @@ class MotionPlanner:
             [
                 float(geometric_grasp["grasp_x"]),
                 float(geometric_grasp["grasp_y"]),
-                float(geometric_grasp["grasp_z"]),
+                self._geometric_topdown_grasp_z(geometric_grasp),
             ],
             dtype=float,
         )
@@ -571,6 +606,9 @@ class MotionPlanner:
                 "object_height": float(geometric_grasp.get("object_height", 0.0)),
                 "object_top_z": float(geometric_grasp.get("object_top_z", desired_rubber_xyz[2])),
                 "object_bottom_z": float(geometric_grasp.get("object_bottom_z", desired_rubber_xyz[2])),
+                "raw_grasp_z": float(geometric_grasp["grasp_z"]),
+                "z_execution_mode": GEOMETRIC_TOP_DOWN_GRASP_Z_MODE,
+                "top_clearance_m": GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M,
                 "grasp_point_validated": bool(geometric_grasp.get("grasp_point_validated", True)),
                 "width_near_limit": bool(geometric_grasp.get("width_near_limit", False)),
             },
@@ -929,12 +967,19 @@ class MotionPlanner:
             pregrasp_lift = self._world_z_to_lift(max(pregrasp_z, grasp_z))
             if approach_type == "top_down":
                 pregrasp_lift = min(
-                    self._world_z_to_lift(grasp_z + self.grasp_config.oracle_postgrasp_lift_delta_m),
+                    self._world_z_to_lift(
+                        max(pregrasp_z, grasp_z + self._geometric_topdown_pregrasp_clearance_m(self.grasp_config))
+                    ),
                     STRETCH3_JOINT_LIMITS["lift"][1] - 0.02,
                 )
 
         postgrasp_lift = min(
-            grasp_lift + max(self.grasp_config.oracle_postgrasp_lift_delta_m, 0.08),
+            grasp_lift
+            + (
+                self._geometric_topdown_postgrasp_lift_m(self.grasp_config)
+                if approach_type == "top_down"
+                else max(self.grasp_config.oracle_postgrasp_lift_delta_m, 0.08)
+            ),
             STRETCH3_JOINT_LIMITS["lift"][1],
         )
         min_lift_delta = 0.05
