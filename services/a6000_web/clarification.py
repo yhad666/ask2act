@@ -25,6 +25,15 @@ def compress_to_data_url(image_bytes: bytes, max_side: int = 768, jpeg_quality: 
     return f"data:image/jpeg;base64,{b64}"
 
 
+def data_url_to_bytes(data_url: str) -> bytes:
+    if not data_url:
+        raise ValueError("Empty data URL")
+    _, sep, payload = data_url.partition(",")
+    if not sep or not payload:
+        raise ValueError("Invalid data URL")
+    return base64.b64decode(payload)
+
+
 def _find_all_complete_json_object_spans(text: str) -> List[Tuple[int, int]]:
     if not text:
         return []
@@ -157,33 +166,86 @@ class ClarificationEngine:
             return raw_second, extract_protocol_json(raw_second)
 
     @staticmethod
-    def _start_payload(task_id: int, image_id: str, target: str, candidates: List[Candidate]) -> Dict[str, Any]:
-        return {
-            "Head": "start",
-            "Task_ID": task_id,
-            "Round": 1,
-            "Image": image_id,
-            "Target_Instruction": target,
-            "Candidates": {
-                cand.candidate_id: {
-                    "label": cand.label,
-                    "bbox": cand.bbox_xyxy,
-                    "score": cand.score,
-                }
-                for cand in candidates
-            },
+    def _candidate_display_id(candidate: Candidate) -> int | str:
+        if candidate.display_id is not None:
+            return candidate.display_id
+        suffix = candidate.candidate_id.rsplit("_", 1)[-1]
+        try:
+            return int(suffix)
+        except ValueError:
+            return candidate.candidate_id
+
+    @classmethod
+    def _candidate_payload(cls, candidates: List[Candidate]) -> Dict[str, Any]:
+        centers: Dict[str, Tuple[float, float]] = {}
+        for candidate in candidates:
+            x1, y1, x2, y2 = [float(value) for value in candidate.bbox_xyxy]
+            centers[candidate.candidate_id] = ((x1 + x2) / 2.0, (y1 + y2) / 2.0)
+
+        left_to_right = {
+            candidate.candidate_id: rank
+            for rank, candidate in enumerate(
+                sorted(candidates, key=lambda item: (centers[item.candidate_id][0], centers[item.candidate_id][1])),
+                start=1,
+            )
+        }
+        top_to_bottom = {
+            candidate.candidate_id: rank
+            for rank, candidate in enumerate(
+                sorted(candidates, key=lambda item: (centers[item.candidate_id][1], centers[item.candidate_id][0])),
+                start=1,
+            )
         }
 
-    @staticmethod
-    def _answer_payload(task_id: int, round_idx: int, image_id: str, target: str, asked_history: Dict[str, Any]) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {}
+        for candidate in candidates:
+            x1, y1, x2, y2 = [float(value) for value in candidate.bbox_xyxy]
+            cx, cy = centers[candidate.candidate_id]
+            display_id = cls._candidate_display_id(candidate)
+            payload[candidate.candidate_id] = {
+                "display_id": display_id,
+                "visual_tag": str(display_id),
+                "label": candidate.label,
+                "bbox": [x1, y1, x2, y2],
+                "bbox_center": [cx, cy],
+                "left_to_right_rank": left_to_right[candidate.candidate_id],
+                "top_to_bottom_rank": top_to_bottom[candidate.candidate_id],
+                "score": candidate.score,
+            }
+        return payload
+
+    @classmethod
+    def _base_payload(cls, task_id: int, round_idx: int, image_id: str, target: str, candidates: List[Candidate]) -> Dict[str, Any]:
         return {
-            "Head": "answer",
             "Task_ID": task_id,
             "Round": round_idx,
             "Image": image_id,
             "Target_Instruction": target,
-            "Asked": asked_history,
+            "Candidate_View": (
+                "The image is an annotated candidate overlay. Each GroundingDINO candidate has a small "
+                "numeric visual_tag drawn on its bounding box. Use visual_tag/display_id to match the "
+                "image to the Candidates table; final Target.name must still be the cand_XXX key."
+            ),
+            "Candidates": cls._candidate_payload(candidates),
         }
+
+    @classmethod
+    def _start_payload(cls, task_id: int, image_id: str, target: str, candidates: List[Candidate]) -> Dict[str, Any]:
+        return {"Head": "start", **cls._base_payload(task_id, 1, image_id, target, candidates)}
+
+    @classmethod
+    def _answer_payload(
+        cls,
+        task_id: int,
+        round_idx: int,
+        image_id: str,
+        target: str,
+        candidates: List[Candidate],
+        asked_history: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        payload = {"Head": "answer", **cls._base_payload(task_id, round_idx, image_id, target, candidates)}
+        payload["Asked"] = asked_history
+        return payload
 
     @staticmethod
     def _score_questions(protocol: Dict[str, Any]) -> List[ScoredQuestion]:
@@ -216,6 +278,7 @@ class ClarificationEngine:
             if candidate.candidate_id == target_name:
                 return ResolvedTarget(
                     candidate_id=candidate.candidate_id,
+                    display_id=candidate.display_id,
                     label=candidate.label,
                     score=candidate.score,
                     bbox_xyxy=candidate.bbox_xyxy,
@@ -224,8 +287,12 @@ class ClarificationEngine:
         raise ValueError(f"Resolved target '{target_name}' not found in candidate set")
 
     def initialize_session(self, session: SessionState, task_id: int = 1) -> None:
+        try:
+            annotated_image_bytes = data_url_to_bytes(session.candidate_overlay_data_url)
+        except Exception:
+            annotated_image_bytes = session.observation_image_bytes
         image_data_url = compress_to_data_url(
-            session.observation_image_bytes,
+            annotated_image_bytes,
             max_side=self.max_side,
             jpeg_quality=self.jpeg_quality,
         )
@@ -289,6 +356,7 @@ class ClarificationEngine:
             session.current_round,
             session.observation_id or session.session_id,
             session.instruction,
+            session.candidates,
             session.asked_history,
         )
         session.vlm_messages.append({"role": "user", "content": json.dumps(payload, ensure_ascii=False)})

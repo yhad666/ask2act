@@ -173,13 +173,20 @@
       return session.candidate_overlay_data_url || session.observation_image_data_url || "";
     }
 
+    function candidateDisplayId(cand) {
+      if (!cand) return "";
+      if (cand.display_id !== undefined && cand.display_id !== null) return String(cand.display_id);
+      const match = String(cand.candidate_id || "").match(/(\d+)$/);
+      return match ? String(Number(match[1])) : String(cand.candidate_id || "");
+    }
+
     function renderCandidates(candidates) {
       candidateList.innerHTML = "";
       if (!candidates?.length) { candidateList.innerHTML = '<div class="item meta">No candidates detected.</div>'; return; }
       for (const cand of candidates) {
         const div = document.createElement("div");
         div.className = "item";
-        div.innerHTML = `<div><strong>${cand.candidate_id}</strong> · ${cand.label || "unlabeled"}</div><div class="meta">score=${cand.score.toFixed(3)} · bbox=${cand.bbox_xyxy.map(v => v.toFixed(1)).join(", ")}</div>`;
+        div.innerHTML = `<div><strong>#${candidateDisplayId(cand)}</strong> · ${cand.candidate_id} · ${cand.label || "unlabeled"}</div><div class="meta">score=${cand.score.toFixed(3)} · bbox=${cand.bbox_xyxy.map(v => v.toFixed(1)).join(", ")}</div>`;
         candidateList.appendChild(div);
       }
     }
@@ -211,7 +218,7 @@
     function renderResolvedTarget(session) {
       if (!session?.resolved_target) { resolvedTarget.textContent = "No resolved target yet."; previewBtn.disabled = true; executeBtn.disabled = true; return; }
       const target = session.resolved_target;
-      resolvedTarget.innerHTML = `<strong>${target.candidate_id}</strong> · ${target.label || "unlabeled"}<br><span class="meta">bbox=${target.bbox_xyxy.map(v => v.toFixed(1)).join(", ")} · score=${target.score.toFixed(3)}</span>`;
+      resolvedTarget.innerHTML = `<strong>#${candidateDisplayId(target)}</strong> · ${target.candidate_id} · ${target.label || "unlabeled"}<br><span class="meta">bbox=${target.bbox_xyxy.map(v => v.toFixed(1)).join(", ")} · score=${target.score.toFixed(3)}</span>`;
       previewBtn.disabled = false; executeBtn.disabled = false;
     }
 

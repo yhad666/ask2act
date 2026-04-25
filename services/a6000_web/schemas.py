@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 class Candidate(BaseModel):
     candidate_id: str
+    display_id: Optional[int] = None
     label: str
     score: float
     bbox_xyxy: List[float]
@@ -35,6 +36,7 @@ class QuestionTurn(BaseModel):
 
 class ResolvedTarget(BaseModel):
     candidate_id: str
+    display_id: Optional[int] = None
     label: str
     score: float
     bbox_xyxy: List[float]

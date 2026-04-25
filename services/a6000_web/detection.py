@@ -76,6 +76,16 @@ def _load_font(size: int):
     return ImageFont.load_default()
 
 
+def _candidate_display_label(candidate: Candidate) -> str:
+    if candidate.display_id is not None:
+        return str(candidate.display_id)
+    suffix = candidate.candidate_id.rsplit("_", 1)[-1]
+    try:
+        return str(int(suffix))
+    except ValueError:
+        return candidate.candidate_id
+
+
 @dataclass
 class DetectionResult:
     prepared_image_bytes: bytes
@@ -181,8 +191,11 @@ class GroundingDinoDetector:
     ) -> str:
         image = Image.open(io.BytesIO(prepared_image_bytes)).convert("RGB")
         draw = ImageDraw.Draw(image)
-        font = _load_font(max(18, int(min(image.size) * 0.04)))
-        line_w = max(3, int(min(image.size) * 0.006))
+        font_size = max(18, int(min(image.size) * 0.035))
+        font = _load_font(font_size)
+        line_w = max(2, int(min(image.size) * 0.003))
+        pad_x = max(4, int(font_size * 0.25))
+        pad_y = max(3, int(font_size * 0.18))
 
         for cand in candidates:
             x1, y1, x2, y2 = cand.bbox_xyxy
@@ -196,14 +209,15 @@ class GroundingDinoDetector:
             else:
                 color = "#36c1ff"
 
-            draw.rectangle([x1, y1, x2, y2], outline=color, width=line_w)
-            tag = f"{cand.candidate_id} · {cand.label} · {cand.score:.2f}"
+            draw.rectangle([x1, y1, x2, y2], outline=color, width=line_w + (1 if is_selected else 0))
+            tag = _candidate_display_label(cand)
             bbox = draw.textbbox((0, 0), tag, font=font)
-            tw = bbox[2] - bbox[0] + 14
-            th = bbox[3] - bbox[1] + 10
-            box_y0 = max(0, y1 - th)
-            draw.rectangle([x1, box_y0, x1 + tw, box_y0 + th], fill=color)
-            draw.text((x1 + 7, box_y0 + 5), tag, fill="black", font=font)
+            tw = bbox[2] - bbox[0] + (2 * pad_x)
+            th = bbox[3] - bbox[1] + (2 * pad_y)
+            box_x0 = int(max(0, min(x1, image.width - tw)))
+            box_y0 = int(max(0, min(y1, image.height - th)))
+            draw.rectangle([box_x0, box_y0, box_x0 + tw, box_y0 + th], fill=color)
+            draw.text((box_x0 + pad_x, box_y0 + pad_y), tag, fill="black", font=font)
 
         if banner_text:
             banner_font = _load_font(max(24, int(min(image.size) * 0.05)))
@@ -248,6 +262,7 @@ class GroundingDinoDetector:
                 candidates.append(
                     Candidate(
                         candidate_id=f"cand_{idx:03d}",
+                        display_id=idx,
                         label=str(label),
                         score=float(score),
                         bbox_xyxy=[x1, y1, x2, y2],

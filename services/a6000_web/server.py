@@ -191,6 +191,7 @@ def resolve_single_candidate(session: SessionState) -> None:
     candidate = session.candidates[0]
     session.resolved_target = ResolvedTarget(
         candidate_id=candidate.candidate_id,
+        display_id=candidate.display_id,
         label=candidate.label,
         score=candidate.score,
         bbox_xyxy=candidate.bbox_xyxy,
@@ -254,6 +255,7 @@ def _select_reobserved_target(original: ResolvedTarget, candidates) -> ResolvedT
     selected = max(pool, key=lambda candidate: float(candidate.score))
     return ResolvedTarget(
         candidate_id=selected.candidate_id,
+        display_id=selected.display_id,
         label=selected.label,
         score=selected.score,
         bbox_xyxy=selected.bbox_xyxy,
