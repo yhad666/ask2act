@@ -244,8 +244,10 @@ def _capture_with_realsense() -> dict:
 
         depth_path = None
         depth_scale = None
+        depth_shape = None
         if depth_frame is not None:
             depth = np.asanyarray(depth_frame.get_data())
+            depth_shape = [int(depth.shape[0]), int(depth.shape[1])]
             depth_path = _artifact_root() / f"head_d435i_depth_{stamp}.npy"
             np.save(depth_path, depth)
             try:
@@ -264,6 +266,8 @@ def _capture_with_realsense() -> dict:
             "camera_serial": serial_out,
             "width": int(rgb.shape[1]),
             "height": int(rgb.shape[0]),
+            "rgb_shape_hw": [int(rgb.shape[0]), int(rgb.shape[1])],
+            "depth_shape_hw": depth_shape,
             "depth_npy_path": str(depth_path) if depth_path is not None else None,
             "depth_scale_m_per_unit": depth_scale,
             "camera_intrinsics_path": str(intrinsics_path),

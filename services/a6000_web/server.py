@@ -14,7 +14,7 @@ from .clarification import ClarificationEngine
 from .detection import GroundingDinoDetector
 from .grasp_runtime import LocalGraspRuntime
 from .phrase_extractor import InstructionPhraseExtractor
-from .schemas import ExecuteSessionRequest, GraspPlanResult, SessionState, StartSessionRequest, StepSessionRequest
+from .schemas import ExecuteSessionRequest, GraspPlanResult, ResolvedTarget, SessionState, StartSessionRequest, StepSessionRequest
 from .stretch_transport import StretchTransportClient
 
 
@@ -37,6 +37,12 @@ PIPELINE_GRASP_CONFIG = os.getenv("ASK2ACT_GRASP_CONFIG_PATH", "")
 PIPELINE_RUN_ROOT = os.getenv("ASK2ACT_PIPELINE_RUN_ROOT", "")
 PIPELINE_HEADLESS = os.getenv("ASK2ACT_PIPELINE_HEADLESS", "1") != "0"
 PIPELINE_SHOW_VIEWER = os.getenv("ASK2ACT_PIPELINE_SHOW_VIEWER", "0") == "1"
+AUTO_EXECUTE_ON_RESOLVE = os.getenv("ASK2ACT_AUTO_EXECUTE_ON_RESOLVE", "0").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 SESSIONS: Dict[str, SessionState] = {}
 
@@ -129,6 +135,90 @@ def finalize_resolved_target(session: SessionState, success: bool | None = None,
     )
 
 
+def resolve_single_candidate(session: SessionState) -> None:
+    if len(session.candidates) != 1:
+        return
+    candidate = session.candidates[0]
+    session.resolved_target = ResolvedTarget(
+        candidate_id=candidate.candidate_id,
+        label=candidate.label,
+        score=candidate.score,
+        bbox_xyxy=candidate.bbox_xyxy,
+        mask_rle=candidate.mask_rle,
+    )
+    session.current_question = None
+    session.current_questions = []
+    session.status = "resolved"
+    session.last_protocol_json = {
+        "Head": "decision",
+        "Grasp": "yes",
+        "Target": {"name": candidate.candidate_id},
+        "Reason": "Only one GroundingDINO candidate was returned; clarification was skipped.",
+    }
+
+
+def maybe_auto_execute(session: SessionState) -> None:
+    if not AUTO_EXECUTE_ON_RESOLVE:
+        return
+    if session.resolved_target is None:
+        return
+    if session.execution_result is not None:
+        return
+    execute_resolved_session(session, dry_run=False, raise_on_error=False)
+
+
+def execute_resolved_session(session: SessionState, *, dry_run: bool, raise_on_error: bool = True) -> None:
+    if session.resolved_target is None:
+        raise HTTPException(status_code=409, detail="session has no resolved target")
+
+    try:
+        plan_result = grasp_runtime.plan_for_target(
+            session.resolved_target,
+            observation_metadata=session.observation_raw_response,
+            dry_run=dry_run,
+            rotate_clockwise_90=detector.rotate_clockwise_90,
+        )
+        # Normalize through the Pydantic model for a stable schema.
+        session.grasp_plan_result = GraspPlanResult.model_validate(plan_result["plan_summary"])
+
+        transport_result = stretch_transport.dispatch_grasp(
+            session_id=session.session_id,
+            instruction=session.instruction,
+            observation_id=session.observation_id,
+            resolved_target={
+                "candidate_id": session.resolved_target.candidate_id,
+                "bbox_xyxy": session.resolved_target.bbox_xyxy,
+                "mask_rle": session.resolved_target.mask_rle,
+            },
+            grasp_plan=plan_result["dispatch_payload"],
+            dry_run=dry_run,
+        )
+
+        success = bool(plan_result.get("ok", True)) and bool(transport_result.get("ok", True))
+        session.execution_result = {
+            "ok": success,
+            "dry_run": dry_run,
+            "auto_execute": AUTO_EXECUTE_ON_RESOLVE and not dry_run,
+            "plan_result": plan_result,
+            "transport_result": transport_result,
+        }
+        session.status = "executed" if success else "execution_failed"
+        if dry_run:
+            banner = "DRY RUN"
+        elif success:
+            banner = "EXECUTION SENT"
+        else:
+            banner = "EXECUTION FAILED"
+        finalize_resolved_target(session, success=success, banner_text=banner)
+    except Exception as exc:
+        session.status = "execution_failed"
+        session.error_message = str(exc)
+        session.execution_result = {"ok": False, "dry_run": dry_run, "auto_execute": AUTO_EXECUTE_ON_RESOLVE and not dry_run, "error": str(exc)}
+        finalize_resolved_target(session, success=False, banner_text="EXECUTION FAILED")
+        if raise_on_error:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 def create_session(request: StartSessionRequest) -> SessionState:
     instruction = (request.instruction or "").strip()
     if not instruction:
@@ -174,9 +264,13 @@ def create_session(request: StartSessionRequest) -> SessionState:
             session.final_image_data_url = session.observation_image_data_url
             return session
 
-        clarifier.initialize_session(session)
+        if len(session.candidates) == 1:
+            resolve_single_candidate(session)
+        else:
+            clarifier.initialize_session(session)
         if session.resolved_target is not None:
             finalize_resolved_target(session)
+            maybe_auto_execute(session)
         return session
     except HTTPException:
         raise
@@ -199,6 +293,7 @@ def health():
         "stretch_transport_mode": stretch_transport.mode,
         "stretch_zmq_endpoint": STRETCH_ZMQ_ENDPOINT if stretch_transport.mode == "zmq" else None,
         "pipeline_mode": grasp_runtime.mode,
+        "auto_execute_on_resolve": AUTO_EXECUTE_ON_RESOLVE,
     }
 
 
@@ -228,6 +323,7 @@ def step_session(session_id: str, request: StepSessionRequest):
         clarifier.answer_current_question(session, request.answer)
         if session.resolved_target is not None:
             finalize_resolved_target(session)
+            maybe_auto_execute(session)
         return build_session_view(session)
     except Exception as exc:
         session.status = "error"
@@ -243,48 +339,5 @@ def execute_session(session_id: str, request: ExecuteSessionRequest):
     if session.resolved_target is None:
         raise HTTPException(status_code=409, detail="session has no resolved target")
 
-    try:
-        plan_result = grasp_runtime.plan_for_target(
-            session.resolved_target,
-            observation_metadata=session.observation_raw_response,
-            dry_run=request.dry_run,
-            rotate_clockwise_90=detector.rotate_clockwise_90,
-        )
-        # Normalize through the Pydantic model for a stable schema.
-        session.grasp_plan_result = GraspPlanResult.model_validate(plan_result["plan_summary"])
-
-        transport_result = stretch_transport.dispatch_grasp(
-            session_id=session.session_id,
-            instruction=session.instruction,
-            observation_id=session.observation_id,
-            resolved_target={
-                "candidate_id": session.resolved_target.candidate_id,
-                "bbox_xyxy": session.resolved_target.bbox_xyxy,
-                "mask_rle": session.resolved_target.mask_rle,
-            },
-            grasp_plan=plan_result["dispatch_payload"],
-            dry_run=request.dry_run,
-        )
-
-        success = bool(plan_result.get("ok", True)) and bool(transport_result.get("ok", True))
-        session.execution_result = {
-            "ok": success,
-            "dry_run": request.dry_run,
-            "plan_result": plan_result,
-            "transport_result": transport_result,
-        }
-        session.status = "executed" if success else "execution_failed"
-        if request.dry_run:
-            banner = "DRY RUN"
-        elif success:
-            banner = "EXECUTION SENT"
-        else:
-            banner = "EXECUTION FAILED"
-        finalize_resolved_target(session, success=success, banner_text=banner)
-        return build_session_view(session)
-    except Exception as exc:
-        session.status = "execution_failed"
-        session.error_message = str(exc)
-        session.execution_result = {"ok": False, "error": str(exc)}
-        finalize_resolved_target(session, success=False, banner_text="EXECUTION FAILED")
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    execute_resolved_session(session, dry_run=request.dry_run, raise_on_error=True)
+    return build_session_view(session)

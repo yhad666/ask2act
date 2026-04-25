@@ -68,10 +68,11 @@ For direct Stretch integration:
 ```bash
 export ASK2ACT_STRETCH_TRANSPORT=zmq
 export ASK2ACT_STRETCH_ZMQ_ENDPOINT=tcp://STRETCH_HOST:5557
-export ASK2ACT_STRETCH_TIMEOUT_MS=120000
+export ASK2ACT_STRETCH_TIMEOUT_MS=240000
 export ASK2ACT_PIPELINE_MODE=real_pointcloud
 export ASK2ACT_HEAD_CAMERA_EXTRINSICS_PATH=/abs/path/to/head_camera_extrinsics.json
 export ASK2ACT_REAL_ALLOW_APPROXIMATE_TOPDOWN_FALLBACK=1
+export ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=1
 ```
 
 For the real-robot browser service, you can also copy:
@@ -138,9 +139,8 @@ python services/a6000_web/dev/stretch_zmq_smoke_test.py
    - starts the MiMo clarification loop
 5. The UI shows one yes/no question at a time.
 6. Each answer updates the candidate belief state.
-7. Once resolved, press:
-   - `Preview Payload` for a dry run
-   - `Execute Grasp` to plan from the latest head D435i depth frame and dispatch the trajectory to Stretch
+7. When only one candidate is detected, clarification is skipped.
+8. Once resolved, `ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=1` plans from the latest head D435i depth frame and dispatches the trajectory to Stretch automatically.
 
 ## Operator Flow
 
@@ -238,6 +238,8 @@ Expected Stretch reply:
   "image_base64": "...",
   "depth_npy_base64": "...",
   "depth_scale_m_per_unit": 0.001,
+  "rgb_shape_hw": [720, 1280],
+  "depth_shape_hw": [720, 1280],
   "camera_intrinsics": {
     "width": 1280,
     "height": 720,

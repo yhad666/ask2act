@@ -144,6 +144,8 @@ class StretchRobotRuntime:
             "camera_serial",
             "width",
             "height",
+            "rgb_shape_hw",
+            "depth_shape_hw",
         ):
             if key in reply:
                 normalized[key] = reply[key]
