@@ -65,6 +65,24 @@ def _default_pose_targets() -> dict[str, float]:
     }
 
 
+def _map_stretch_gripper_target(target: float) -> tuple[float, str]:
+    """Map planner gripper commands to the real Stretch Body gripper units."""
+    mode = os.getenv("ASK2ACT_STRETCH_GRIPPER_COMMAND_MODE", "real_pct").strip().lower()
+    target = float(target)
+    if mode in {"raw", "passthrough", "planner"}:
+        return target, mode
+
+    open_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_PLANNER_OPEN_THRESHOLD", "0.5"))
+    close_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_PLANNER_CLOSE_THRESHOLD", "-0.3"))
+    open_cmd = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD", "100.0"))
+    close_cmd = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_REAL_CLOSE_CMD", "-50.0"))
+    if target >= open_threshold:
+        return open_cmd, mode
+    if target <= close_threshold:
+        return close_cmd, mode
+    return target, mode
+
+
 def _status_snapshot(robot: Any) -> dict[str, Any]:
     try:
         robot.pull_status()
@@ -90,9 +108,13 @@ def _status_snapshot(robot: Any) -> dict[str, Any]:
 
 def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> dict[str, Any]:
     targets = _default_pose_targets()
+    command_targets = dict(targets)
     status_before = _status_snapshot(robot)
     if include_gripper:
-        robot.end_of_arm.move_to("stretch_gripper", targets["stretch_gripper"])
+        command_targets["stretch_gripper"], gripper_command_mode = _map_stretch_gripper_target(targets["stretch_gripper"])
+        robot.end_of_arm.move_to("stretch_gripper", command_targets["stretch_gripper"])
+    else:
+        gripper_command_mode = None
     robot.arm.move_to(targets["arm"])
     robot.end_of_arm.move_to("wrist_yaw", targets["wrist_yaw"])
     robot.end_of_arm.move_to("wrist_pitch", targets["wrist_pitch"])
@@ -110,6 +132,8 @@ def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> 
     return {
         "name": f"default_pose_{reason}",
         "joint_targets": targets if include_gripper else {key: value for key, value in targets.items() if key != "stretch_gripper"},
+        "command_targets": command_targets if include_gripper else {key: value for key, value in command_targets.items() if key != "stretch_gripper"},
+        "gripper_command_mode": gripper_command_mode,
         "include_gripper": include_gripper,
         "ok": True,
         "settle_s": settle_s,
@@ -510,8 +534,20 @@ def _move_component(robot: Any, joint_name: str, target: float, *, base_referenc
         robot.arm.move_to(target)
         return {"joint_name": joint_name, "target": float(target), "component": "arm"}
     elif joint_name in {"wrist_yaw", "wrist_pitch", "wrist_roll", "stretch_gripper"}:
-        robot.end_of_arm.move_to(joint_name, target)
-        return {"joint_name": joint_name, "target": float(target), "component": "end_of_arm"}
+        command_target = float(target)
+        command_mode = None
+        if joint_name == "stretch_gripper":
+            command_target, command_mode = _map_stretch_gripper_target(target)
+        robot.end_of_arm.move_to(joint_name, command_target)
+        result = {
+            "joint_name": joint_name,
+            "target": float(target),
+            "command_target": float(command_target),
+            "component": "end_of_arm",
+        }
+        if command_mode is not None:
+            result["command_mode"] = command_mode
+        return result
     elif joint_name in {"head_pan", "head_tilt"}:
         robot.head.move_to(joint_name, target)
         return {"joint_name": joint_name, "target": float(target), "component": "head"}
