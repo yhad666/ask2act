@@ -150,6 +150,131 @@ def _angle_diff_rad(target: float, current: float) -> float:
     return float((target - current + math.pi) % (2.0 * math.pi) - math.pi)
 
 
+def _read_joint_position(robot: Any, joint_name: str) -> float | None:
+    try:
+        robot.pull_status()
+    except Exception:
+        pass
+
+    if joint_name == "lift":
+        status = getattr(getattr(robot, "lift", None), "status", None)
+        if isinstance(status, dict) and "pos" in status:
+            return float(status["pos"])
+    if joint_name == "arm":
+        status = getattr(getattr(robot, "arm", None), "status", None)
+        if isinstance(status, dict) and "pos" in status:
+            return float(status["pos"])
+    if joint_name in {"wrist_yaw", "wrist_pitch", "wrist_roll", "stretch_gripper"}:
+        status = getattr(getattr(robot, "end_of_arm", None), "status", None)
+        if isinstance(status, dict):
+            candidates = [joint_name]
+            if joint_name == "stretch_gripper":
+                candidates.extend(["gripper", "stretch_gripper"])
+            for key in candidates:
+                entry = status.get(key)
+                if isinstance(entry, dict):
+                    for pos_key in ("pos", "pos_rad", "pos_m", "pos_pct"):
+                        if pos_key in entry:
+                            return float(entry[pos_key])
+                elif isinstance(entry, (int, float)):
+                    return float(entry)
+    if joint_name in {"head_pan", "head_tilt"}:
+        status = getattr(getattr(robot, "head", None), "status", None)
+        if isinstance(status, dict):
+            entry = status.get(joint_name)
+            if isinstance(entry, dict) and "pos" in entry:
+                return float(entry["pos"])
+            if isinstance(entry, (int, float)):
+                return float(entry)
+    return None
+
+
+def _joint_tolerance(joint_name: str, waypoint_name: str) -> float:
+    defaults = {
+        "lift": "0.025",
+        "arm": "0.025",
+        "wrist_yaw": "0.08",
+        "wrist_pitch": "0.08",
+        "wrist_roll": "0.08",
+        "stretch_gripper": "0.08",
+        "head_pan": "0.08",
+        "head_tilt": "0.08",
+    }
+    specific = f"ASK2ACT_STRETCH_WAIT_TOLERANCE_{joint_name.upper()}".replace("STRETCH_GRIPPER", "GRIPPER")
+    raw = os.getenv(specific, os.getenv("ASK2ACT_STRETCH_WAIT_TOLERANCE_DEFAULT", defaults.get(joint_name, "0.05")))
+    tolerance = max(0.0, float(raw))
+    if waypoint_name == "descend_to_grasp" and joint_name == "lift":
+        tolerance = max(0.0, float(os.getenv("ASK2ACT_STRETCH_DESCEND_LIFT_TOLERANCE_M", str(tolerance))))
+    return tolerance
+
+
+def _joint_timeout_s(joint_name: str, waypoint_name: str) -> float:
+    default = float(os.getenv("ASK2ACT_STRETCH_JOINT_WAIT_TIMEOUT_S", "20.0"))
+    if joint_name == "lift":
+        default = float(os.getenv("ASK2ACT_STRETCH_LIFT_WAIT_TIMEOUT_S", str(default)))
+    elif joint_name == "arm":
+        default = float(os.getenv("ASK2ACT_STRETCH_ARM_WAIT_TIMEOUT_S", str(default)))
+    elif joint_name == "stretch_gripper":
+        default = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_WAIT_TIMEOUT_S", "8.0"))
+    elif joint_name.startswith("wrist_"):
+        default = float(os.getenv("ASK2ACT_STRETCH_WRIST_WAIT_TIMEOUT_S", str(default)))
+    if waypoint_name == "descend_to_grasp":
+        default = float(os.getenv("ASK2ACT_STRETCH_DESCEND_WAIT_TIMEOUT_S", str(default)))
+    return max(0.0, default)
+
+
+def _wait_for_joint_target(
+    robot: Any,
+    *,
+    joint_name: str,
+    target: float,
+    waypoint_name: str,
+) -> dict[str, Any]:
+    if joint_name == "base_translate_arm_axis":
+        return {"joint_name": joint_name, "ok": True, "skipped": True, "reason": "waited_inside_command"}
+    if joint_name == "base_rotate":
+        return {"joint_name": joint_name, "ok": True, "skipped": True, "reason": "handled_by_base_theta_wait"}
+
+    timeout_s = _joint_timeout_s(joint_name, waypoint_name)
+    tolerance = _joint_tolerance(joint_name, waypoint_name)
+    started_at = time.monotonic()
+    samples: list[dict[str, float]] = []
+    actual = _read_joint_position(robot, joint_name)
+    ok = False
+    while time.monotonic() - started_at <= timeout_s:
+        actual = _read_joint_position(robot, joint_name)
+        if actual is None:
+            time.sleep(0.05)
+            continue
+        error = float(target - actual)
+        if len(samples) < 5 or abs(error) <= tolerance:
+            samples.append(
+                {
+                    "elapsed_s": round(time.monotonic() - started_at, 3),
+                    "actual": float(actual),
+                    "error": error,
+                }
+            )
+        if abs(error) <= tolerance:
+            ok = True
+            break
+        if joint_name == "stretch_gripper" and target <= -0.35:
+            close_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_CLOSE_ACCEPT_POS", "0.05"))
+            if actual <= close_threshold:
+                ok = True
+                break
+        time.sleep(0.05)
+    return {
+        "joint_name": joint_name,
+        "target": float(target),
+        "actual": None if actual is None else float(actual),
+        "ok": ok,
+        "timeout_s": timeout_s,
+        "tolerance": tolerance,
+        "samples": samples[-6:],
+    }
+
+
 def _wait_for_base_theta(
     robot: Any,
     *,
@@ -433,6 +558,7 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                     "joint_targets": joint_targets,
                     "status_before": _status_snapshot(robot),
                     "command_trace": [],
+                    "wait_trace": [],
                     "ok": False,
                 }
                 try:
@@ -446,6 +572,33 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                         if command_result is not None:
                             waypoint_trace["command_trace"].append(command_result)
                     robot.push_command()
+                    waypoint_ok = True
+                    for joint_name, target in joint_targets.items():
+                        joint_name_str = str(joint_name)
+                        if joint_name_str == "base_rotate":
+                            target_theta = base_reference_theta + float(target)
+                            wait_result = _wait_for_base_theta(
+                                robot,
+                                target_theta=target_theta,
+                                timeout_s=float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_WAIT_TIMEOUT_S", "12.0")),
+                                tolerance_rad=float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_WAIT_TOLERANCE_RAD", "0.035")),
+                            )
+                        else:
+                            wait_result = _wait_for_joint_target(
+                                robot,
+                                joint_name=joint_name_str,
+                                target=float(target),
+                                waypoint_name=name,
+                            )
+                        waypoint_trace["wait_trace"].append(wait_result)
+                        waypoint_ok = waypoint_ok and bool(wait_result.get("ok", False))
+                    if not waypoint_ok:
+                        failed_waits = [
+                            item
+                            for item in waypoint_trace["wait_trace"]
+                            if isinstance(item, dict) and not bool(item.get("ok", False))
+                        ]
+                        raise RuntimeError(f"{name}: failed to reach waypoint targets: {failed_waits}")
                     settle_s = max(default_settle_s, float(waypoint.get("settle_s") or 0.0))
                     if settle_s > 0.0:
                         time.sleep(settle_s)
