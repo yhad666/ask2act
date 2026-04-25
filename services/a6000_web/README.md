@@ -75,16 +75,18 @@ export ASK2ACT_PIPELINE_MODE=real_pointcloud
 export ASK2ACT_HEAD_CAMERA_EXTRINSICS_PATH=/abs/path/to/head_camera_extrinsics.json
 export ASK2ACT_REAL_ALLOW_APPROXIMATE_TOPDOWN_FALLBACK=1
 export ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M=0.0
-export ASK2ACT_REAL_TABLE_TOP_Z_M=0.50
+export ASK2ACT_REAL_TABLE_TOP_Z_M=auto
 export ASK2ACT_REAL_TABLE_CLEARANCE_MARGIN_M=0.005
 export ASK2ACT_REAL_OBJECT_Z_MAX_ABOVE_TABLE_M=0.22
 export ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=1
 export ASK2ACT_SESSION_RECORD_ROOT=/abs/path/to/session_records
 ```
 
-For real runs, `ASK2ACT_REAL_TABLE_TOP_Z_M` should match the physical tabletop
-height in the robot base/world frame. The simulation default is 0.78 m, which is
-too high for a low coffee table and will filter out all target points.
+For real runs, `ASK2ACT_REAL_TABLE_TOP_Z_M=auto` estimates the tabletop/object
+support height from the target bbox depth in the current observation. If you
+measure the physical tabletop height in the robot base/world frame, you can set
+that numeric value instead. The simulation default is 0.78 m, which is too high
+for a low coffee table and can filter out all target points.
 
 For the real-robot browser service, you can also copy:
 

@@ -179,6 +179,56 @@ class LocalGraspRuntime:
             "within_z_filter_count": int(np.count_nonzero(within)),
         }
 
+    @staticmethod
+    def _estimate_table_top_from_bbox_world(
+        *,
+        depth_m,
+        intrinsics,
+        extrinsics,
+        bbox_xyxy: tuple[int, int, int, int],
+        fallback_table_top_z_m: float,
+        table_margin_m: float,
+    ) -> Dict[str, Any]:
+        import numpy as np
+        from ask2act_grasp.utils.pcd_utils import backproject_depth, crop_depth_to_bbox
+        from ask2act_grasp.utils.tf_utils import transform_points
+
+        cropped_depth = crop_depth_to_bbox(np.asarray(depth_m, dtype=np.float32), bbox_xyxy)
+        camera_points = backproject_depth(cropped_depth, np.asarray(intrinsics, dtype=float))
+        if camera_points.size == 0:
+            return {
+                "table_top_z_m": float(fallback_table_top_z_m),
+                "source": "fallback_no_camera_points",
+                "world_point_count": 0,
+            }
+        world_points = transform_points(np.asarray(extrinsics, dtype=float), camera_points)
+        world_z = world_points[:, 2]
+        finite_z = world_z[np.isfinite(world_z)]
+        if finite_z.size < 10:
+            return {
+                "table_top_z_m": float(fallback_table_top_z_m),
+                "source": "fallback_too_few_world_points",
+                "world_point_count": int(finite_z.size),
+            }
+
+        percentile = float(os.getenv("ASK2ACT_REAL_AUTO_TABLE_Z_PERCENTILE", "5.0"))
+        support_z = float(np.percentile(finite_z, percentile))
+        clearance = float(os.getenv("ASK2ACT_REAL_AUTO_TABLE_Z_CLEARANCE_M", "0.010"))
+        table_top_z = support_z - float(table_margin_m) - clearance
+        return {
+            "table_top_z_m": table_top_z,
+            "source": "bbox_world_z_percentile",
+            "percentile": percentile,
+            "support_z_m": support_z,
+            "clearance_m": clearance,
+            "world_point_count": int(finite_z.size),
+            "world_z_min_m": float(np.min(finite_z)),
+            "world_z_p05_m": float(np.percentile(finite_z, 5.0)),
+            "world_z_median_m": float(np.median(finite_z)),
+            "world_z_p95_m": float(np.percentile(finite_z, 95.0)),
+            "world_z_max_m": float(np.max(finite_z)),
+        }
+
     def _default_run_dir(self) -> Path:
         root = Path(self.run_root).expanduser() if self.run_root else (Path(__file__).resolve().parents[2] / "logs" / "a6000_runs")
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -508,7 +558,8 @@ class LocalGraspRuntime:
         scene_config, _head_config = load_scene_config(self.scene_config_path or self._default_scene_config_path())
         grasp_config = load_grasp_config(self.grasp_config_path or self._default_grasp_config_path())
         real_table_top_raw = os.getenv("ASK2ACT_REAL_TABLE_TOP_Z_M", "").strip()
-        if real_table_top_raw:
+        auto_table_top = real_table_top_raw.lower() in {"", "auto", "infer", "estimate"}
+        if real_table_top_raw and not auto_table_top:
             table_top_z = float(real_table_top_raw)
             scene_config = replace(
                 scene_config,
@@ -597,14 +648,30 @@ class LocalGraspRuntime:
         option_results: list[dict[str, Any]] = []
         selected_result: dict[str, Any] | None = None
         for option in options:
+            table_estimate = (
+                self._estimate_table_top_from_bbox_world(
+                    depth_m=option["depth_m"],
+                    intrinsics=option["intrinsics"],
+                    extrinsics=option["extrinsics"],
+                    bbox_xyxy=option["bbox"],
+                    fallback_table_top_z_m=scene_config.table_top_z_m,
+                    table_margin_m=scene_config.table_clearance_margin_m,
+                )
+                if auto_table_top
+                else {
+                    "table_top_z_m": float(scene_config.table_top_z_m),
+                    "source": "ASK2ACT_REAL_TABLE_TOP_Z_M" if real_table_top_raw else "scene_config",
+                }
+            )
+            option_table_top_z = float(table_estimate["table_top_z_m"])
             point_cloud = point_cloud_gen.generate(
                 depth_image=option["depth_m"],
                 camera_intrinsics=option["intrinsics"],
                 camera_extrinsics=option["extrinsics"],
-                table_top_z_m=scene_config.table_top_z_m,
+                table_top_z_m=option_table_top_z,
                 table_margin_m=scene_config.table_clearance_margin_m,
                 z_min_m=grasp_config.z_min_m,
-                z_max_m=min(grasp_config.z_max_m, scene_config.table_top_z_m + object_z_max_above_table_m),
+                z_max_m=min(grasp_config.z_max_m, option_table_top_z + object_z_max_above_table_m),
                 target_bbox_2d=option["bbox"],
             )
             result = {
@@ -613,6 +680,7 @@ class LocalGraspRuntime:
                 "bbox_expanded": bool(option.get("bbox_expanded", False)),
                 "rotated_observation_clockwise_90": bool(option["rotated_observation_clockwise_90"]),
                 "depth_shape_hw": [int(option["depth_m"].shape[0]), int(option["depth_m"].shape[1])],
+                "table_top_estimate": table_estimate,
                 "point_cloud_count": int(point_cloud.filtered_point_count),
                 "depth_crop_stats": self._depth_crop_stats(option["depth_m"], option["bbox"]),
                 "world_filter_stats": self._pointcloud_filter_stats(
@@ -620,10 +688,10 @@ class LocalGraspRuntime:
                     intrinsics=option["intrinsics"],
                     extrinsics=option["extrinsics"],
                     bbox_xyxy=option["bbox"],
-                    table_top_z_m=scene_config.table_top_z_m,
+                    table_top_z_m=option_table_top_z,
                     table_margin_m=scene_config.table_clearance_margin_m,
                     z_min_m=grasp_config.z_min_m,
-                    z_max_m=min(grasp_config.z_max_m, scene_config.table_top_z_m + object_z_max_above_table_m),
+                    z_max_m=min(grasp_config.z_max_m, option_table_top_z + object_z_max_above_table_m),
                 ),
                 "point_cloud": point_cloud,
                 "depth_m": option["depth_m"],
@@ -653,12 +721,26 @@ class LocalGraspRuntime:
             "dino_rotated_clockwise_90": bool(rotate_clockwise_90),
             "original_depth_shape_hw": [int(original_depth_m.shape[0]), int(original_depth_m.shape[1])],
             "min_required_points": min_points,
-            "table_top_z_m": float(scene_config.table_top_z_m),
-            "table_top_source": "ASK2ACT_REAL_TABLE_TOP_Z_M" if real_table_top_raw else "scene_config",
+            "configured_table_top_z_m": float(scene_config.table_top_z_m),
+            "selected_table_top_z_m": float(selected_result["table_top_estimate"]["table_top_z_m"]) if selected_result else None,
+            "table_top_z_m": float(selected_result["table_top_estimate"]["table_top_z_m"]) if selected_result else float(scene_config.table_top_z_m),
+            "table_top_source": (
+                "auto_bbox_world_z" if auto_table_top else ("ASK2ACT_REAL_TABLE_TOP_Z_M" if real_table_top_raw else "scene_config")
+            ),
             "table_clearance_margin_m": float(scene_config.table_clearance_margin_m),
             "z_filter_range_m": [
                 float(grasp_config.z_min_m),
-                float(min(grasp_config.z_max_m, scene_config.table_top_z_m + object_z_max_above_table_m)),
+                float(
+                    min(
+                        grasp_config.z_max_m,
+                        (
+                            float(selected_result["table_top_estimate"]["table_top_z_m"])
+                            if selected_result
+                            else scene_config.table_top_z_m
+                        )
+                        + object_z_max_above_table_m,
+                    )
+                ),
             ],
             "object_z_max_above_table_m": object_z_max_above_table_m,
             "depth_aligned_to_color": bool(
@@ -687,6 +769,15 @@ class LocalGraspRuntime:
         intrinsics = selected_result["intrinsics"]
         extrinsics = selected_result["extrinsics"]
         applied_bbox_tuple = tuple(int(v) for v in selected_result["bbox"])
+        selected_table_top_z = float(selected_result["table_top_estimate"]["table_top_z_m"])
+        scene_config = replace(
+            scene_config,
+            table_position_m=(
+                scene_config.table_position_m[0],
+                scene_config.table_position_m[1],
+                selected_table_top_z - scene_config.table_size_m[2],
+            ),
+        )
 
         geometric_grasp = self._compute_geometric_grasp(
             point_cloud.world_points_xyz,
