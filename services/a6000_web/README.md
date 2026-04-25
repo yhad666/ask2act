@@ -74,12 +74,13 @@ export ASK2ACT_STRETCH_EXECUTE_TIMEOUT_MS=130000
 export ASK2ACT_PIPELINE_MODE=real_pointcloud
 export ASK2ACT_HEAD_CAMERA_EXTRINSICS_PATH=/abs/path/to/head_camera_extrinsics.json
 export ASK2ACT_REAL_ALLOW_APPROXIMATE_TOPDOWN_FALLBACK=1
-export ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M=0.0
+# Leave unset to use the calibrated top-down gripper length from simulation.
+# export ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M=0.0
 export ASK2ACT_REAL_TABLE_TOP_Z_M=auto
 export ASK2ACT_REAL_TABLE_CLEARANCE_MARGIN_M=0.005
 export ASK2ACT_REAL_OBJECT_Z_MAX_ABOVE_TABLE_M=0.22
-export ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_Z_MODE=upper
-export ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M=0.025
+export ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_Z_MODE=center
+export ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M=0.0
 export ASK2ACT_GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M=0.15
 export ASK2ACT_GEOMETRIC_TOP_DOWN_POSTGRASP_LIFT_M=0.15
 export ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=1
@@ -92,9 +93,10 @@ measure the physical tabletop height in the robot base/world frame, you can set
 that numeric value instead. The simulation default is 0.78 m, which is too high
 for a low coffee table and can filter out all target points.
 
-For real top-down grasps, the default final height is near the target top plus
-2.5 cm, and the pregrasp/postgrasp lift clearances are 15 cm. This keeps the
-vertical approach above the cup before descending.
+For real top-down grasps, the default contact target remains the geometric
+point-cloud grasp height, while approximate fallback converts that contact
+height into a wrist/lift command with the calibrated top-down gripper length.
+The pregrasp/postgrasp lift clearances are 15 cm.
 
 For the real-robot browser service, you can also copy:
 

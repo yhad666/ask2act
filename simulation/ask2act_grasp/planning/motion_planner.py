@@ -12,6 +12,7 @@ from ask2act_grasp.stretch3_specs import (
     topdown_grasp_center_to_rubber_offset_m,
     rotate_topdown_offset_to_world_m,
     topdown_simpleik_wrist_model_error_m,
+    topdown_wrist_to_rubber_offset_m,
     topdown_wrist_to_grasp_center_offset_m,
     WRIST_TO_FINGER_MID_LOCAL_M,
     cgn_frame_to_wrist_local_m,
@@ -26,9 +27,7 @@ TOP_DOWN_Z_CORRECTION_M = -0.04
 ANGLED_XY_DAMPING = 0.3
 APPROX_GEOMETRIC_TOP_DOWN_X_CORRECTION_M = 0.045
 APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M = -0.065
-APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M = float(
-    os.getenv("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M", "0.0")
-)
+APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_OVERRIDE = os.getenv("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M")
 GEOMETRIC_TOP_DOWN_GRASP_Z_MODE = os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_Z_MODE", "center").strip().lower()
 GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M", "0.0")
@@ -137,6 +136,13 @@ class MotionPlanner:
             ratio = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_HEIGHT_RATIO", "0.75"))
             return float(bottom_z + np.clip(ratio, 0.0, 1.2) * max(top_z - bottom_z, 0.0))
         return center_z
+
+    @staticmethod
+    def _approx_geometric_topdown_wrist_z_offset_m(gripper_open_cmd: float) -> float:
+        if APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_OVERRIDE is not None:
+            return float(APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_OVERRIDE)
+        wrist_to_rubber_local = np.asarray(topdown_wrist_to_rubber_offset_m(gripper_open_cmd), dtype=float)
+        return float(-wrist_to_rubber_local[2])
 
     def plan_to_grasp(self, candidate: GraspCandidate, current_state: dict[str, float]) -> MotionPlan:
         if candidate.source == "scene_oracle_single_cup":
@@ -520,11 +526,12 @@ class MotionPlanner:
             float(geometric_grasp["gripper_open_width"]),
             float(self.grasp_config.max_gripper_width_m),
         )
+        gripper_open_cmd = float(gripper_width_to_command(requested_open_width))
 
-        # For top-down geometric grasps, the effective rubber-tip contact point
-        # should land near the requested grasp height. A smaller empirical
-        # offset works better here than the generic CGN-frame conversion.
-        wrist_vertical_offset = APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M
+        # The approximate real fallback does not have SimpleIK, so explicitly
+        # convert the rubber/contact target into the wrist/lift target using the
+        # calibrated top-down gripper length measured from simulation.
+        wrist_vertical_offset = self._approx_geometric_topdown_wrist_z_offset_m(gripper_open_cmd)
         wrist_grasp_z = float(contact_grasp_z + wrist_vertical_offset)
         pregrasp_z = float(wrist_grasp_z + self._geometric_topdown_pregrasp_clearance_m(self.grasp_config))
 
@@ -548,11 +555,13 @@ class MotionPlanner:
             "wrist_pitch": clip_to_joint_limits("wrist_pitch", -1.57),
             "wrist_roll": 0.0,
             "gripper_open_width": float(requested_open_width),
-            "gripper_open_cmd": float(gripper_width_to_command(requested_open_width)),
+            "gripper_open_cmd": gripper_open_cmd,
             "gripper_close_cmd": float(gripper_close_command()),
             "approach_type": "top_down",
             "approach_direction": [0.0, 0.0, -1.0],
             "contact_point": [grasp_x, grasp_y, contact_grasp_z],
+            "rubber_contact_target_world_xyz": [grasp_x, grasp_y, contact_grasp_z],
+            "commanded_wrist_target_world_xyz": [grasp_x, grasp_y, wrist_grasp_z],
             "raw_grasp_z": float(geometric_grasp["grasp_z"]),
             "z_execution_mode": GEOMETRIC_TOP_DOWN_GRASP_Z_MODE,
             "top_clearance_m": GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M,
@@ -572,6 +581,12 @@ class MotionPlanner:
             "grasp_point_validated": bool(geometric_grasp.get("grasp_point_validated", True)),
             "width_near_limit": bool(geometric_grasp.get("width_near_limit", False)),
             "wrist_to_cgn_frame_offset_m": wrist_vertical_offset,
+            "wrist_to_rubber_vertical_offset_m": wrist_vertical_offset,
+            "wrist_z_offset_source": (
+                "env_override"
+                if APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_OVERRIDE is not None
+                else "calibrated_topdown_wrist_to_rubber"
+            ),
         }
         targets["reachable"] = self._check_reachable(targets)
         return targets
@@ -1008,6 +1023,20 @@ class MotionPlanner:
         print(f"  source: {candidate.source}", flush=True)
         print(f"  approach_type: {approach_type}", flush=True)
         print(f"  world target: x={grasp_x:.3f} y={grasp_y:.3f} z={grasp_z:.3f}", flush=True)
+        contact_target = numeric_targets.get("rubber_contact_target_world_xyz") or numeric_targets.get("contact_point")
+        if isinstance(contact_target, list) and len(contact_target) == 3:
+            print(
+                f"  contact/rubber target: x={float(contact_target[0]):.3f} "
+                f"y={float(contact_target[1]):.3f} z={float(contact_target[2]):.3f}",
+                flush=True,
+            )
+        if "wrist_to_rubber_vertical_offset_m" in numeric_targets:
+            print(
+                "  wrist/rubber vertical offset: "
+                f"{float(numeric_targets['wrist_to_rubber_vertical_offset_m']):.3f} "
+                f"({numeric_targets.get('wrist_z_offset_source', 'unknown')})",
+                flush=True,
+            )
         print(
             f"  lift: pregrasp={pregrasp_lift:.3f} grasp={grasp_lift:.3f} post={postgrasp_lift:.3f}",
             flush=True,
@@ -1128,6 +1157,9 @@ class MotionPlanner:
             waypoints=waypoints,
             metadata={
                 "target_position_m": [grasp_x, grasp_y, grasp_z],
+                "rubber_contact_target_position_m": (
+                    contact_target if isinstance(contact_target, list) and len(contact_target) == 3 else None
+                ),
                 "pregrasp_position_m": [float(numeric_targets["pregrasp_x"]), pregrasp_y, pregrasp_z],
                 "selected_grasp": {
                     "score": float(candidate.score),
