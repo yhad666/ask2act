@@ -258,6 +258,7 @@ Expected Stretch reply:
   "depth_scale_m_per_unit": 0.001,
   "rgb_shape_hw": [720, 1280],
   "depth_shape_hw": [720, 1280],
+  "depth_aligned_to_color": true,
   "camera_intrinsics": {
     "width": 1280,
     "height": 720,

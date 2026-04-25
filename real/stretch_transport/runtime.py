@@ -163,6 +163,7 @@ class StretchRobotRuntime:
             "height",
             "rgb_shape_hw",
             "depth_shape_hw",
+            "depth_aligned_to_color",
         ):
             if key in reply:
                 normalized[key] = reply[key]

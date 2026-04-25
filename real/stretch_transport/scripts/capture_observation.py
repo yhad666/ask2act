@@ -318,6 +318,8 @@ def _capture_with_realsense() -> dict:
         for _ in range(max(1, warmup_frames)):
             pipeline.wait_for_frames(timeout_ms=timeout_ms)
         frames = pipeline.wait_for_frames(timeout_ms=timeout_ms)
+        if capture_depth:
+            frames = rs.align(rs.stream.color).process(frames)
         color_frame = frames.get_color_frame()
         if color_frame is None:
             raise RuntimeError("No color frame returned from D435i")
@@ -375,6 +377,7 @@ def _capture_with_realsense() -> dict:
             "depth_shape_hw": depth_shape,
             "depth_npy_path": str(depth_path) if depth_path is not None else None,
             "depth_scale_m_per_unit": depth_scale,
+            "depth_aligned_to_color": bool(depth_frame is not None),
             "camera_intrinsics_path": str(intrinsics_path),
             "camera_intrinsics": intrinsics_payload,
             "default_pose_init": default_pose_result,

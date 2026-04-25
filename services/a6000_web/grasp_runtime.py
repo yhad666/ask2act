@@ -36,6 +36,67 @@ class LocalGraspRuntime:
             raise ValueError("Expected resolved_target.bbox_xyxy to contain 4 values")
         return rounded[0], rounded[1], rounded[2], rounded[3]
 
+    @staticmethod
+    def _clamp_bbox_to_shape(
+        bbox_xyxy: tuple[int, int, int, int],
+        image_shape_hw: tuple[int, int],
+    ) -> tuple[int, int, int, int]:
+        height, width = int(image_shape_hw[0]), int(image_shape_hw[1])
+        x0, y0, x1, y1 = [int(value) for value in bbox_xyxy]
+        x0 = max(0, min(width, x0))
+        x1 = max(0, min(width, x1))
+        y0 = max(0, min(height, y0))
+        y1 = max(0, min(height, y1))
+        if x1 < x0:
+            x0, x1 = x1, x0
+        if y1 < y0:
+            y0, y1 = y1, y0
+        return x0, y0, x1, y1
+
+    @staticmethod
+    def _expand_bbox(
+        bbox_xyxy: tuple[int, int, int, int],
+        image_shape_hw: tuple[int, int],
+        *,
+        pixels: int,
+        ratio: float,
+    ) -> tuple[int, int, int, int]:
+        x0, y0, x1, y1 = [int(value) for value in bbox_xyxy]
+        pad = max(int(pixels), int(round(max(x1 - x0, y1 - y0) * float(ratio))))
+        return LocalGraspRuntime._clamp_bbox_to_shape((x0 - pad, y0 - pad, x1 + pad, y1 + pad), image_shape_hw)
+
+    @staticmethod
+    def _map_bbox_from_cw_rotated_to_original(
+        bbox_xyxy: tuple[int, int, int, int],
+        original_shape_hw: tuple[int, int],
+    ) -> tuple[int, int, int, int]:
+        height, _width = int(original_shape_hw[0]), int(original_shape_hw[1])
+        x0, y0, x1, y1 = [int(value) for value in bbox_xyxy]
+        mapped = (y0, height - x1, y1, height - x0)
+        return LocalGraspRuntime._clamp_bbox_to_shape(mapped, original_shape_hw)
+
+    @staticmethod
+    def _depth_crop_stats(depth_m, bbox_xyxy: tuple[int, int, int, int]) -> Dict[str, Any]:
+        import numpy as np
+
+        x0, y0, x1, y1 = [int(value) for value in bbox_xyxy]
+        crop = np.asarray(depth_m)[y0:y1, x0:x1]
+        valid = crop[np.isfinite(crop) & (crop > 1e-6)]
+        stats: Dict[str, Any] = {
+            "crop_shape_hw": [int(crop.shape[0]), int(crop.shape[1])] if crop.ndim == 2 else [],
+            "crop_area_px": int(crop.size),
+            "valid_depth_pixels": int(valid.size),
+        }
+        if valid.size:
+            stats.update(
+                {
+                    "depth_min_m": float(np.min(valid)),
+                    "depth_median_m": float(np.median(valid)),
+                    "depth_max_m": float(np.max(valid)),
+                }
+            )
+        return stats
+
     def _default_run_dir(self) -> Path:
         root = Path(self.run_root).expanduser() if self.run_root else (Path(__file__).resolve().parents[2] / "logs" / "a6000_runs")
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -359,15 +420,9 @@ class LocalGraspRuntime:
             raise RuntimeError("real_pointcloud mode requires a Stretch observation with RGB-D metadata")
 
         bbox_tuple = self._bbox_to_int_tuple(resolved_target.bbox_xyxy)
-        depth_m = self._load_depth_image_m(observation_metadata)
-        intrinsics = self._load_intrinsics_matrix(observation_metadata)
-        extrinsics = self._load_camera_extrinsics(observation_metadata)
-        if rotate_clockwise_90:
-            original_shape = tuple(int(v) for v in depth_m.shape)
-            depth_m = np.rot90(depth_m, k=-1)
-            intrinsics = rotate_intrinsics_clockwise_90(intrinsics, original_depth_shape=original_shape)
-            extrinsics = rotate_camera_extrinsics_clockwise_90(extrinsics)
-
+        original_depth_m = self._load_depth_image_m(observation_metadata)
+        original_intrinsics = self._load_intrinsics_matrix(observation_metadata)
+        original_extrinsics = self._load_camera_extrinsics(observation_metadata)
         scene_config, _head_config = load_scene_config(self.scene_config_path or self._default_scene_config_path())
         grasp_config = load_grasp_config(self.grasp_config_path or self._default_grasp_config_path())
         if os.getenv("ASK2ACT_REAL_ALLOW_APPROXIMATE_TOPDOWN_FALLBACK", "0").strip().lower() in {
@@ -377,22 +432,140 @@ class LocalGraspRuntime:
             "on",
         }:
             grasp_config = replace(grasp_config, allow_approximate_topdown_fallback=True)
-        point_cloud = PointCloudGenerator().generate(
-            depth_image=depth_m,
-            camera_intrinsics=intrinsics,
-            camera_extrinsics=extrinsics,
-            table_top_z_m=scene_config.table_top_z_m,
-            table_margin_m=scene_config.table_clearance_margin_m,
-            z_min_m=grasp_config.z_min_m,
-            z_max_m=min(grasp_config.z_max_m, scene_config.table_top_z_m + 0.20),
-            target_bbox_2d=bbox_tuple,
-        )
+
+        run_dir = self._default_run_dir()
         min_points = int(os.getenv("ASK2ACT_REAL_MIN_POINT_CLOUD_COUNT", "30"))
-        if point_cloud.filtered_point_count < min_points:
+        expand_pixels = int(os.getenv("ASK2ACT_REAL_BBOX_EXPAND_PX", "12"))
+        expand_ratio = float(os.getenv("ASK2ACT_REAL_BBOX_EXPAND_RATIO", "0.12"))
+        options: list[dict[str, Any]] = []
+        original_shape = tuple(int(v) for v in original_depth_m.shape)
+        if rotate_clockwise_90:
+            rotated_depth_m = np.rot90(original_depth_m, k=-1)
+            rotated_intrinsics = rotate_intrinsics_clockwise_90(original_intrinsics, original_depth_shape=original_shape)
+            rotated_extrinsics = rotate_camera_extrinsics_clockwise_90(original_extrinsics)
+            rotated_shape = tuple(int(v) for v in rotated_depth_m.shape)
+            primary_bbox = self._clamp_bbox_to_shape(bbox_tuple, rotated_shape)
+            mapped_bbox = self._map_bbox_from_cw_rotated_to_original(bbox_tuple, original_shape)
+            options.extend(
+                [
+                    {
+                        "name": "rotated_cw_depth_with_detection_bbox",
+                        "depth_m": rotated_depth_m,
+                        "intrinsics": rotated_intrinsics,
+                        "extrinsics": rotated_extrinsics,
+                        "bbox": primary_bbox,
+                        "rotated_observation_clockwise_90": True,
+                    },
+                    {
+                        "name": "original_depth_bbox_mapped_from_rotated_detection",
+                        "depth_m": original_depth_m,
+                        "intrinsics": original_intrinsics,
+                        "extrinsics": original_extrinsics,
+                        "bbox": mapped_bbox,
+                        "rotated_observation_clockwise_90": False,
+                    },
+                ]
+            )
+        else:
+            options.append(
+                {
+                    "name": "original_depth_with_detection_bbox",
+                    "depth_m": original_depth_m,
+                    "intrinsics": original_intrinsics,
+                    "extrinsics": original_extrinsics,
+                    "bbox": self._clamp_bbox_to_shape(bbox_tuple, original_shape),
+                    "rotated_observation_clockwise_90": False,
+                }
+            )
+
+        expanded_options: list[dict[str, Any]] = []
+        for option in options:
+            expanded_options.append(option)
+            expanded_bbox = self._expand_bbox(
+                option["bbox"],
+                tuple(int(v) for v in option["depth_m"].shape),
+                pixels=expand_pixels,
+                ratio=expand_ratio,
+            )
+            if expanded_bbox != option["bbox"]:
+                expanded = dict(option)
+                expanded["name"] = f"{option['name']}_expanded"
+                expanded["bbox"] = expanded_bbox
+                expanded["bbox_expanded"] = True
+                expanded_options.append(expanded)
+        options = expanded_options
+
+        point_cloud_gen = PointCloudGenerator()
+        option_results: list[dict[str, Any]] = []
+        selected_result: dict[str, Any] | None = None
+        for option in options:
+            point_cloud = point_cloud_gen.generate(
+                depth_image=option["depth_m"],
+                camera_intrinsics=option["intrinsics"],
+                camera_extrinsics=option["extrinsics"],
+                table_top_z_m=scene_config.table_top_z_m,
+                table_margin_m=scene_config.table_clearance_margin_m,
+                z_min_m=grasp_config.z_min_m,
+                z_max_m=min(grasp_config.z_max_m, scene_config.table_top_z_m + 0.20),
+                target_bbox_2d=option["bbox"],
+            )
+            result = {
+                "name": option["name"],
+                "bbox": list(option["bbox"]),
+                "bbox_expanded": bool(option.get("bbox_expanded", False)),
+                "rotated_observation_clockwise_90": bool(option["rotated_observation_clockwise_90"]),
+                "depth_shape_hw": [int(option["depth_m"].shape[0]), int(option["depth_m"].shape[1])],
+                "point_cloud_count": int(point_cloud.filtered_point_count),
+                "depth_crop_stats": self._depth_crop_stats(option["depth_m"], option["bbox"]),
+                "point_cloud": point_cloud,
+                "depth_m": option["depth_m"],
+                "intrinsics": option["intrinsics"],
+                "extrinsics": option["extrinsics"],
+            }
+            option_results.append(result)
+            if point_cloud.filtered_point_count >= min_points:
+                selected_result = result
+                break
+
+        if selected_result is None and option_results:
+            selected_result = max(option_results, key=lambda item: int(item["point_cloud_count"]))
+
+        diagnostics = {
+            "resolved_target": resolved_target.model_dump(),
+            "raw_detection_bbox_xyxy": list(resolved_target.bbox_xyxy),
+            "raw_detection_bbox_int": list(bbox_tuple),
+            "dino_rotated_clockwise_90": bool(rotate_clockwise_90),
+            "original_depth_shape_hw": [int(original_depth_m.shape[0]), int(original_depth_m.shape[1])],
+            "min_required_points": min_points,
+            "table_top_z_m": float(scene_config.table_top_z_m),
+            "table_clearance_margin_m": float(scene_config.table_clearance_margin_m),
+            "z_filter_range_m": [float(grasp_config.z_min_m), float(min(grasp_config.z_max_m, scene_config.table_top_z_m + 0.20))],
+            "depth_aligned_to_color": bool(
+                (observation_metadata or {}).get("depth_aligned_to_color")
+                or self._metadata_detail(observation_metadata).get("depth_aligned_to_color")
+            ),
+            "options": [
+                {key: self._to_jsonable(value) for key, value in item.items() if key not in {"point_cloud", "depth_m", "intrinsics", "extrinsics"}}
+                for item in option_results
+            ],
+            "selected_option": selected_result["name"] if selected_result is not None else None,
+        }
+        (run_dir / "real_pointcloud_diagnostics.json").write_text(
+            json.dumps(self._to_jsonable(diagnostics), indent=2),
+            encoding="utf-8",
+        )
+
+        point_cloud = selected_result["point_cloud"] if selected_result is not None else None
+        if point_cloud is None or point_cloud.filtered_point_count < min_points:
             raise RuntimeError(
-                f"Target point cloud has too few points: {point_cloud.filtered_point_count} < {min_points}. "
+                f"Target point cloud has too few points: {0 if point_cloud is None else point_cloud.filtered_point_count} < {min_points}. "
+                f"Diagnostics saved to {run_dir / 'real_pointcloud_diagnostics.json'}. "
                 "Check bbox/depth alignment, head pose, and camera extrinsics."
             )
+        depth_m = selected_result["depth_m"]
+        intrinsics = selected_result["intrinsics"]
+        extrinsics = selected_result["extrinsics"]
+        applied_bbox_tuple = tuple(int(v) for v in selected_result["bbox"])
 
         geometric_grasp = self._compute_geometric_grasp(
             point_cloud.world_points_xyz,
@@ -432,7 +605,6 @@ class LocalGraspRuntime:
             for waypoint in motion_plan.waypoints
         ]
 
-        run_dir = self._default_run_dir()
         np.save(run_dir / "target_depth_m.npy", depth_m)
         save_point_cloud(point_cloud.world_points_xyz, run_dir / "target_cloud_world.ply")
         save_point_cloud(point_cloud.camera_points_xyz, run_dir / "target_cloud_camera.ply")
@@ -447,8 +619,11 @@ class LocalGraspRuntime:
             "intermediate": {
                 "geometric_grasp": geometric_grasp,
                 "motion_plan_metadata": motion_plan.metadata,
-                "target_bbox_2d": list(bbox_tuple),
-                "rotated_observation_clockwise_90": bool(rotate_clockwise_90),
+                "target_bbox_2d": list(applied_bbox_tuple),
+                "raw_detection_bbox_2d": list(bbox_tuple),
+                "selected_pointcloud_option": selected_result["name"],
+                "pointcloud_options": diagnostics["options"],
+                "rotated_observation_clockwise_90": bool(selected_result["rotated_observation_clockwise_90"]),
                 "camera_intrinsics": intrinsics,
                 "camera_extrinsics": extrinsics,
                 "current_state_for_planning": current_state,
@@ -474,13 +649,15 @@ class LocalGraspRuntime:
         dispatch_payload = {
             "pipeline_mode": "real_pointcloud",
             "planner_backend": motion_plan.backend,
-            "target_bbox_2d": list(bbox_tuple),
+            "target_bbox_2d": list(applied_bbox_tuple),
             "target_bbox_xyxy": list(resolved_target.bbox_xyxy),
             "trajectory": trajectory,
             "run_dir": str(run_dir),
             "resolved_target": resolved_target.model_dump(),
             "geometric_grasp": self._to_jsonable(geometric_grasp),
             "motion_plan_metadata": self._to_jsonable(motion_plan.metadata),
+            "selected_pointcloud_option": selected_result["name"],
+            "pointcloud_diagnostics_path": str(run_dir / "real_pointcloud_diagnostics.json"),
         }
         return {
             "ok": True,

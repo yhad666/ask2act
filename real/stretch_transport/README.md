@@ -216,13 +216,15 @@ Recommended minimal shape:
   the head camera view
 - opens the head D435i through `pyrealsense2`
 - captures one RGB frame
-- captures depth by default as `.npy`
+- captures depth by default as `.npy`, aligned to the color frame so RGB
+  detections and depth crops share the same pixel coordinates
 - uses the configured RealSense stream size for both RGB and depth, currently
   `1280x720` in `robot_server.env`
 - saves it under `real/stretch_transport/artifacts/observations/`
 - returns `image_path`; the transport server also inlines the depth npy as
   `depth_npy_base64` so the A6000 can plan from the same observation
-- also returns `depth_npy_path`, `rgb_shape_hw`, `depth_shape_hw`, and `camera_intrinsics`
+- also returns `depth_npy_path`, `rgb_shape_hw`, `depth_shape_hw`,
+  `depth_aligned_to_color`, and `camera_intrinsics`
 
 It uses:
 
