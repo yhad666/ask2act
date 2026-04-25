@@ -6,6 +6,7 @@ import sys
 import time
 import traceback
 from pathlib import Path
+from typing import Any
 
 
 def _artifact_root() -> Path:
@@ -66,14 +67,38 @@ def _default_pose_targets() -> dict[str, float]:
         "lift": float(os.getenv("ASK2ACT_STRETCH_HOME_LIFT_M", "0.60")),
         "arm": float(os.getenv("ASK2ACT_STRETCH_HOME_ARM_M", "0.0")),
         "wrist_yaw": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_YAW_RAD", "0.0")),
-        "wrist_pitch": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_PITCH_RAD", "0.18")),
+        "wrist_pitch": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_PITCH_RAD", "-1.57")),
         "wrist_roll": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_ROLL_RAD", "0.0")),
         "stretch_gripper": float(os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "0.56")),
     }
 
 
-def _command_default_pose(robot, *, include_gripper: bool, reason: str) -> dict:
+def _status_snapshot(robot: Any) -> dict[str, Any]:
+    try:
+        robot.pull_status()
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+    def status_of(component_name: str) -> Any:
+        component = getattr(robot, component_name, None)
+        if component is None:
+            return None
+        return getattr(component, "status", None)
+
+    return {
+        "ok": True,
+        "timestamp_epoch_s": time.time(),
+        "base": status_of("base"),
+        "lift": status_of("lift"),
+        "arm": status_of("arm"),
+        "head": status_of("head"),
+        "end_of_arm": status_of("end_of_arm"),
+    }
+
+
+def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> dict:
     targets = _default_pose_targets()
+    status_before = _status_snapshot(robot)
     if include_gripper:
         robot.end_of_arm.move_to("stretch_gripper", targets["stretch_gripper"])
     robot.arm.move_to(targets["arm"])
@@ -89,6 +114,7 @@ def _command_default_pose(robot, *, include_gripper: bool, reason: str) -> dict:
         robot.pull_status()
     except Exception:
         pass
+    status_after = _status_snapshot(robot)
     return {
         "ok": True,
         "status": "default_pose_commanded",
@@ -96,6 +122,8 @@ def _command_default_pose(robot, *, include_gripper: bool, reason: str) -> dict:
         "include_gripper": include_gripper,
         "targets": targets if include_gripper else {key: value for key, value in targets.items() if key != "stretch_gripper"},
         "settle_s": settle_s,
+        "status_before": status_before,
+        "status_after": status_after,
         "timestamp_epoch_s": time.time(),
     }
 
@@ -402,7 +430,7 @@ def main(argv: list[str]) -> int:
                 "traceback": traceback.format_exc(limit=6),
             }
 
-    response_path.write_text(json.dumps(response, indent=2), encoding="utf-8")
+    response_path.write_text(json.dumps(response, indent=2, default=str), encoding="utf-8")
     return 0
 
 

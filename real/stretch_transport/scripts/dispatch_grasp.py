@@ -10,6 +10,12 @@ from pathlib import Path
 from typing import Any
 
 
+class GraspExecutionError(RuntimeError):
+    def __init__(self, message: str, trace: list[dict[str, Any]]) -> None:
+        super().__init__(message)
+        self.trace = trace
+
+
 def _artifact_root() -> Path:
     raw = os.getenv(
         "ASK2ACT_STRETCH_EXECUTE_ARTIFACT_ROOT",
@@ -25,6 +31,15 @@ def _write_artifact(payload: dict[str, Any]) -> Path:
     path = _artifact_root() / f"execute_request_{stamp}.json"
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return path
+
+
+def _write_response_artifact(request_artifact_path: Path, response: dict[str, Any]) -> Path:
+    response_path = request_artifact_path.with_name(
+        request_artifact_path.name.replace("execute_request_", "execute_response_")
+    )
+    response["response_artifact_path"] = str(response_path)
+    response_path.write_text(json.dumps(response, indent=2, default=str), encoding="utf-8")
+    return response_path
 
 
 def _trajectory_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -44,14 +59,38 @@ def _default_pose_targets() -> dict[str, float]:
         "lift": float(os.getenv("ASK2ACT_STRETCH_HOME_LIFT_M", "0.60")),
         "arm": float(os.getenv("ASK2ACT_STRETCH_HOME_ARM_M", "0.0")),
         "wrist_yaw": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_YAW_RAD", "0.0")),
-        "wrist_pitch": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_PITCH_RAD", "0.18")),
+        "wrist_pitch": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_PITCH_RAD", "-1.57")),
         "wrist_roll": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_ROLL_RAD", "0.0")),
         "stretch_gripper": float(os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "0.56")),
     }
 
 
+def _status_snapshot(robot: Any) -> dict[str, Any]:
+    try:
+        robot.pull_status()
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+    def status_of(component_name: str) -> Any:
+        component = getattr(robot, component_name, None)
+        if component is None:
+            return None
+        return getattr(component, "status", None)
+
+    return {
+        "ok": True,
+        "timestamp_epoch_s": time.time(),
+        "base": status_of("base"),
+        "lift": status_of("lift"),
+        "arm": status_of("arm"),
+        "head": status_of("head"),
+        "end_of_arm": status_of("end_of_arm"),
+    }
+
+
 def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> dict[str, Any]:
     targets = _default_pose_targets()
+    status_before = _status_snapshot(robot)
     if include_gripper:
         robot.end_of_arm.move_to("stretch_gripper", targets["stretch_gripper"])
     robot.arm.move_to(targets["arm"])
@@ -67,12 +106,15 @@ def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> 
         robot.pull_status()
     except Exception:
         pass
+    status_after = _status_snapshot(robot)
     return {
         "name": f"default_pose_{reason}",
         "joint_targets": targets if include_gripper else {key: value for key, value in targets.items() if key != "stretch_gripper"},
         "include_gripper": include_gripper,
         "ok": True,
         "settle_s": settle_s,
+        "status_before": status_before,
+        "status_after": status_after,
     }
 
 
@@ -145,55 +187,89 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
     trace: list[dict[str, Any]] = []
     default_settle_s = float(os.getenv("ASK2ACT_STRETCH_WAYPOINT_SETTLE_S", "2.0"))
     try:
-        if _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_EXECUTE_START", "1"):
-            trace.append(
-                _command_default_pose(
-                    robot,
-                    include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_START", "1"),
-                    reason="execute_start",
+        try:
+            if _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_EXECUTE_START", "1"):
+                trace.append(
+                    _command_default_pose(
+                        robot,
+                        include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_START", "1"),
+                        reason="execute_start",
+                    )
                 )
-            )
-        base_reference_theta = _current_base_theta(robot)
-        for waypoint in trajectory:
-            name = str(waypoint.get("name") or "unnamed_waypoint")
-            joint_targets = waypoint.get("joint_targets") or {}
-            if not isinstance(joint_targets, dict):
-                raise RuntimeError(f"{name}: joint_targets must be an object")
-            command_trace: list[dict[str, Any]] = []
-            for joint_name, target in joint_targets.items():
-                command_result = _move_component(
-                    robot,
-                    str(joint_name),
-                    float(target),
-                    base_reference_theta=base_reference_theta,
-                )
-                if command_result is not None:
-                    command_trace.append(command_result)
-            robot.push_command()
-            settle_s = max(default_settle_s, float(waypoint.get("settle_s") or 0.0))
-            if settle_s > 0.0:
-                time.sleep(settle_s)
-            try:
-                robot.pull_status()
-            except Exception:
-                pass
-            trace.append(
-                {
+            base_reference_theta = _current_base_theta(robot)
+            for waypoint in trajectory:
+                name = str(waypoint.get("name") or "unnamed_waypoint")
+                joint_targets = waypoint.get("joint_targets") or {}
+                if not isinstance(joint_targets, dict):
+                    raise RuntimeError(f"{name}: joint_targets must be an object")
+                waypoint_trace: dict[str, Any] = {
                     "name": name,
                     "joint_targets": joint_targets,
-                    "command_trace": command_trace,
-                    "ok": True,
-                    "settle_s": settle_s,
+                    "status_before": _status_snapshot(robot),
+                    "command_trace": [],
+                    "ok": False,
                 }
-            )
-        if _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_EXECUTE_END", "1"):
-            trace.append(
-                _command_default_pose(
-                    robot,
-                    include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_END", "0"),
-                    reason="execute_end",
+                try:
+                    for joint_name, target in joint_targets.items():
+                        command_result = _move_component(
+                            robot,
+                            str(joint_name),
+                            float(target),
+                            base_reference_theta=base_reference_theta,
+                        )
+                        if command_result is not None:
+                            waypoint_trace["command_trace"].append(command_result)
+                    robot.push_command()
+                    settle_s = max(default_settle_s, float(waypoint.get("settle_s") or 0.0))
+                    if settle_s > 0.0:
+                        time.sleep(settle_s)
+                    waypoint_trace.update(
+                        {
+                            "ok": True,
+                            "settle_s": settle_s,
+                            "status_after": _status_snapshot(robot),
+                        }
+                    )
+                    trace.append(waypoint_trace)
+                except Exception as waypoint_exc:
+                    waypoint_trace.update(
+                        {
+                            "ok": False,
+                            "error": str(waypoint_exc),
+                            "traceback": traceback.format_exc(limit=4),
+                            "status_after": _status_snapshot(robot),
+                        }
+                    )
+                    trace.append(waypoint_trace)
+                    raise
+            if _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_EXECUTE_END", "1"):
+                trace.append(
+                    _command_default_pose(
+                        robot,
+                        include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_END", "0"),
+                        reason="execute_end",
+                    )
                 )
-            )
+        except Exception as exc:
+            if _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_EXECUTE_FAILURE", "1"):
+                try:
+                    trace.append(
+                        _command_default_pose(
+                            robot,
+                            include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_FAILURE", "0"),
+                            reason="execute_failure",
+                        )
+                    )
+                except Exception as home_exc:
+                    trace.append(
+                        {
+                            "name": "default_pose_execute_failure",
+                            "ok": False,
+                            "error": str(home_exc),
+                            "traceback": traceback.format_exc(limit=4),
+                        }
+                    )
+            raise GraspExecutionError(str(exc), trace) from exc
         return trace
     finally:
         try:
@@ -242,8 +318,14 @@ def main(argv: list[str]) -> int:
             "error": str(exc),
             "traceback": traceback.format_exc(limit=8),
         }
+        if isinstance(exc, GraspExecutionError):
+            response["trajectory_trace"] = exc.trace
 
-    response_path.write_text(json.dumps(response, indent=2), encoding="utf-8")
+    try:
+        _write_response_artifact(artifact_path, response)
+    except Exception as artifact_exc:
+        response["response_artifact_error"] = str(artifact_exc)
+    response_path.write_text(json.dumps(response, indent=2, default=str), encoding="utf-8")
     return 0
 
 
