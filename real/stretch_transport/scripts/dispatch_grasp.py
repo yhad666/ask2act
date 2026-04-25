@@ -129,8 +129,123 @@ def _current_base_theta(robot: Any) -> float:
         raise RuntimeError("Unable to read current Stretch base theta") from exc
 
 
+def _current_base_xy(robot: Any) -> tuple[float, float] | None:
+    try:
+        robot.pull_status()
+    except Exception:
+        pass
+    status = getattr(getattr(robot, "base", None), "status", None)
+    if not isinstance(status, dict):
+        return None
+    for x_key, y_key in (("x", "y"), ("x_m", "y_m")):
+        if x_key in status and y_key in status:
+            try:
+                return float(status[x_key]), float(status[y_key])
+            except Exception:
+                return None
+    return None
+
+
 def _angle_diff_rad(target: float, current: float) -> float:
     return float((target - current + math.pi) % (2.0 * math.pi) - math.pi)
+
+
+def _wait_for_base_theta(
+    robot: Any,
+    *,
+    target_theta: float,
+    timeout_s: float,
+    tolerance_rad: float,
+) -> dict[str, Any]:
+    started_at = time.monotonic()
+    samples: list[dict[str, float]] = []
+    final_theta = _current_base_theta(robot)
+    ok = False
+    while time.monotonic() - started_at <= max(0.0, timeout_s):
+        final_theta = _current_base_theta(robot)
+        error = _angle_diff_rad(target_theta, final_theta)
+        if len(samples) < 5 or abs(error) <= tolerance_rad:
+            samples.append(
+                {
+                    "elapsed_s": round(time.monotonic() - started_at, 3),
+                    "theta_rad": final_theta,
+                    "error_rad": error,
+                }
+            )
+        if abs(error) <= tolerance_rad:
+            ok = True
+            break
+        time.sleep(0.05)
+    final_error = _angle_diff_rad(target_theta, final_theta)
+    return {
+        "ok": ok,
+        "target_theta_rad": float(target_theta),
+        "final_theta_rad": float(final_theta),
+        "final_error_rad": float(final_error),
+        "timeout_s": float(timeout_s),
+        "tolerance_rad": float(tolerance_rad),
+        "samples": samples[-6:],
+    }
+
+
+def _wait_for_base_translation_delta(
+    robot: Any,
+    *,
+    start_xy: tuple[float, float] | None,
+    start_theta: float,
+    target_distance_m: float,
+    timeout_s: float,
+    tolerance_m: float,
+) -> dict[str, Any]:
+    if start_xy is None:
+        time.sleep(max(0.0, timeout_s))
+        return {
+            "ok": True,
+            "used_odometry": False,
+            "reason": "base_status_xy_unavailable",
+            "target_distance_m": float(target_distance_m),
+            "timeout_s": float(timeout_s),
+        }
+
+    started_at = time.monotonic()
+    axis = (math.cos(start_theta), math.sin(start_theta))
+    start_x, start_y = start_xy
+    final_xy = start_xy
+    actual_distance = 0.0
+    ok = False
+    samples: list[dict[str, float]] = []
+    while time.monotonic() - started_at <= max(0.0, timeout_s):
+        current_xy = _current_base_xy(robot)
+        if current_xy is None:
+            break
+        final_xy = current_xy
+        actual_distance = (current_xy[0] - start_x) * axis[0] + (current_xy[1] - start_y) * axis[1]
+        error = float(target_distance_m - actual_distance)
+        if len(samples) < 5 or abs(error) <= tolerance_m:
+            samples.append(
+                {
+                    "elapsed_s": round(time.monotonic() - started_at, 3),
+                    "actual_distance_m": float(actual_distance),
+                    "error_m": error,
+                }
+            )
+        if abs(error) <= tolerance_m:
+            ok = True
+            break
+        time.sleep(0.05)
+    return {
+        "ok": ok,
+        "used_odometry": True,
+        "target_distance_m": float(target_distance_m),
+        "actual_distance_m": float(actual_distance),
+        "final_error_m": float(target_distance_m - actual_distance),
+        "start_xy": [float(start_xy[0]), float(start_xy[1])],
+        "final_xy": [float(final_xy[0]), float(final_xy[1])],
+        "drive_theta_rad": float(start_theta),
+        "timeout_s": float(timeout_s),
+        "tolerance_m": float(tolerance_m),
+        "samples": samples[-6:],
+    }
 
 
 def _move_base_translate_arm_axis(robot: Any, distance_m: float) -> dict[str, Any]:
@@ -152,26 +267,61 @@ def _move_base_translate_arm_axis(robot: Any, distance_m: float) -> dict[str, An
             f"max is {max_distance:.3f} m"
         )
 
-    settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_ARM_AXIS_SETTLE_S", "1.0")))
-    rotate_settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_ARM_AXIS_ROTATE_SETTLE_S", "1.0")))
+    translate_timeout_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_ARM_AXIS_TIMEOUT_S", "8.0")))
+    rotate_timeout_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_ARM_AXIS_ROTATE_TIMEOUT_S", "8.0")))
+    translate_tolerance_m = max(0.001, float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_TOLERANCE_M", "0.02")))
+    rotate_tolerance_rad = max(0.001, float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_ROTATE_TOLERANCE_RAD", "0.035")))
     start_theta = _current_base_theta(robot)
     clockwise_quarter_turn = -math.pi / 2.0
+    side_theta = start_theta + clockwise_quarter_turn
     status_before = _status_snapshot(robot)
 
     robot.base.rotate_by(clockwise_quarter_turn)
     robot.push_command()
-    if rotate_settle_s > 0.0:
-        time.sleep(rotate_settle_s)
+    rotate_to_side = _wait_for_base_theta(
+        robot,
+        target_theta=side_theta,
+        timeout_s=rotate_timeout_s,
+        tolerance_rad=rotate_tolerance_rad,
+    )
+    if not rotate_to_side["ok"]:
+        raise RuntimeError(
+            "base_translate_arm_axis failed while rotating toward table: "
+            f"theta_error={float(rotate_to_side['final_error_rad']):.3f} rad"
+        )
 
+    drive_start_theta = _current_base_theta(robot)
+    drive_start_xy = _current_base_xy(robot)
     robot.base.translate_by(requested)
     robot.push_command()
-    if settle_s > 0.0:
-        time.sleep(settle_s)
+    translate_wait = _wait_for_base_translation_delta(
+        robot,
+        start_xy=drive_start_xy,
+        start_theta=drive_start_theta,
+        target_distance_m=requested,
+        timeout_s=translate_timeout_s,
+        tolerance_m=translate_tolerance_m,
+    )
+    if not translate_wait["ok"]:
+        raise RuntimeError(
+            "base_translate_arm_axis failed while translating for reach: "
+            f"distance_error={float(translate_wait.get('final_error_m', 0.0)):.3f} m"
+        )
 
-    robot.base.rotate_by(-clockwise_quarter_turn)
+    before_return_theta = _current_base_theta(robot)
+    robot.base.rotate_by(_angle_diff_rad(start_theta, before_return_theta))
     robot.push_command()
-    if rotate_settle_s > 0.0:
-        time.sleep(rotate_settle_s)
+    rotate_back = _wait_for_base_theta(
+        robot,
+        target_theta=start_theta,
+        timeout_s=rotate_timeout_s,
+        tolerance_rad=rotate_tolerance_rad,
+    )
+    if not rotate_back["ok"]:
+        raise RuntimeError(
+            "base_translate_arm_axis failed while rotating back to grasp heading: "
+            f"theta_error={float(rotate_back['final_error_rad']):.3f} rad"
+        )
 
     final_theta = _current_base_theta(robot)
     return {
@@ -179,10 +329,16 @@ def _move_base_translate_arm_axis(robot: Any, distance_m: float) -> dict[str, An
         "requested_distance_m": requested,
         "side_turn_rad": clockwise_quarter_turn,
         "start_theta_rad": start_theta,
+        "side_theta_rad": side_theta,
+        "rotate_to_side": rotate_to_side,
+        "translate_wait": translate_wait,
+        "rotate_back": rotate_back,
         "final_theta_rad": final_theta,
         "final_theta_error_rad": _angle_diff_rad(start_theta, final_theta),
-        "settle_s": settle_s,
-        "rotate_settle_s": rotate_settle_s,
+        "translate_timeout_s": translate_timeout_s,
+        "rotate_timeout_s": rotate_timeout_s,
+        "translate_tolerance_m": translate_tolerance_m,
+        "rotate_tolerance_rad": rotate_tolerance_rad,
         "skipped": False,
         "status_before": status_before,
         "status_after": _status_snapshot(robot),
