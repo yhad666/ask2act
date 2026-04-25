@@ -360,12 +360,36 @@ def execute_resolved_session(session: SessionState, *, dry_run: bool, raise_on_e
             dry_run=dry_run,
         )
 
+        execution_debug_path = None
+        run_dir_raw = plan_result.get("run_dir") or (plan_result.get("plan_summary") or {}).get("pipeline_run_dir")
+        if run_dir_raw:
+            try:
+                run_dir = Path(str(run_dir_raw)).expanduser()
+                run_dir.mkdir(parents=True, exist_ok=True)
+                execution_debug_path = run_dir / "stretch_execute_result.json"
+                execution_debug_path.write_text(
+                    json.dumps(
+                        {
+                            "session_id": session.session_id,
+                            "dry_run": dry_run,
+                            "preposition_attempts": preposition_attempts,
+                            "transport_result": transport_result,
+                        },
+                        indent=2,
+                        default=str,
+                    ),
+                    encoding="utf-8",
+                )
+            except Exception as debug_exc:
+                execution_debug_path = f"failed_to_write: {debug_exc}"
+
         success = bool(plan_result.get("ok", True)) and bool(transport_result.get("ok", True))
         session.execution_result = {
             "ok": success,
             "dry_run": dry_run,
             "auto_execute": AUTO_EXECUTE_ON_RESOLVE and not dry_run,
             "base_reach_preposition_attempts": preposition_attempts,
+            "execution_debug_path": None if execution_debug_path is None else str(execution_debug_path),
             "plan_result": plan_result,
             "transport_result": transport_result,
         }
