@@ -55,6 +55,13 @@ AUTO_EXECUTE_ON_RESOLVE = os.getenv("ASK2ACT_AUTO_EXECUTE_ON_RESOLVE", "0").stri
     "yes",
     "on",
 }
+REAL_REPLAN_AFTER_BASE_REACH = os.getenv("ASK2ACT_REAL_REPLAN_AFTER_BASE_REACH", "1").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS = int(os.getenv("ASK2ACT_REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS", "2"))
 SESSION_RECORD_ROOT = Path(os.getenv("ASK2ACT_SESSION_RECORD_ROOT", str(ROOT / "artifacts" / "session_records"))).expanduser()
 
 SESSIONS: Dict[str, SessionState] = {}
@@ -210,17 +217,133 @@ def maybe_auto_execute(session: SessionState) -> None:
     execute_resolved_session(session, dry_run=False, raise_on_error=False)
 
 
+def _find_base_reach_waypoint(plan_result: Dict[str, Any]) -> Dict[str, Any] | None:
+    dispatch_payload = plan_result.get("dispatch_payload") or {}
+    trajectory = dispatch_payload.get("trajectory") or []
+    if not isinstance(trajectory, list):
+        return None
+    for waypoint in trajectory:
+        if not isinstance(waypoint, dict):
+            continue
+        if str(waypoint.get("name") or "") == "base_translate_for_reach":
+            return waypoint
+    return None
+
+
+def _make_base_reach_preposition_payload(plan_result: Dict[str, Any], waypoint: Dict[str, Any]) -> Dict[str, Any]:
+    dispatch_payload = dict(plan_result.get("dispatch_payload") or {})
+    dispatch_payload["planner_backend"] = "real_base_reach_preposition"
+    dispatch_payload["trajectory"] = [waypoint]
+    dispatch_payload["preposition_only"] = True
+    dispatch_payload["note"] = "Execute base reach correction only; A6000 will reobserve and replan before grasping."
+    return dispatch_payload
+
+
+def _select_reobserved_target(original: ResolvedTarget, candidates) -> ResolvedTarget:
+    if not candidates:
+        raise RuntimeError("Reobserve after base reach returned no GroundingDINO candidates")
+
+    original_label = (original.label or "").strip().lower()
+
+    def label_match(candidate) -> bool:
+        label = (candidate.label or "").strip().lower()
+        return bool(original_label and (label == original_label or original_label in label or label in original_label))
+
+    matching = [candidate for candidate in candidates if label_match(candidate)]
+    pool = matching or list(candidates)
+    selected = max(pool, key=lambda candidate: float(candidate.score))
+    return ResolvedTarget(
+        candidate_id=selected.candidate_id,
+        label=selected.label,
+        score=selected.score,
+        bbox_xyxy=selected.bbox_xyxy,
+        mask_rle=selected.mask_rle,
+    )
+
+
+def _refresh_session_observation_after_base_reach(session: SessionState, *, attempt_index: int) -> Dict[str, Any]:
+    observation = stretch_transport.fetch_observation(
+        session_id=session.session_id,
+        instruction=f"{session.instruction} (reobserve after base reach correction {attempt_index})",
+    )
+    detection = detector.detect(image_bytes=observation.image_bytes, instruction=session.instruction)
+    if session.resolved_target is None:
+        raise RuntimeError("Cannot reselect target after base reach because session has no resolved target")
+    reselected_target = _select_reobserved_target(session.resolved_target, detection.candidates)
+
+    session.observation_id = observation.observation_id or session.session_id
+    session.observation_source = f"stretch_{stretch_transport.mode}_reobserve_after_base_reach"
+    session.observation_image_bytes = detection.prepared_image_bytes
+    session.observation_image_data_url = detection.image_data_url
+    session.candidate_overlay_data_url = detection.overlay_data_url
+    session.candidates = detection.candidates
+    session.observation_raw_response = observation.raw_response
+    session.resolved_target = reselected_target
+    finalize_resolved_target(session)
+    return {
+        "attempt_index": attempt_index,
+        "observation_id": session.observation_id,
+        "candidate_count": len(detection.candidates),
+        "selected_candidate": reselected_target.model_dump(),
+    }
+
+
 def execute_resolved_session(session: SessionState, *, dry_run: bool, raise_on_error: bool = True) -> None:
     if session.resolved_target is None:
         raise HTTPException(status_code=409, detail="session has no resolved target")
 
     try:
-        plan_result = grasp_runtime.plan_for_target(
-            session.resolved_target,
-            observation_metadata=session.observation_raw_response,
-            dry_run=dry_run,
-            rotate_clockwise_90=detector.rotate_clockwise_90,
-        )
+        preposition_attempts: list[Dict[str, Any]] = []
+        max_attempts = max(0, REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS)
+        for attempt_index in range(max_attempts + 1):
+            plan_result = grasp_runtime.plan_for_target(
+                session.resolved_target,
+                observation_metadata=session.observation_raw_response,
+                dry_run=dry_run,
+                rotate_clockwise_90=detector.rotate_clockwise_90,
+            )
+            base_reach_waypoint = _find_base_reach_waypoint(plan_result)
+            should_preposition = (
+                REAL_REPLAN_AFTER_BASE_REACH
+                and not dry_run
+                and grasp_runtime.mode in {"real_pointcloud", "real_depth"}
+                and base_reach_waypoint is not None
+            )
+            if not should_preposition:
+                break
+            if attempt_index >= max_attempts:
+                raise RuntimeError(
+                    "Base reach correction is still required after reobserve/replan attempts; "
+                    "refusing to execute stale grasp coordinates."
+                )
+
+            preposition_payload = _make_base_reach_preposition_payload(plan_result, base_reach_waypoint)
+            preposition_transport = stretch_transport.dispatch_grasp(
+                session_id=session.session_id,
+                instruction=session.instruction,
+                observation_id=session.observation_id,
+                resolved_target={
+                    "candidate_id": session.resolved_target.candidate_id,
+                    "bbox_xyxy": session.resolved_target.bbox_xyxy,
+                    "mask_rle": session.resolved_target.mask_rle,
+                },
+                grasp_plan=preposition_payload,
+                dry_run=False,
+            )
+            if not bool(preposition_transport.get("ok", True)):
+                raise RuntimeError(f"Base reach preposition failed: {preposition_transport}")
+            reobserve = _refresh_session_observation_after_base_reach(session, attempt_index=attempt_index + 1)
+            preposition_attempts.append(
+                {
+                    "attempt_index": attempt_index + 1,
+                    "base_reach_waypoint": base_reach_waypoint,
+                    "transport_result": preposition_transport,
+                    "reobserve": reobserve,
+                }
+            )
+        else:
+            raise RuntimeError("Internal error while planning after base reach preposition")
+
         # Normalize through the Pydantic model for a stable schema.
         session.grasp_plan_result = GraspPlanResult.model_validate(plan_result["plan_summary"])
 
@@ -242,6 +365,7 @@ def execute_resolved_session(session: SessionState, *, dry_run: bool, raise_on_e
             "ok": success,
             "dry_run": dry_run,
             "auto_execute": AUTO_EXECUTE_ON_RESOLVE and not dry_run,
+            "base_reach_preposition_attempts": preposition_attempts,
             "plan_result": plan_result,
             "transport_result": transport_result,
         }

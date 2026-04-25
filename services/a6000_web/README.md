@@ -86,6 +86,8 @@ export ASK2ACT_GEOMETRIC_TOP_DOWN_POSTGRASP_LIFT_M=0.15
 export ASK2ACT_GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE=1
 export ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MAX_M=0.16
 export ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MARGIN_M=0.02
+export ASK2ACT_REAL_REPLAN_AFTER_BASE_REACH=1
+export ASK2ACT_REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS=2
 export ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=1
 export ASK2ACT_SESSION_RECORD_ROOT=/abs/path/to/session_records
 ```
@@ -101,7 +103,10 @@ point-cloud grasp height, while approximate fallback converts that contact
 height into a wrist/lift command with the calibrated top-down gripper length.
 The pregrasp/postgrasp lift clearances are 15 cm.
 If the target is slightly beyond the arm limit, the real trajectory inserts a
-small base reach adjustment before extending the arm.
+small base reach adjustment. The A6000 executes that adjustment by itself,
+fetches a new observation, reselects the target, replans from the new RGB-D
+frame, and only then sends the final grasp trajectory. If the arm can already
+reach, no base adjustment is sent.
 
 For the real-robot browser service, you can also copy:
 
