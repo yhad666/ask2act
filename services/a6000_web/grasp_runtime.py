@@ -97,6 +97,88 @@ class LocalGraspRuntime:
             )
         return stats
 
+    @staticmethod
+    def _load_rgb_image_from_metadata(observation_metadata: Dict[str, Any] | None):
+        from PIL import Image, ImageOps
+
+        metadata = observation_metadata or {}
+        detail = LocalGraspRuntime._metadata_detail(metadata)
+        encoded = metadata.get("image_base64") or detail.get("image_base64")
+        data_url = metadata.get("image_data_url") or detail.get("image_data_url")
+        if data_url and "," in str(data_url):
+            encoded = str(data_url).split(",", 1)[1]
+        if encoded:
+            return ImageOps.exif_transpose(Image.open(io.BytesIO(base64.b64decode(str(encoded))))).convert("RGB")
+        path_raw = metadata.get("image_path") or detail.get("image_path")
+        if path_raw and Path(str(path_raw)).expanduser().exists():
+            return ImageOps.exif_transpose(Image.open(Path(str(path_raw)).expanduser())).convert("RGB")
+        return None
+
+    @staticmethod
+    def _save_depth_debug_image(depth_m, bbox_xyxy: tuple[int, int, int, int], path: Path) -> None:
+        import numpy as np
+        from PIL import Image, ImageDraw
+
+        depth = np.asarray(depth_m, dtype=np.float32)
+        valid = depth[np.isfinite(depth) & (depth > 1e-6)]
+        if valid.size:
+            lo, hi = np.percentile(valid, [2.0, 98.0])
+            scaled = np.clip((depth - lo) / max(float(hi - lo), 1e-6), 0.0, 1.0)
+        else:
+            scaled = np.zeros_like(depth, dtype=np.float32)
+        image = Image.fromarray((scaled * 255.0).astype(np.uint8), mode="L").convert("RGB")
+        ImageDraw.Draw(image).rectangle(list(bbox_xyxy), outline=(255, 64, 64), width=4)
+        image.save(path)
+
+    @staticmethod
+    def _save_rgb_debug_image(rgb_image, bbox_xyxy: tuple[int, int, int, int], path: Path) -> None:
+        from PIL import ImageDraw
+
+        image = rgb_image.copy()
+        ImageDraw.Draw(image).rectangle(list(bbox_xyxy), outline=(54, 193, 255), width=5)
+        image.save(path)
+
+    @staticmethod
+    def _pointcloud_filter_stats(
+        *,
+        depth_m,
+        intrinsics,
+        extrinsics,
+        bbox_xyxy: tuple[int, int, int, int],
+        table_top_z_m: float,
+        table_margin_m: float,
+        z_min_m: float,
+        z_max_m: float,
+    ) -> Dict[str, Any]:
+        import numpy as np
+        from ask2act_grasp.utils.pcd_utils import backproject_depth, crop_depth_to_bbox
+        from ask2act_grasp.utils.tf_utils import transform_points
+
+        cropped_depth = crop_depth_to_bbox(np.asarray(depth_m, dtype=np.float32), bbox_xyxy)
+        camera_points = backproject_depth(cropped_depth, np.asarray(intrinsics, dtype=float))
+        if camera_points.size == 0:
+            return {"camera_point_count": 0, "world_point_count": 0}
+        world_points = transform_points(np.asarray(extrinsics, dtype=float), camera_points)
+        world_z = world_points[:, 2]
+        finite = np.isfinite(world_z)
+        lower = max(float(table_top_z_m) + float(table_margin_m), float(z_min_m))
+        upper = float(z_max_m)
+        within = finite & (world_z > lower) & (world_z < upper)
+        return {
+            "camera_point_count": int(camera_points.shape[0]),
+            "world_point_count": int(world_points.shape[0]),
+            "world_z_min_m": float(np.min(world_z[finite])) if np.any(finite) else None,
+            "world_z_p05_m": float(np.percentile(world_z[finite], 5.0)) if np.any(finite) else None,
+            "world_z_median_m": float(np.median(world_z[finite])) if np.any(finite) else None,
+            "world_z_p95_m": float(np.percentile(world_z[finite], 95.0)) if np.any(finite) else None,
+            "world_z_max_m": float(np.max(world_z[finite])) if np.any(finite) else None,
+            "z_filter_lower_m": lower,
+            "z_filter_upper_m": upper,
+            "below_lower_count": int(np.count_nonzero(finite & (world_z <= lower))),
+            "above_upper_count": int(np.count_nonzero(finite & (world_z >= upper))),
+            "within_z_filter_count": int(np.count_nonzero(within)),
+        }
+
     def _default_run_dir(self) -> Path:
         root = Path(self.run_root).expanduser() if self.run_root else (Path(__file__).resolve().parents[2] / "logs" / "a6000_runs")
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -425,6 +507,20 @@ class LocalGraspRuntime:
         original_extrinsics = self._load_camera_extrinsics(observation_metadata)
         scene_config, _head_config = load_scene_config(self.scene_config_path or self._default_scene_config_path())
         grasp_config = load_grasp_config(self.grasp_config_path or self._default_grasp_config_path())
+        real_table_top_raw = os.getenv("ASK2ACT_REAL_TABLE_TOP_Z_M", "").strip()
+        if real_table_top_raw:
+            table_top_z = float(real_table_top_raw)
+            scene_config = replace(
+                scene_config,
+                table_position_m=(
+                    scene_config.table_position_m[0],
+                    scene_config.table_position_m[1],
+                    table_top_z - scene_config.table_size_m[2],
+                ),
+            )
+        real_table_margin_raw = os.getenv("ASK2ACT_REAL_TABLE_CLEARANCE_MARGIN_M", "").strip()
+        if real_table_margin_raw:
+            scene_config = replace(scene_config, table_clearance_margin_m=float(real_table_margin_raw))
         if os.getenv("ASK2ACT_REAL_ALLOW_APPROXIMATE_TOPDOWN_FALLBACK", "0").strip().lower() in {
             "1",
             "true",
@@ -434,7 +530,9 @@ class LocalGraspRuntime:
             grasp_config = replace(grasp_config, allow_approximate_topdown_fallback=True)
 
         run_dir = self._default_run_dir()
+        rgb_image = self._load_rgb_image_from_metadata(observation_metadata)
         min_points = int(os.getenv("ASK2ACT_REAL_MIN_POINT_CLOUD_COUNT", "30"))
+        object_z_max_above_table_m = float(os.getenv("ASK2ACT_REAL_OBJECT_Z_MAX_ABOVE_TABLE_M", "0.20"))
         expand_pixels = int(os.getenv("ASK2ACT_REAL_BBOX_EXPAND_PX", "12"))
         expand_ratio = float(os.getenv("ASK2ACT_REAL_BBOX_EXPAND_RATIO", "0.12"))
         options: list[dict[str, Any]] = []
@@ -506,7 +604,7 @@ class LocalGraspRuntime:
                 table_top_z_m=scene_config.table_top_z_m,
                 table_margin_m=scene_config.table_clearance_margin_m,
                 z_min_m=grasp_config.z_min_m,
-                z_max_m=min(grasp_config.z_max_m, scene_config.table_top_z_m + 0.20),
+                z_max_m=min(grasp_config.z_max_m, scene_config.table_top_z_m + object_z_max_above_table_m),
                 target_bbox_2d=option["bbox"],
             )
             result = {
@@ -517,12 +615,30 @@ class LocalGraspRuntime:
                 "depth_shape_hw": [int(option["depth_m"].shape[0]), int(option["depth_m"].shape[1])],
                 "point_cloud_count": int(point_cloud.filtered_point_count),
                 "depth_crop_stats": self._depth_crop_stats(option["depth_m"], option["bbox"]),
+                "world_filter_stats": self._pointcloud_filter_stats(
+                    depth_m=option["depth_m"],
+                    intrinsics=option["intrinsics"],
+                    extrinsics=option["extrinsics"],
+                    bbox_xyxy=option["bbox"],
+                    table_top_z_m=scene_config.table_top_z_m,
+                    table_margin_m=scene_config.table_clearance_margin_m,
+                    z_min_m=grasp_config.z_min_m,
+                    z_max_m=min(grasp_config.z_max_m, scene_config.table_top_z_m + object_z_max_above_table_m),
+                ),
                 "point_cloud": point_cloud,
                 "depth_m": option["depth_m"],
                 "intrinsics": option["intrinsics"],
                 "extrinsics": option["extrinsics"],
             }
             option_results.append(result)
+            safe_name = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in option["name"])
+            try:
+                self._save_depth_debug_image(option["depth_m"], option["bbox"], run_dir / f"{safe_name}_depth_bbox.png")
+                if rgb_image is not None:
+                    option_rgb = rgb_image.rotate(-90, expand=True) if option["rotated_observation_clockwise_90"] else rgb_image
+                    self._save_rgb_debug_image(option_rgb, option["bbox"], run_dir / f"{safe_name}_rgb_bbox.png")
+            except Exception:
+                pass
             if point_cloud.filtered_point_count >= min_points:
                 selected_result = result
                 break
@@ -538,8 +654,13 @@ class LocalGraspRuntime:
             "original_depth_shape_hw": [int(original_depth_m.shape[0]), int(original_depth_m.shape[1])],
             "min_required_points": min_points,
             "table_top_z_m": float(scene_config.table_top_z_m),
+            "table_top_source": "ASK2ACT_REAL_TABLE_TOP_Z_M" if real_table_top_raw else "scene_config",
             "table_clearance_margin_m": float(scene_config.table_clearance_margin_m),
-            "z_filter_range_m": [float(grasp_config.z_min_m), float(min(grasp_config.z_max_m, scene_config.table_top_z_m + 0.20))],
+            "z_filter_range_m": [
+                float(grasp_config.z_min_m),
+                float(min(grasp_config.z_max_m, scene_config.table_top_z_m + object_z_max_above_table_m)),
+            ],
+            "object_z_max_above_table_m": object_z_max_above_table_m,
             "depth_aligned_to_color": bool(
                 (observation_metadata or {}).get("depth_aligned_to_color")
                 or self._metadata_detail(observation_metadata).get("depth_aligned_to_color")
