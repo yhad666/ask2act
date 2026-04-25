@@ -505,12 +505,16 @@ def _move_base_translate_arm_axis(robot: Any, distance_m: float) -> dict[str, An
 def _move_component(robot: Any, joint_name: str, target: float, *, base_reference_theta: float) -> dict[str, Any] | None:
     if joint_name == "lift":
         robot.lift.move_to(target)
+        return {"joint_name": joint_name, "target": float(target), "component": "lift"}
     elif joint_name == "arm":
         robot.arm.move_to(target)
+        return {"joint_name": joint_name, "target": float(target), "component": "arm"}
     elif joint_name in {"wrist_yaw", "wrist_pitch", "wrist_roll", "stretch_gripper"}:
         robot.end_of_arm.move_to(joint_name, target)
+        return {"joint_name": joint_name, "target": float(target), "component": "end_of_arm"}
     elif joint_name in {"head_pan", "head_tilt"}:
         robot.head.move_to(joint_name, target)
+        return {"joint_name": joint_name, "target": float(target), "component": "head"}
     elif joint_name == "base_rotate":
         current_theta = _current_base_theta(robot)
         target_theta = float(base_reference_theta + target)
@@ -545,7 +549,6 @@ def _move_component(robot: Any, joint_name: str, target: float, *, base_referenc
         return _move_base_translate_arm_axis(robot, target)
     else:
         raise RuntimeError(f"Unsupported real-robot joint target: {joint_name}")
-    return None
 
 
 def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]]:

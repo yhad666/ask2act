@@ -28,6 +28,7 @@ ANGLED_XY_DAMPING = 0.3
 APPROX_GEOMETRIC_TOP_DOWN_X_CORRECTION_M = 0.045
 APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M = -0.065
 APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_OVERRIDE = os.getenv("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M")
+GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE = os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE")
 GEOMETRIC_TOP_DOWN_GRASP_Z_MODE = os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_Z_MODE", "center").strip().lower()
 GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M", "0.0")
@@ -156,6 +157,12 @@ class MotionPlanner:
             return float(APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_OVERRIDE)
         wrist_to_rubber_local = np.asarray(topdown_wrist_to_rubber_offset_m(gripper_open_cmd), dtype=float)
         return float(-wrist_to_rubber_local[2])
+
+    @staticmethod
+    def _topdown_gripper_open_cmd(requested_open_width: float) -> float:
+        if GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE is not None:
+            return float(GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE)
+        return float(gripper_width_to_command(requested_open_width))
 
     def plan_to_grasp(self, candidate: GraspCandidate, current_state: dict[str, float]) -> MotionPlan:
         if candidate.source == "scene_oracle_single_cup":
@@ -314,7 +321,7 @@ class MotionPlanner:
         if current_state is not None:
             base_world_translation[0] = float(current_state.get("base_x", 0.0))
             base_world_translation[1] = float(current_state.get("base_y", 0.0))
-        gripper_open_cmd = float(gripper_width_to_command(requested_open_width))
+        gripper_open_cmd = self._topdown_gripper_open_cmd(requested_open_width)
         wrist_to_grasp_center_local = np.asarray(topdown_wrist_to_grasp_center_offset_m(), dtype=float)
         grasp_center_to_rubber_local = np.asarray(topdown_grasp_center_to_rubber_offset_m(gripper_open_cmd), dtype=float)
 
@@ -539,7 +546,7 @@ class MotionPlanner:
             float(geometric_grasp["gripper_open_width"]),
             float(self.grasp_config.max_gripper_width_m),
         )
-        gripper_open_cmd = float(gripper_width_to_command(requested_open_width))
+        gripper_open_cmd = self._topdown_gripper_open_cmd(requested_open_width)
 
         # The approximate real fallback does not have SimpleIK, so explicitly
         # convert the rubber/contact target into the wrist/lift target using the
