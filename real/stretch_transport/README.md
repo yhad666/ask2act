@@ -27,6 +27,8 @@ The design goal is:
   Bundled real-robot D435i capture path using `pyrealsense2`.
 - `scripts/dispatch_grasp.py`
   Bundled robot-side dispatcher. It accepts dry-runs and can execute a waypoint trajectory with `stretch_body`.
+- `scripts/generate_head_camera_extrinsics.py`
+  Regenerates `head_camera_extrinsics.json` from the Stretch SE3 URDF chain for the configured head pan/tilt.
 - `run_robot_server.sh`
   One-command launcher.
 - `robot_server.env.example`

@@ -1,0 +1,34 @@
+{
+  "source": "stretch_se3_urdf_chain",
+  "parent_frame": "base_link",
+  "child_frame": "camera_color_optical_frame",
+  "head_pan_rad": -1.57,
+  "head_tilt_rad": -0.55,
+  "note": "Camera-to-base transform derived from the robot URDF for the configured tabletop head pose.",
+  "camera_to_world": [
+    [
+      0.05830224211771663,
+      0.9972108714949098,
+      -0.046597492812479886,
+      -0.03241959689349977
+    ],
+    [
+      0.42450425415428544,
+      -0.06701132158527603,
+      -0.9029427562056789,
+      -0.040580705037355634
+    ],
+    [
+      -0.903546892401806,
+      0.03286275325892042,
+      -0.42722716753418494,
+      1.2814877903305928
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ]
+}
