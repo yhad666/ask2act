@@ -133,6 +133,62 @@ def _angle_diff_rad(target: float, current: float) -> float:
     return float((target - current + math.pi) % (2.0 * math.pi) - math.pi)
 
 
+def _move_base_translate_arm_axis(robot: Any, distance_m: float) -> dict[str, Any]:
+    if not _truthy("ASK2ACT_STRETCH_BASE_TRANSLATE_ARM_AXIS_ENABLED", "1"):
+        raise RuntimeError("base_translate_arm_axis requested but ASK2ACT_STRETCH_BASE_TRANSLATE_ARM_AXIS_ENABLED=0")
+    requested = float(distance_m)
+    eps = float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_EPS_M", "0.01"))
+    if abs(requested) <= eps:
+        return {
+            "joint_name": "base_translate_arm_axis",
+            "requested_distance_m": requested,
+            "skipped": True,
+            "skip_reason": f"abs(distance) <= {eps}",
+        }
+    max_distance = float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_ARM_AXIS_MAX_M", "0.18"))
+    if abs(requested) > max_distance:
+        raise RuntimeError(
+            f"Refusing base_translate_arm_axis distance {requested:.3f} m; "
+            f"max is {max_distance:.3f} m"
+        )
+
+    settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_ARM_AXIS_SETTLE_S", "1.0")))
+    rotate_settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_ARM_AXIS_ROTATE_SETTLE_S", "1.0")))
+    start_theta = _current_base_theta(robot)
+    clockwise_quarter_turn = -math.pi / 2.0
+    status_before = _status_snapshot(robot)
+
+    robot.base.rotate_by(clockwise_quarter_turn)
+    robot.push_command()
+    if rotate_settle_s > 0.0:
+        time.sleep(rotate_settle_s)
+
+    robot.base.translate_by(requested)
+    robot.push_command()
+    if settle_s > 0.0:
+        time.sleep(settle_s)
+
+    robot.base.rotate_by(-clockwise_quarter_turn)
+    robot.push_command()
+    if rotate_settle_s > 0.0:
+        time.sleep(rotate_settle_s)
+
+    final_theta = _current_base_theta(robot)
+    return {
+        "joint_name": "base_translate_arm_axis",
+        "requested_distance_m": requested,
+        "side_turn_rad": clockwise_quarter_turn,
+        "start_theta_rad": start_theta,
+        "final_theta_rad": final_theta,
+        "final_theta_error_rad": _angle_diff_rad(start_theta, final_theta),
+        "settle_s": settle_s,
+        "rotate_settle_s": rotate_settle_s,
+        "skipped": False,
+        "status_before": status_before,
+        "status_after": _status_snapshot(robot),
+    }
+
+
 def _move_component(robot: Any, joint_name: str, target: float, *, base_reference_theta: float) -> dict[str, Any] | None:
     if joint_name == "lift":
         robot.lift.move_to(target)
@@ -172,6 +228,8 @@ def _move_component(robot: Any, joint_name: str, target: float, *, base_referenc
             "delta_rad": delta,
             "skipped": False,
         }
+    elif joint_name == "base_translate_arm_axis":
+        return _move_base_translate_arm_axis(robot, target)
     else:
         raise RuntimeError(f"Unsupported real-robot joint target: {joint_name}")
     return None

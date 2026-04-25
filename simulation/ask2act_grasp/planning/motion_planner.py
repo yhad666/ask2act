@@ -36,6 +36,16 @@ GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M", "0.12")
 )
 GEOMETRIC_TOP_DOWN_POSTGRASP_LIFT_M = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_POSTGRASP_LIFT_M", "0.12"))
+GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE = (
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE", "1").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
+GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MAX_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MAX_M", "0.16")
+)
+GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MARGIN_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MARGIN_M", "0.02")
+)
 
 
 class MotionPlanner:
@@ -113,6 +123,9 @@ class MotionPlanner:
     def _world_y_to_arm(self, y_world_m: float) -> float:
         desired = max(-float(y_world_m) - self.grasp_config.oracle_arm_backoff_m, 0.0)
         return float(np.clip(desired, STRETCH3_JOINT_LIMITS["arm"][0], STRETCH3_JOINT_LIMITS["arm"][1]))
+
+    def _world_y_to_arm_unclipped(self, y_world_m: float) -> float:
+        return float(max(-float(y_world_m) - self.grasp_config.oracle_arm_backoff_m, 0.0))
 
     @staticmethod
     def _geometric_topdown_pregrasp_clearance_m(grasp_config: GraspConfig) -> float:
@@ -534,6 +547,19 @@ class MotionPlanner:
         wrist_vertical_offset = self._approx_geometric_topdown_wrist_z_offset_m(gripper_open_cmd)
         wrist_grasp_z = float(contact_grasp_z + wrist_vertical_offset)
         pregrasp_z = float(wrist_grasp_z + self._geometric_topdown_pregrasp_clearance_m(self.grasp_config))
+        arm_upper = float(STRETCH3_JOINT_LIMITS["arm"][1])
+        desired_arm_before_base = self._world_y_to_arm_unclipped(grasp_y)
+        base_translate_arm_axis_m = 0.0
+        if GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE and desired_arm_before_base > arm_upper:
+            base_translate_arm_axis_m = float(
+                np.clip(
+                    desired_arm_before_base - arm_upper + GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MARGIN_M,
+                    0.0,
+                    GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MAX_M,
+                )
+            )
+        arm_planning_grasp_y = float(grasp_y + base_translate_arm_axis_m)
+        desired_arm_after_base = self._world_y_to_arm_unclipped(arm_planning_grasp_y)
 
         wrist_yaw = 0.0
         if requested_open_width < 0.04:
@@ -551,6 +577,13 @@ class MotionPlanner:
             "pregrasp_x": grasp_x,
             "pregrasp_y": grasp_y,
             "pregrasp_z": pregrasp_z,
+            "grasp_y_for_arm": arm_planning_grasp_y,
+            "pregrasp_y_for_arm": arm_planning_grasp_y,
+            "base_translate_arm_axis_m": base_translate_arm_axis_m,
+            "arm_required_before_base_translate_m": desired_arm_before_base,
+            "arm_required_after_base_translate_m": desired_arm_after_base,
+            "arm_reach_shortfall_before_base_translate_m": max(0.0, desired_arm_before_base - arm_upper),
+            "arm_reach_shortfall_after_base_translate_m": max(0.0, desired_arm_after_base - arm_upper),
             "wrist_yaw": float(wrist_yaw),
             "wrist_pitch": clip_to_joint_limits("wrist_pitch", -1.57),
             "wrist_roll": 0.0,
@@ -633,7 +666,14 @@ class MotionPlanner:
 
         if self.grasp_config.allow_approximate_topdown_fallback:
             print("WARNING: Falling back to approximate geometric top-down mapping", flush=True)
-            return self._approximate_geometric_targets(geometric_grasp, current_state=current_state)
+            approximate_targets = self._approximate_geometric_targets(geometric_grasp, current_state=current_state)
+            if not bool(approximate_targets.get("reachable", False)):
+                raise RuntimeError(
+                    "Approximate geometric top-down target remains unreachable after base reach translation: "
+                    f"arm_shortfall_after={float(approximate_targets.get('arm_reach_shortfall_after_base_translate_m', 0.0)):.3f} m, "
+                    f"base_translate_arm_axis={float(approximate_targets.get('base_translate_arm_axis_m', 0.0)):.3f} m"
+                )
+            return approximate_targets
 
         raise RuntimeError(
             "SimpleIK could not solve the geometric top-down target and "
@@ -917,9 +957,10 @@ class MotionPlanner:
 
         grasp_z = float(targets["grasp_z"])
         wrist_pitch = float(targets["wrist_pitch"])
-        grasp_arm = self._world_y_to_arm(float(targets["grasp_y"]))
+        arm_y = float(targets.get("grasp_y_for_arm", targets["grasp_y"]))
+        grasp_arm = self._world_y_to_arm_unclipped(arm_y)
         return (
-            STRETCH3_JOINT_LIMITS["lift"][0] <= self._world_z_to_lift(grasp_z) <= STRETCH3_JOINT_LIMITS["lift"][1]
+            STRETCH3_JOINT_LIMITS["lift"][0] <= grasp_z <= STRETCH3_JOINT_LIMITS["lift"][1]
             and STRETCH3_JOINT_LIMITS["arm"][0] <= grasp_arm <= STRETCH3_JOINT_LIMITS["arm"][1]
             and STRETCH3_JOINT_LIMITS["wrist_pitch"][0] <= wrist_pitch <= STRETCH3_JOINT_LIMITS["wrist_pitch"][1]
         )
@@ -935,6 +976,9 @@ class MotionPlanner:
         grasp_z = float(numeric_targets["grasp_z"])
         pregrasp_y = float(numeric_targets["pregrasp_y"])
         pregrasp_z = float(numeric_targets["pregrasp_z"])
+        arm_grasp_y = float(numeric_targets.get("grasp_y_for_arm", grasp_y))
+        arm_pregrasp_y = float(numeric_targets.get("pregrasp_y_for_arm", pregrasp_y))
+        base_translate_arm_axis_m = float(numeric_targets.get("base_translate_arm_axis_m", 0.0))
         approach_type = str(numeric_targets.get("approach_type", candidate.approach_type or "angled"))
 
         base_rotate = float(
@@ -972,8 +1016,8 @@ class MotionPlanner:
                 np.clip(numeric_targets.get("ik_pregrasp_lift", grasp_lift + 0.08), *STRETCH3_JOINT_LIMITS["lift"])
             )
         else:
-            grasp_arm = self._world_y_to_arm(grasp_y)
-            pregrasp_arm = self._world_y_to_arm(pregrasp_y)
+            grasp_arm = self._world_y_to_arm(arm_grasp_y)
+            pregrasp_arm = self._world_y_to_arm(arm_pregrasp_y)
             if approach_type == "side":
                 pregrasp_arm = max(STRETCH3_JOINT_LIMITS["arm"][0], grasp_arm - 0.06)
             elif approach_type == "angled":
@@ -1054,6 +1098,14 @@ class MotionPlanner:
             flush=True,
         )
         print(f"  base_rotate: {base_rotate:.3f}", flush=True)
+        if abs(base_translate_arm_axis_m) > 1e-4:
+            print(f"  base_translate_arm_axis: {base_translate_arm_axis_m:.3f}", flush=True)
+            print(
+                "  arm reach shortfall: "
+                f"before={float(numeric_targets.get('arm_reach_shortfall_before_base_translate_m', 0.0)):.3f} "
+                f"after={float(numeric_targets.get('arm_reach_shortfall_after_base_translate_m', 0.0)):.3f}",
+                flush=True,
+            )
         print(
             f"  current state: lift={float(current_state.get('lift', 0.0)):.3f} arm={float(current_state.get('arm', 0.0)):.3f} "
             f"wrist_yaw={float(current_state.get('wrist_yaw', 0.0)):.3f} wrist_pitch={float(current_state.get('wrist_pitch', 0.0)):.3f}",
@@ -1081,31 +1133,43 @@ class MotionPlanner:
                 },
                 settle_s=0.6,
             ),
-            MotionWaypoint(
-                name="move_lift_to_pregrasp",
-                joint_targets={"lift": pregrasp_lift, "base_rotate": base_rotate},
-                settle_s=0.3,
-            ),
-            MotionWaypoint(
-                name="orient_wrist",
-                joint_targets={
-                    "wrist_yaw": desired_wrist_yaw,
-                    "wrist_pitch": desired_wrist_pitch,
-                    "wrist_roll": desired_wrist_roll,
-                },
-                settle_s=0.8 if approach_type == "top_down" else 0.3,
-            ),
-            MotionWaypoint(
-                name="open_gripper",
-                joint_targets={"stretch_gripper": gripper_open_cmd},
-                settle_s=0.3,
-            ),
-            MotionWaypoint(
-                name="move_to_pregrasp",
-                joint_targets={"arm": pregrasp_arm, "base_rotate": base_rotate},
-                settle_s=0.4,
-            ),
         ]
+        if abs(base_translate_arm_axis_m) > 1e-4:
+            waypoints.append(
+                MotionWaypoint(
+                    name="base_translate_for_reach",
+                    joint_targets={"base_translate_arm_axis": base_translate_arm_axis_m},
+                    settle_s=0.4,
+                )
+            )
+        waypoints.extend(
+            [
+                MotionWaypoint(
+                    name="move_lift_to_pregrasp",
+                    joint_targets={"lift": pregrasp_lift, "base_rotate": base_rotate},
+                    settle_s=0.3,
+                ),
+                MotionWaypoint(
+                    name="orient_wrist",
+                    joint_targets={
+                        "wrist_yaw": desired_wrist_yaw,
+                        "wrist_pitch": desired_wrist_pitch,
+                        "wrist_roll": desired_wrist_roll,
+                    },
+                    settle_s=0.8 if approach_type == "top_down" else 0.3,
+                ),
+                MotionWaypoint(
+                    name="open_gripper",
+                    joint_targets={"stretch_gripper": gripper_open_cmd},
+                    settle_s=0.3,
+                ),
+                MotionWaypoint(
+                    name="move_to_pregrasp",
+                    joint_targets={"arm": pregrasp_arm, "base_rotate": base_rotate},
+                    settle_s=0.4,
+                ),
+            ]
+        )
 
         if approach_type == "top_down":
             waypoints.append(
@@ -1180,6 +1244,7 @@ class MotionPlanner:
                     "wrist_pitch": desired_wrist_pitch,
                     "gripper_open_cmd": gripper_open_cmd,
                     "gripper_close_cmd": gripper_close_cmd,
+                    "base_translate_arm_axis_m": base_translate_arm_axis_m,
                 },
             },
         )

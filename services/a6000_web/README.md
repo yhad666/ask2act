@@ -83,6 +83,9 @@ export ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_Z_MODE=center
 export ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M=0.0
 export ASK2ACT_GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M=0.15
 export ASK2ACT_GEOMETRIC_TOP_DOWN_POSTGRASP_LIFT_M=0.15
+export ASK2ACT_GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE=1
+export ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MAX_M=0.16
+export ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MARGIN_M=0.02
 export ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=1
 export ASK2ACT_SESSION_RECORD_ROOT=/abs/path/to/session_records
 ```
@@ -97,6 +100,8 @@ For real top-down grasps, the default contact target remains the geometric
 point-cloud grasp height, while approximate fallback converts that contact
 height into a wrist/lift command with the calibrated top-down gripper length.
 The pregrasp/postgrasp lift clearances are 15 cm.
+If the target is slightly beyond the arm limit, the real trajectory inserts a
+small base reach adjustment before extending the arm.
 
 For the real-robot browser service, you can also copy:
 
