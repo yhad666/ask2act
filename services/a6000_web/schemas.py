@@ -68,6 +68,12 @@ class ExecuteSessionRequest(BaseModel):
     dry_run: bool = False
 
 
+class ConfirmSessionRequest(BaseModel):
+    success: bool
+    note: Optional[str] = None
+    reset_ready: bool = True
+
+
 @dataclass
 class SessionState:
     session_id: str
@@ -93,4 +99,5 @@ class SessionState:
     final_image_data_url: Optional[str] = None
     status: str = "awaiting_answer"
     execution_result: Optional[Dict[str, Any]] = None
+    confirmation_result: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import base64
+import json
 import os
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Dict
@@ -14,7 +16,15 @@ from .clarification import ClarificationEngine
 from .detection import GroundingDinoDetector
 from .grasp_runtime import LocalGraspRuntime
 from .phrase_extractor import InstructionPhraseExtractor
-from .schemas import ExecuteSessionRequest, GraspPlanResult, ResolvedTarget, SessionState, StartSessionRequest, StepSessionRequest
+from .schemas import (
+    ConfirmSessionRequest,
+    ExecuteSessionRequest,
+    GraspPlanResult,
+    ResolvedTarget,
+    SessionState,
+    StartSessionRequest,
+    StepSessionRequest,
+)
 from .stretch_transport import StretchTransportClient
 
 
@@ -30,6 +40,8 @@ SYSTEM_PROMPT_PATH = os.getenv(
 STRETCH_TRANSPORT_MODE = os.getenv("ASK2ACT_STRETCH_TRANSPORT", "mock")
 STRETCH_ZMQ_ENDPOINT = os.getenv("ASK2ACT_STRETCH_ZMQ_ENDPOINT", "tcp://127.0.0.1:5557")
 STRETCH_TIMEOUT_MS = int(os.getenv("ASK2ACT_STRETCH_TIMEOUT_MS", "30000"))
+STRETCH_OBSERVE_TIMEOUT_MS = int(os.getenv("ASK2ACT_STRETCH_OBSERVE_TIMEOUT_MS", str(STRETCH_TIMEOUT_MS)))
+STRETCH_EXECUTE_TIMEOUT_MS = int(os.getenv("ASK2ACT_STRETCH_EXECUTE_TIMEOUT_MS", str(STRETCH_TIMEOUT_MS)))
 STRETCH_MOCK_IMAGE_PATH = os.getenv("ASK2ACT_STRETCH_MOCK_IMAGE_PATH", "")
 PIPELINE_MODE = os.getenv("ASK2ACT_PIPELINE_MODE", "mock")
 PIPELINE_SCENE_CONFIG = os.getenv("ASK2ACT_SCENE_CONFIG_PATH", "")
@@ -43,6 +55,7 @@ AUTO_EXECUTE_ON_RESOLVE = os.getenv("ASK2ACT_AUTO_EXECUTE_ON_RESOLVE", "0").stri
     "yes",
     "on",
 }
+SESSION_RECORD_ROOT = Path(os.getenv("ASK2ACT_SESSION_RECORD_ROOT", str(ROOT / "artifacts" / "session_records"))).expanduser()
 
 SESSIONS: Dict[str, SessionState] = {}
 
@@ -59,6 +72,8 @@ stretch_transport = StretchTransportClient(
     mode=STRETCH_TRANSPORT_MODE,
     zmq_endpoint=STRETCH_ZMQ_ENDPOINT,
     timeout_ms=STRETCH_TIMEOUT_MS,
+    observe_timeout_ms=STRETCH_OBSERVE_TIMEOUT_MS,
+    execute_timeout_ms=STRETCH_EXECUTE_TIMEOUT_MS,
     mock_image_path=STRETCH_MOCK_IMAGE_PATH,
 )
 grasp_runtime = LocalGraspRuntime(
@@ -102,6 +117,7 @@ def build_session_view(session: SessionState) -> Dict[str, Any]:
         "resolved_target": session.resolved_target.model_dump() if session.resolved_target else None,
         "grasp_plan_result": session.grasp_plan_result.model_dump() if session.grasp_plan_result else None,
         "execution_result": session.execution_result,
+        "confirmation_result": session.confirmation_result,
         "error_message": session.error_message,
         "stretch_transport_mode": stretch_transport.mode,
         "pipeline_mode": grasp_runtime.mode,
@@ -133,6 +149,33 @@ def finalize_resolved_target(session: SessionState, success: bool | None = None,
         success=success,
         banner_text=banner_text,
     )
+
+
+def _write_session_record(session: SessionState) -> Path:
+    SESSION_RECORD_ROOT.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime("%Y%m%d_%H%M%S")
+    record_path = SESSION_RECORD_ROOT / f"session_{stamp}_{session.session_id}.json"
+    if session.confirmation_result is not None:
+        session.confirmation_result["record_path"] = str(record_path)
+    record = build_session_view(session)
+    record["recorded_at_epoch_s"] = time.time()
+    record_path.write_text(json.dumps(record, indent=2, default=str), encoding="utf-8")
+    index_path = SESSION_RECORD_ROOT / "session_records.jsonl"
+    with index_path.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                {
+                    "recorded_at_epoch_s": record["recorded_at_epoch_s"],
+                    "session_id": session.session_id,
+                    "status": session.status,
+                    "success": session.confirmation_result.get("success") if session.confirmation_result else None,
+                    "record_path": str(record_path),
+                },
+                default=str,
+            )
+            + "\n"
+        )
+    return record_path
 
 
 def resolve_single_candidate(session: SessionState) -> None:
@@ -294,6 +337,8 @@ def health():
         "stretch_zmq_endpoint": STRETCH_ZMQ_ENDPOINT if stretch_transport.mode == "zmq" else None,
         "pipeline_mode": grasp_runtime.mode,
         "auto_execute_on_resolve": AUTO_EXECUTE_ON_RESOLVE,
+        "stretch_observe_timeout_ms": STRETCH_OBSERVE_TIMEOUT_MS,
+        "stretch_execute_timeout_ms": STRETCH_EXECUTE_TIMEOUT_MS,
     }
 
 
@@ -340,4 +385,30 @@ def execute_session(session_id: str, request: ExecuteSessionRequest):
         raise HTTPException(status_code=409, detail="session has no resolved target")
 
     execute_resolved_session(session, dry_run=request.dry_run, raise_on_error=True)
+    return build_session_view(session)
+
+
+@app.post("/api/sessions/{session_id}/confirm")
+def confirm_session(session_id: str, request: ConfirmSessionRequest):
+    session = SESSIONS.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    if session.execution_result is None:
+        raise HTTPException(status_code=409, detail="session has not executed yet")
+
+    session.confirmation_result = {
+        "success": bool(request.success),
+        "note": (request.note or "").strip(),
+        "confirmed_at_epoch_s": time.time(),
+        "reset_ready": bool(request.reset_ready),
+    }
+    session.status = "confirmed_success" if request.success else "confirmed_failure"
+    if request.success:
+        session.error_message = None
+    finalize_resolved_target(
+        session,
+        success=bool(request.success),
+        banner_text="CONFIRMED SUCCESS" if request.success else "CONFIRMED FAILURE",
+    )
+    record_path = _write_session_record(session)
     return build_session_view(session)

@@ -82,6 +82,12 @@
             <button class="primary" id="executeBtn" disabled>Execute Grasp</button>
           </div>
           <div class="meta" id="graspPlanMeta" style="margin-top:12px;">No plan prepared yet.</div>
+          <div class="actions">
+            <button class="primary" id="confirmSuccessBtn" disabled>Confirm Success</button>
+            <button class="danger" id="confirmFailureBtn" disabled>Confirm Failure</button>
+            <button class="ghost" id="nextTrialBtn" disabled>Next Trial</button>
+          </div>
+          <div class="meta" id="confirmationMeta" style="margin-top:12px;">No operator confirmation yet.</div>
         </section>
       </div>
 
@@ -129,6 +135,7 @@
     const detectionPrompt = $("detectionPrompt");
     const observationMeta = $("observationMeta");
     const graspPlanMeta = $("graspPlanMeta");
+    const confirmationMeta = $("confirmationMeta");
     const questionText = $("questionText");
     const questionMeta = $("questionMeta");
     const resolvedTarget = $("resolvedTarget");
@@ -138,6 +145,9 @@
     const noBtn = $("noBtn");
     const previewBtn = $("previewBtn");
     const executeBtn = $("executeBtn");
+    const confirmSuccessBtn = $("confirmSuccessBtn");
+    const confirmFailureBtn = $("confirmFailureBtn");
+    const nextTrialBtn = $("nextTrialBtn");
     const sessionStateStat = $("sessionStateStat");
     const candidateCountStat = $("candidateCountStat");
     const roundStat = $("roundStat");
@@ -205,6 +215,25 @@
       previewBtn.disabled = false; executeBtn.disabled = false;
     }
 
+    function renderConfirmation(session) {
+      const hasExecution = !!session?.execution_result && !session.execution_result.dry_run;
+      const confirmed = !!session?.confirmation_result;
+      confirmSuccessBtn.disabled = !hasExecution || confirmed;
+      confirmFailureBtn.disabled = !hasExecution || confirmed;
+      nextTrialBtn.disabled = !confirmed;
+      if (!session) {
+        confirmationMeta.textContent = "No operator confirmation yet.";
+      } else if (confirmed) {
+        const result = session.confirmation_result.success ? "success" : "failure";
+        const record = session.confirmation_result.record_path || "record pending";
+        confirmationMeta.textContent = `Operator confirmed ${result}. record=${record}`;
+      } else if (hasExecution) {
+        confirmationMeta.textContent = "Execution returned. Confirm the physical outcome before the next trial.";
+      } else {
+        confirmationMeta.textContent = "No operator confirmation yet.";
+      }
+    }
+
     function renderSession(session) {
       currentSession = session;
       statusPill.textContent = session?.status || "Idle";
@@ -223,9 +252,13 @@
       renderHistory(session?.question_history || []);
       renderCurrentQuestion(session);
       renderResolvedTarget(session);
+      renderConfirmation(session);
       if (session?.error_message) setBanner("err", session.error_message);
+      else if (session?.status === "confirmed_success") setBanner("ok", "Confirmed success and recorded this trial.");
+      else if (session?.status === "confirmed_failure") setBanner("err", "Confirmed failure and recorded this trial.");
       else if (session?.execution_result?.dry_run) setBanner("ok", "Previewed the local grasp handoff and Stretch dispatch payload.");
       else if (session?.status === "executed") setBanner("ok", "Resolved target planned locally and dispatched successfully.");
+      else if (session?.status === "execution_failed") setBanner("err", "Execution failed with a recorded trace. Check the latest execute_response JSON.");
       else setBanner(null, "");
     }
 
@@ -265,6 +298,24 @@
       catch (err) { setBanner("err", err.message); }
     }
 
+    async function confirmOutcome(success) {
+      if (!currentSession?.session_id) return;
+      const note = window.prompt(success ? "Success note (optional)" : "Failure note (optional)", "") || "";
+      try { renderSession(await postJson(`/api/sessions/${currentSession.session_id}/confirm`, { success, note, reset_ready: true })); }
+      catch (err) { setBanner("err", err.message); }
+    }
+
+    function nextTrial() {
+      const instruction = instructionInput.value;
+      uploadedImageDataUrl = null;
+      imageInput.value = "";
+      currentSession = null;
+      sessionIdInput.value = "";
+      renderSession(null);
+      instructionInput.value = instruction;
+      setBanner("ok", "Ready for the next trial. Press Start Session when the scene is set.");
+    }
+
     document.querySelectorAll("[data-mode]").forEach((button) => {
       button.addEventListener("click", () => {
         currentMode = button.dataset.mode;
@@ -287,6 +338,9 @@
     noBtn.addEventListener("click", () => answerCurrent("n"));
     previewBtn.addEventListener("click", () => executeResolved(true));
     executeBtn.addEventListener("click", () => executeResolved(false));
+    confirmSuccessBtn.addEventListener("click", () => confirmOutcome(true));
+    confirmFailureBtn.addEventListener("click", () => confirmOutcome(false));
+    nextTrialBtn.addEventListener("click", nextTrial);
 
     renderSession(null);
   </script>

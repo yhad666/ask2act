@@ -186,8 +186,19 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
 
     trace: list[dict[str, Any]] = []
     default_settle_s = float(os.getenv("ASK2ACT_STRETCH_WAYPOINT_SETTLE_S", "2.0"))
+    deadline_s = float(os.getenv("ASK2ACT_STRETCH_EXECUTE_DEADLINE_S", "90.0"))
+    started_at = time.monotonic()
+
+    def check_deadline(stage: str) -> None:
+        if deadline_s <= 0.0:
+            return
+        elapsed_s = time.monotonic() - started_at
+        if elapsed_s > deadline_s:
+            raise RuntimeError(f"Stretch execution deadline exceeded during {stage}: {elapsed_s:.1f}s > {deadline_s:.1f}s")
+
     try:
         try:
+            check_deadline("execute_start")
             if _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_EXECUTE_START", "1"):
                 trace.append(
                     _command_default_pose(
@@ -198,6 +209,7 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                 )
             base_reference_theta = _current_base_theta(robot)
             for waypoint in trajectory:
+                check_deadline(f"{waypoint.get('name') or 'unnamed_waypoint'} before_command")
                 name = str(waypoint.get("name") or "unnamed_waypoint")
                 joint_targets = waypoint.get("joint_targets") or {}
                 if not isinstance(joint_targets, dict):
@@ -223,6 +235,7 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                     settle_s = max(default_settle_s, float(waypoint.get("settle_s") or 0.0))
                     if settle_s > 0.0:
                         time.sleep(settle_s)
+                    check_deadline(f"{name} after_settle")
                     waypoint_trace.update(
                         {
                             "ok": True,

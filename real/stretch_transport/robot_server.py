@@ -23,6 +23,18 @@ def build_runtime_from_env() -> StretchRobotRuntime:
         observation_image_path=os.getenv("ASK2ACT_STRETCH_OBSERVATION_IMAGE_PATH", ""),
         artifact_root=os.getenv("ASK2ACT_STRETCH_SERVER_ARTIFACT_ROOT", ""),
         command_timeout_s=int(os.getenv("ASK2ACT_STRETCH_SERVER_COMMAND_TIMEOUT_S", "180")),
+        observe_timeout_s=int(
+            os.getenv(
+                "ASK2ACT_STRETCH_SERVER_OBSERVE_TIMEOUT_S",
+                os.getenv("ASK2ACT_STRETCH_SERVER_COMMAND_TIMEOUT_S", "180"),
+            )
+        ),
+        execute_timeout_s=int(
+            os.getenv(
+                "ASK2ACT_STRETCH_SERVER_EXECUTE_TIMEOUT_S",
+                os.getenv("ASK2ACT_STRETCH_SERVER_COMMAND_TIMEOUT_S", "180"),
+            )
+        ),
     )
 
 

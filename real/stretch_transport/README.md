@@ -64,6 +64,11 @@ tcp://0.0.0.0:5557
 
 by default.
 
+The command hooks have explicit failure exits. The real config currently uses
+90 seconds for observation, 115 seconds for execution, and an internal
+90-second execution deadline before the dispatcher reports failure and tries to
+return to the default pose.
+
 ## Safe defaults
 
 If you launch with the bundled defaults:
@@ -237,6 +242,8 @@ It uses:
 - moves the manipulator back to the configured default pose after execution; by default the gripper is not opened after execution
 - records before/after Stretch status for the default pose and each waypoint so
   failed or stalled grasps can be debugged from `execute_response_*.json`
+- exits with a clear failure once `ASK2ACT_STRETCH_EXECUTE_DEADLINE_S` is
+  exceeded, then attempts the configured failure default pose
 
 Important:
 

@@ -22,11 +22,15 @@ class StretchTransportClient:
         mode: str = "mock",
         zmq_endpoint: str = "tcp://127.0.0.1:5557",
         timeout_ms: int = 30000,
+        observe_timeout_ms: Optional[int] = None,
+        execute_timeout_ms: Optional[int] = None,
         mock_image_path: str = "",
     ) -> None:
         self.mode = (mode or "mock").strip().lower()
         self.zmq_endpoint = zmq_endpoint
         self.timeout_ms = int(timeout_ms)
+        self.observe_timeout_ms = int(observe_timeout_ms or timeout_ms)
+        self.execute_timeout_ms = int(execute_timeout_ms or timeout_ms)
         self.mock_image_path = mock_image_path.strip()
 
     @property
@@ -43,7 +47,7 @@ class StretchTransportClient:
         mime_type = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
         return path, path.read_bytes(), mime_type
 
-    def _zmq_roundtrip(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _zmq_roundtrip(self, payload: Dict[str, Any], *, timeout_ms: Optional[int] = None) -> Dict[str, Any]:
         try:
             import zmq
         except ImportError as exc:
@@ -51,15 +55,19 @@ class StretchTransportClient:
 
         ctx = zmq.Context.instance()
         sock = ctx.socket(zmq.REQ)
+        effective_timeout_ms = int(timeout_ms or self.timeout_ms)
         sock.setsockopt(zmq.LINGER, 0)
-        sock.setsockopt(zmq.RCVTIMEO, self.timeout_ms)
-        sock.setsockopt(zmq.SNDTIMEO, self.timeout_ms)
+        sock.setsockopt(zmq.RCVTIMEO, effective_timeout_ms)
+        sock.setsockopt(zmq.SNDTIMEO, effective_timeout_ms)
         try:
             sock.connect(self.zmq_endpoint)
             sock.send_json(payload)
             reply = sock.recv_json()
         except Exception as exc:
-            raise RuntimeError(f"Stretch transport request failed via {self.zmq_endpoint}: {exc}") from exc
+            raise RuntimeError(
+                f"Stretch transport request failed via {self.zmq_endpoint} "
+                f"after {effective_timeout_ms} ms: {exc}"
+            ) from exc
         finally:
             sock.close()
         if not isinstance(reply, dict):
@@ -90,7 +98,8 @@ class StretchTransportClient:
                 "op": "observe",
                 "session_id": session_id,
                 "instruction": instruction,
-            }
+            },
+            timeout_ms=self.observe_timeout_ms,
         )
         if reply.get("ok") is False:
             detail = reply.get("error") or reply.get("note") or reply
@@ -142,7 +151,7 @@ class StretchTransportClient:
         if self.mode != "zmq":
             raise RuntimeError(f"Unsupported stretch transport mode: {self.mode}")
 
-        reply = self._zmq_roundtrip({"op": "execute_grasp", **payload})
+        reply = self._zmq_roundtrip({"op": "execute_grasp", **payload}, timeout_ms=self.execute_timeout_ms)
         return {
             "ok": bool(reply.get("ok", True)),
             "mode": "zmq",

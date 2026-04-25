@@ -24,6 +24,8 @@ class StretchRobotRuntime:
         observation_image_path: str = "",
         artifact_root: str = "",
         command_timeout_s: int = 60,
+        observe_timeout_s: int | None = None,
+        execute_timeout_s: int | None = None,
     ) -> None:
         self.observe_mode = (observe_mode or "command").strip().lower()
         self.observe_command = observe_command.strip()
@@ -31,6 +33,8 @@ class StretchRobotRuntime:
         self.execute_command = execute_command.strip()
         self.observation_image_path = observation_image_path.strip()
         self.command_timeout_s = int(command_timeout_s)
+        self.observe_timeout_s = int(observe_timeout_s or command_timeout_s)
+        self.execute_timeout_s = int(execute_timeout_s or command_timeout_s)
         self.repo_root = Path(__file__).resolve().parents[2]
         self.hooks_root = Path(__file__).resolve().parent / "hooks"
         self.artifact_root = (
@@ -59,7 +63,14 @@ class StretchRobotRuntime:
         hook_path = self.hooks_root / "execute_hook.py"
         return f"{shlex.quote(sys.executable)} {shlex.quote(str(hook_path))}"
 
-    def _run_json_command(self, *, command: str, request_payload: Dict[str, Any], op_name: str) -> Dict[str, Any]:
+    def _run_json_command(
+        self,
+        *,
+        command: str,
+        request_payload: Dict[str, Any],
+        op_name: str,
+        timeout_s: int,
+    ) -> Dict[str, Any]:
         with tempfile.TemporaryDirectory(prefix=f"ask2act_{op_name}_") as temp_dir:
             request_path = Path(temp_dir) / "request.json"
             response_path = Path(temp_dir) / "response.json"
@@ -70,13 +81,19 @@ class StretchRobotRuntime:
             env["ASK2ACT_RESPONSE_JSON"] = str(response_path)
 
             shell_command = f"{command} {shlex.quote(str(request_path))} {shlex.quote(str(response_path))}"
-            completed = subprocess.run(
-                ["bash", "-lc", shell_command],
-                capture_output=True,
-                text=True,
-                timeout=self.command_timeout_s,
-                env=env,
-            )
+            try:
+                completed = subprocess.run(
+                    ["bash", "-lc", shell_command],
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout_s,
+                    env=env,
+                )
+            except subprocess.TimeoutExpired as exc:
+                stdout = (exc.stdout or "").strip() if isinstance(exc.stdout, str) else ""
+                stderr = (exc.stderr or "").strip() if isinstance(exc.stderr, str) else ""
+                detail = stderr or stdout or "no stderr/stdout available"
+                raise RuntimeError(f"{op_name} command timed out after {timeout_s}s: {detail}") from exc
             if completed.returncode != 0:
                 stderr = completed.stderr.strip()
                 stdout = completed.stdout.strip()
@@ -168,6 +185,7 @@ class StretchRobotRuntime:
                 command=self.observe_command or self._default_observe_command(),
                 request_payload=request_payload,
                 op_name="observe",
+                timeout_s=self.observe_timeout_s,
             )
             return self._normalize_observe_reply(reply, request_payload)
 
@@ -187,6 +205,7 @@ class StretchRobotRuntime:
                 command=self.execute_command or self._default_execute_command(),
                 request_payload=request_payload,
                 op_name="execute_grasp",
+                timeout_s=self.execute_timeout_s,
             )
             if not isinstance(reply, dict):
                 raise RuntimeError("execute hook reply must be a JSON object")

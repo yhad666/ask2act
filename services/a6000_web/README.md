@@ -68,12 +68,15 @@ For direct Stretch integration:
 ```bash
 export ASK2ACT_STRETCH_TRANSPORT=zmq
 export ASK2ACT_STRETCH_ZMQ_ENDPOINT=tcp://STRETCH_HOST:5557
-export ASK2ACT_STRETCH_TIMEOUT_MS=240000
+export ASK2ACT_STRETCH_TIMEOUT_MS=120000
+export ASK2ACT_STRETCH_OBSERVE_TIMEOUT_MS=120000
+export ASK2ACT_STRETCH_EXECUTE_TIMEOUT_MS=130000
 export ASK2ACT_PIPELINE_MODE=real_pointcloud
 export ASK2ACT_HEAD_CAMERA_EXTRINSICS_PATH=/abs/path/to/head_camera_extrinsics.json
 export ASK2ACT_REAL_ALLOW_APPROXIMATE_TOPDOWN_FALLBACK=1
 export ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M=0.0
 export ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=1
+export ASK2ACT_SESSION_RECORD_ROOT=/abs/path/to/session_records
 ```
 
 For the real-robot browser service, you can also copy:
@@ -195,6 +198,20 @@ python services/a6000_web/dev/stretch_zmq_smoke_test.py
     "dry_run": false
   }
   ```
+
+- `POST /api/sessions/{session_id}/confirm`
+  Record the operator-confirmed physical result after execution.
+
+  ```json
+  {
+    "success": true,
+    "note": "cup lifted cleanly",
+    "reset_ready": true
+  }
+  ```
+
+  Records are written under `ASK2ACT_SESSION_RECORD_ROOT` as one JSON file per
+  trial plus a `session_records.jsonl` index.
 
 ## Session State
 
