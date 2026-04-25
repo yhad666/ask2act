@@ -223,6 +223,12 @@ def _joint_timeout_s(joint_name: str, waypoint_name: str) -> float:
     return max(0.0, default)
 
 
+def _wait_required_for_joint(joint_name: str) -> bool:
+    raw = os.getenv("ASK2ACT_STRETCH_REQUIRED_WAIT_JOINTS", "lift,arm,base_rotate,base_translate_arm_axis")
+    required = {item.strip() for item in raw.split(",") if item.strip()}
+    return joint_name in required
+
+
 def _wait_for_joint_target(
     robot: Any,
     *,
@@ -235,6 +241,7 @@ def _wait_for_joint_target(
     if joint_name == "base_rotate":
         return {"joint_name": joint_name, "ok": True, "skipped": True, "reason": "handled_by_base_theta_wait"}
 
+    required = _wait_required_for_joint(joint_name)
     timeout_s = _joint_timeout_s(joint_name, waypoint_name)
     tolerance = _joint_tolerance(joint_name, waypoint_name)
     started_at = time.monotonic()
@@ -244,6 +251,18 @@ def _wait_for_joint_target(
     while time.monotonic() - started_at <= timeout_s:
         actual = _read_joint_position(robot, joint_name)
         if actual is None:
+            if not required and time.monotonic() - started_at >= min(0.5, timeout_s):
+                return {
+                    "joint_name": joint_name,
+                    "target": float(target),
+                    "actual": None,
+                    "ok": True,
+                    "required": False,
+                    "warning": "joint_status_unavailable; command was sent but wait is non-blocking for this joint",
+                    "timeout_s": timeout_s,
+                    "tolerance": tolerance,
+                    "samples": samples[-6:],
+                }
             time.sleep(0.05)
             continue
         error = float(target - actual)
@@ -263,12 +282,25 @@ def _wait_for_joint_target(
             if actual <= close_threshold:
                 ok = True
                 break
+        if not required and time.monotonic() - started_at >= min(0.75, timeout_s):
+            return {
+                "joint_name": joint_name,
+                "target": float(target),
+                "actual": float(actual),
+                "ok": True,
+                "required": False,
+                "warning": "non_required_joint_wait_recorded_only",
+                "timeout_s": timeout_s,
+                "tolerance": tolerance,
+                "samples": samples[-6:],
+            }
         time.sleep(0.05)
     return {
         "joint_name": joint_name,
         "target": float(target),
         "actual": None if actual is None else float(actual),
         "ok": ok,
+        "required": required,
         "timeout_s": timeout_s,
         "tolerance": tolerance,
         "samples": samples[-6:],
@@ -583,6 +615,7 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                                 timeout_s=float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_WAIT_TIMEOUT_S", "12.0")),
                                 tolerance_rad=float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_WAIT_TOLERANCE_RAD", "0.035")),
                             )
+                            wait_result["required"] = _wait_required_for_joint(joint_name_str)
                         else:
                             wait_result = _wait_for_joint_target(
                                 robot,
@@ -591,7 +624,9 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                                 waypoint_name=name,
                             )
                         waypoint_trace["wait_trace"].append(wait_result)
-                        waypoint_ok = waypoint_ok and bool(wait_result.get("ok", False))
+                        waypoint_ok = waypoint_ok and (
+                            bool(wait_result.get("ok", False)) or not bool(wait_result.get("required", True))
+                        )
                     if not waypoint_ok:
                         failed_waits = [
                             item
