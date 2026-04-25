@@ -41,6 +41,13 @@ GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M", "0.12")
 )
 GEOMETRIC_TOP_DOWN_POSTGRASP_LIFT_M = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_POSTGRASP_LIFT_M", "0.12"))
+GEOMETRIC_TOP_DOWN_RETURN_BASE_ROTATE_TO_START = (
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RETURN_BASE_ROTATE_TO_START", "1").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
+GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M", "0.025")
+)
 GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE = (
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE", "1").strip().lower()
     in {"1", "true", "yes", "on"}
@@ -485,6 +492,13 @@ class MotionPlanner:
         print(f"  FK check rubber:    {predicted_rubber_world.tolist()}", flush=True)
         print(f"  FK error:           {fk_error:.6f} m", flush=True)
         print("=======================\n", flush=True)
+        if GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M > 0.0 and fk_error > GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M:
+            print(
+                "WARNING: SimpleIK FK error exceeds threshold; treating target as unreachable "
+                f"({fk_error:.4f} m > {GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M:.4f} m)",
+                flush=True,
+            )
+            return None
 
         targets: dict[str, float] = {
             "grasp_x": float(desired_rubber_xyz[0]),
@@ -674,6 +688,15 @@ class MotionPlanner:
         )
         if ik_targets is not None:
             return ik_targets
+
+        if self.simple_ik is None and not self.grasp_config.allow_approximate_topdown_fallback:
+            reason = self.simple_ik_init_error or "SimpleIK was not initialized"
+            raise RuntimeError(
+                "SimpleIK is required for real geometric top-down grasping but is unavailable "
+                f"({reason}). Install the A6000 grasp dependencies with "
+                "`python -m pip install -r services/a6000_web/requirements.txt`, or explicitly set "
+                "ASK2ACT_REAL_ALLOW_APPROXIMATE_TOPDOWN_FALLBACK=1 only for debugging."
+            )
 
         if self.grasp_config.allow_approximate_topdown_fallback:
             print("WARNING: Falling back to approximate geometric top-down mapping", flush=True)
@@ -1245,6 +1268,19 @@ class MotionPlanner:
                     settle_s=0.8,
                 )
             )
+            if GEOMETRIC_TOP_DOWN_RETURN_BASE_ROTATE_TO_START:
+                waypoints.append(
+                    MotionWaypoint(
+                        name="return_base_rotate_after_grasp",
+                        joint_targets={
+                            "base_rotate": 0.0,
+                            "lift": postgrasp_lift,
+                            "arm": 0.0,
+                            "stretch_gripper": gripper_close_cmd,
+                        },
+                        settle_s=0.8,
+                    )
+                )
 
         return MotionPlan(
             backend=self.grasp_config.planner_backend,
@@ -1275,6 +1311,9 @@ class MotionPlanner:
                     "gripper_open_cmd": gripper_open_cmd,
                     "gripper_close_cmd": gripper_close_cmd,
                     "base_translate_arm_axis_m": base_translate_arm_axis_m,
+                    "return_base_rotate_after_grasp": bool(
+                        approach_type == "top_down" and GEOMETRIC_TOP_DOWN_RETURN_BASE_ROTATE_TO_START
+                    ),
                 },
             },
         )

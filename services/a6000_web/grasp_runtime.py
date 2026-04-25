@@ -372,6 +372,177 @@ class LocalGraspRuntime:
         }
 
     @staticmethod
+    def _base_reach_preposition_distance_m(geometric_grasp: Dict[str, Any], grasp_config: Any) -> tuple[float, Dict[str, Any]]:
+        import math
+        import numpy as np
+
+        target_x = float(geometric_grasp["grasp_x"])
+        target_y = float(geometric_grasp["grasp_y"])
+        # In the base-relative world frame the Stretch arm reaches along -Y.
+        # The robot-side base_translate_arm_axis primitive rotates the base 90
+        # deg, translates along that reach axis, then rotates back before the
+        # A6000 reobserves and replans.
+        arm_axis_distance = float(-target_y)
+        goal_distance = float(
+            os.getenv("ASK2ACT_REAL_BASE_PREPOSITION_GOAL_DISTANCE_M", str(grasp_config.base_preposition_goal_distance_m))
+        )
+        extra_margin = float(
+            os.getenv(
+                "ASK2ACT_REAL_BASE_PREPOSITION_LONGITUDINAL_EXTRA_M",
+                str(grasp_config.base_preposition_longitudinal_extra_m),
+            )
+        )
+        cfg_max_translate = float(getattr(grasp_config, "base_preposition_max_translate_m", 0.40))
+        env_max_translate = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MAX_M", "0.16"))
+        max_translate = max(0.0, min(cfg_max_translate, env_max_translate))
+        reach_error = arm_axis_distance - goal_distance
+        deadband = float(os.getenv("ASK2ACT_REAL_BASE_PREPOSITION_DEADBAND_M", "0.015"))
+        if abs(reach_error) <= deadband or max_translate <= 0.0:
+            requested = 0.0
+        else:
+            requested = float(
+                np.clip(
+                    reach_error + math.copysign(extra_margin, reach_error),
+                    -max_translate,
+                    max_translate,
+                )
+            )
+        reason = "target_beyond_comfort_reach_hand_short" if reach_error > 0.0 else "target_inside_comfort_reach_hand_long"
+        diagnostics = {
+            "target_grasp_xy_m": [target_x, target_y],
+            "arm_axis_distance_m": arm_axis_distance,
+            "goal_distance_m": goal_distance,
+            "reach_error_m": reach_error,
+            "extra_margin_m": extra_margin,
+            "max_translate_m": max_translate,
+            "deadband_m": deadband,
+            "requested_base_translate_arm_axis_m": requested,
+            "reason": reason,
+        }
+        return requested, diagnostics
+
+    def _build_base_reach_preposition_plan(
+        self,
+        *,
+        resolved_target: ResolvedTarget,
+        geometric_grasp: Dict[str, Any],
+        grasp_config: Any,
+        planning_error: Exception,
+        run_dir: Path,
+        point_count: int,
+        selected_option_name: str,
+        diagnostics: Dict[str, Any],
+        applied_bbox_tuple: tuple[int, int, int, int],
+        raw_bbox_tuple: tuple[int, int, int, int],
+        rotate_clockwise_90: bool,
+        intrinsics: Any,
+        extrinsics: Any,
+        current_state: Dict[str, float],
+        simple_ik_status: Dict[str, Any],
+        dry_run: bool,
+    ) -> Dict[str, Any]:
+        from ask2act_grasp.types import MotionPlan, MotionWaypoint
+
+        requested_move, base_preposition = self._base_reach_preposition_distance_m(geometric_grasp, grasp_config)
+        if abs(requested_move) <= 0.01:
+            raise RuntimeError(
+                "SimpleIK could not produce an accurate top-down grasp, but the target is already near the "
+                "base preposition comfort distance; refusing to move on stale coordinates. "
+                f"IK/planning error: {planning_error}"
+            ) from planning_error
+
+        waypoint = MotionWaypoint(
+            name="base_translate_for_reach",
+            joint_targets={"base_translate_arm_axis": float(requested_move)},
+            settle_s=0.4,
+        )
+        motion_plan = MotionPlan(
+            backend="real_base_reach_preposition_required",
+            waypoints=[waypoint],
+            metadata={
+                "planning_mode": "base_reach_preposition_then_reobserve",
+                "numeric_targets": {
+                    "base_translate_arm_axis_m": float(requested_move),
+                    "planning_error": str(planning_error),
+                    "simple_ik": simple_ik_status,
+                    **base_preposition,
+                },
+                "joint_targets": {"base_translate_arm_axis_m": float(requested_move)},
+                "base_preposition": base_preposition,
+            },
+        )
+        trajectory = [
+            {
+                "name": waypoint.name,
+                "joint_targets": {str(key): float(value) for key, value in waypoint.joint_targets.items()},
+                "settle_s": float(waypoint.settle_s),
+            }
+            for waypoint in motion_plan.waypoints
+        ]
+        pipeline_result = {
+            "success": True,
+            "scene_xml_path": "",
+            "point_cloud_count": int(point_count),
+            "selected_grasp_score": float(resolved_target.score),
+            "planner_backend": motion_plan.backend,
+            "trajectory": trajectory,
+            "intermediate": {
+                "geometric_grasp": geometric_grasp,
+                "motion_plan_metadata": motion_plan.metadata,
+                "simple_ik": simple_ik_status,
+                "base_preposition": base_preposition,
+                "target_bbox_2d": list(applied_bbox_tuple),
+                "raw_detection_bbox_2d": list(raw_bbox_tuple),
+                "selected_pointcloud_option": selected_option_name,
+                "pointcloud_options": diagnostics["options"],
+                "rotated_observation_clockwise_90": bool(rotate_clockwise_90),
+                "camera_intrinsics": intrinsics,
+                "camera_extrinsics": extrinsics,
+                "current_state_for_planning": current_state,
+            },
+            "error": None,
+            "note": "Base preposition only; reobserve and replan before grasping the same target.",
+        }
+        (run_dir / "real_pointcloud_plan.json").write_text(
+            json.dumps(self._to_jsonable(pipeline_result), indent=2),
+            encoding="utf-8",
+        )
+        plan_summary = GraspPlanResult(
+            pipeline_mode="real_pointcloud",
+            planner_backend=motion_plan.backend,
+            target_bbox_xyxy=list(resolved_target.bbox_xyxy),
+            point_cloud_count=int(point_count),
+            selected_grasp_score=float(resolved_target.score),
+            trajectory_waypoint_count=len(trajectory),
+            pipeline_run_dir=str(run_dir),
+            success=True,
+            note="SimpleIK requested base preposition; execute this move, reobserve, then replan the grasp.",
+        )
+        dispatch_payload = {
+            "pipeline_mode": "real_pointcloud",
+            "planner_backend": motion_plan.backend,
+            "target_bbox_2d": list(applied_bbox_tuple),
+            "target_bbox_xyxy": list(resolved_target.bbox_xyxy),
+            "trajectory": trajectory,
+            "run_dir": str(run_dir),
+            "resolved_target": resolved_target.model_dump(),
+            "geometric_grasp": self._to_jsonable(geometric_grasp),
+            "motion_plan_metadata": self._to_jsonable(motion_plan.metadata),
+            "simple_ik": simple_ik_status,
+            "selected_pointcloud_option": selected_option_name,
+            "pointcloud_diagnostics_path": str(run_dir / "real_pointcloud_diagnostics.json"),
+            "preposition_only": True,
+        }
+        return {
+            "ok": True,
+            "dry_run": bool(dry_run),
+            "pipeline_mode": "real_pointcloud",
+            "plan_summary": plan_summary.model_dump(),
+            "pipeline_result": self._to_jsonable(pipeline_result),
+            "dispatch_payload": dispatch_payload,
+        }
+
+    @staticmethod
     def _fallback_geometric_grasp(points_xyz, table_top_z_m: float, max_gripper_width_m: float) -> Dict[str, Any]:
         import numpy as np
 
@@ -806,8 +977,39 @@ class LocalGraspRuntime:
             preferred_approach="top_down",
             approach_type="top_down",
         )
+        np.save(run_dir / "target_depth_m.npy", depth_m)
+        save_point_cloud(point_cloud.world_points_xyz, run_dir / "target_cloud_world.ply")
+        save_point_cloud(point_cloud.camera_points_xyz, run_dir / "target_cloud_camera.ply")
+
         current_state = self._default_robot_state()
-        motion_plan = MotionPlanner(scene_config, grasp_config).plan_to_grasp(candidate, current_state)
+        motion_planner = MotionPlanner(scene_config, grasp_config)
+        simple_ik_status = {
+            "available": bool(motion_planner.simple_ik is not None),
+            "init_error": motion_planner.simple_ik_init_error,
+        }
+        try:
+            motion_plan = motion_planner.plan_to_grasp(candidate, current_state)
+        except RuntimeError as exc:
+            if motion_planner.simple_ik is not None and bool(getattr(grasp_config, "enable_base_preposition", False)):
+                return self._build_base_reach_preposition_plan(
+                    resolved_target=resolved_target,
+                    geometric_grasp=geometric_grasp,
+                    grasp_config=grasp_config,
+                    planning_error=exc,
+                    run_dir=run_dir,
+                    point_count=point_cloud.filtered_point_count,
+                    selected_option_name=str(selected_result["name"]),
+                    diagnostics=diagnostics,
+                    applied_bbox_tuple=applied_bbox_tuple,
+                    raw_bbox_tuple=bbox_tuple,
+                    rotate_clockwise_90=bool(selected_result["rotated_observation_clockwise_90"]),
+                    intrinsics=intrinsics,
+                    extrinsics=extrinsics,
+                    current_state=current_state,
+                    simple_ik_status=simple_ik_status,
+                    dry_run=dry_run,
+                )
+            raise
         trajectory = [
             {
                 "name": waypoint.name,
@@ -816,10 +1018,6 @@ class LocalGraspRuntime:
             }
             for waypoint in motion_plan.waypoints
         ]
-
-        np.save(run_dir / "target_depth_m.npy", depth_m)
-        save_point_cloud(point_cloud.world_points_xyz, run_dir / "target_cloud_world.ply")
-        save_point_cloud(point_cloud.camera_points_xyz, run_dir / "target_cloud_camera.ply")
 
         pipeline_result = {
             "success": True,
@@ -831,6 +1029,7 @@ class LocalGraspRuntime:
             "intermediate": {
                 "geometric_grasp": geometric_grasp,
                 "motion_plan_metadata": motion_plan.metadata,
+                "simple_ik": simple_ik_status,
                 "target_bbox_2d": list(applied_bbox_tuple),
                 "raw_detection_bbox_2d": list(bbox_tuple),
                 "selected_pointcloud_option": selected_result["name"],
@@ -868,6 +1067,7 @@ class LocalGraspRuntime:
             "resolved_target": resolved_target.model_dump(),
             "geometric_grasp": self._to_jsonable(geometric_grasp),
             "motion_plan_metadata": self._to_jsonable(motion_plan.metadata),
+            "simple_ik": simple_ik_status,
             "selected_pointcloud_option": selected_result["name"],
             "pointcloud_diagnostics_path": str(run_dir / "real_pointcloud_diagnostics.json"),
         }

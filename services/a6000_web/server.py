@@ -255,7 +255,34 @@ def _select_reobserved_target(original: ResolvedTarget, candidates) -> ResolvedT
 
     matching = [candidate for candidate in candidates if label_match(candidate)]
     pool = matching or list(candidates)
-    selected = max(pool, key=lambda candidate: float(candidate.score))
+
+    def bbox_center_xy(bbox: Any) -> tuple[float, float] | None:
+        try:
+            values = [float(value) for value in bbox]
+        except Exception:
+            return None
+        if len(values) != 4:
+            return None
+        return (0.5 * (values[0] + values[2]), 0.5 * (values[1] + values[3]))
+
+    original_center = bbox_center_xy(original.bbox_xyxy)
+    if original_center is not None:
+        ox, oy = original_center
+
+        def continuity_rank(candidate) -> tuple[float, float]:
+            center = bbox_center_xy(candidate.bbox_xyxy)
+            if center is None:
+                return (float("inf"), -float(candidate.score))
+            cx, cy = center
+            # After arm-axis base preposition, the target can move vertically
+            # in the camera view, while left/right ordering is usually stable.
+            # Prefer the same visual slot over the highest-scoring same-label cup.
+            continuity_distance = abs(cx - ox) + 0.35 * abs(cy - oy)
+            return (continuity_distance, -float(candidate.score))
+
+        selected = min(pool, key=continuity_rank)
+    else:
+        selected = max(pool, key=lambda candidate: float(candidate.score))
     return ResolvedTarget(
         candidate_id=selected.candidate_id,
         display_id=selected.display_id,

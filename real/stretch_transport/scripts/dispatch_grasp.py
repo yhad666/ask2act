@@ -301,6 +301,12 @@ def _wait_for_joint_target(
         if abs(error) <= tolerance:
             ok = True
             break
+        if joint_name == "stretch_gripper" and target >= 50.0:
+            open_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_POS", "80.0"))
+            planner_open_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_PLANNER_POS", "0.45"))
+            if actual >= open_threshold or (actual <= 1.5 and actual >= planner_open_threshold):
+                ok = True
+                break
         if joint_name == "stretch_gripper" and target <= -0.35:
             close_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_CLOSE_ACCEPT_POS", "0.05"))
             if actual <= close_threshold:
@@ -633,21 +639,27 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                     "ok": False,
                 }
                 try:
+                    wait_targets: dict[str, float] = {}
                     for joint_name, target in joint_targets.items():
+                        joint_name_str = str(joint_name)
                         command_result = _move_component(
                             robot,
-                            str(joint_name),
+                            joint_name_str,
                             float(target),
                             base_reference_theta=base_reference_theta,
                         )
                         if command_result is not None:
                             waypoint_trace["command_trace"].append(command_result)
+                            wait_targets[joint_name_str] = float(command_result.get("command_target", target))
+                        else:
+                            wait_targets[joint_name_str] = float(target)
                     robot.push_command()
                     waypoint_ok = True
                     for joint_name, target in joint_targets.items():
                         joint_name_str = str(joint_name)
+                        wait_target = wait_targets.get(joint_name_str, float(target))
                         if joint_name_str == "base_rotate":
-                            target_theta = base_reference_theta + float(target)
+                            target_theta = base_reference_theta + float(wait_target)
                             wait_result = _wait_for_base_theta(
                                 robot,
                                 target_theta=target_theta,
@@ -659,7 +671,7 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                             wait_result = _wait_for_joint_target(
                                 robot,
                                 joint_name=joint_name_str,
-                                target=float(target),
+                                target=float(wait_target),
                                 waypoint_name=name,
                             )
                         waypoint_trace["wait_trace"].append(wait_result)
