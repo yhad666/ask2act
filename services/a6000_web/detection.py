@@ -78,12 +78,17 @@ def _load_font(size: int):
 
 def _candidate_display_label(candidate: Candidate) -> str:
     if candidate.display_id is not None:
-        return str(candidate.display_id)
-    suffix = candidate.candidate_id.rsplit("_", 1)[-1]
-    try:
-        return str(int(suffix))
-    except ValueError:
-        return candidate.candidate_id
+        display_id = str(candidate.display_id)
+    else:
+        suffix = candidate.candidate_id.rsplit("_", 1)[-1]
+        try:
+            display_id = str(int(suffix))
+        except ValueError:
+            display_id = candidate.candidate_id
+    label = (candidate.label or "").strip()
+    if label:
+        return f"{display_id} {label}"
+    return display_id
 
 
 @dataclass

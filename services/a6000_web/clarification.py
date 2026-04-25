@@ -146,11 +146,22 @@ class ClarificationEngine:
             extra_body={"repetition_penalty": self.repetition_penalty},
         )
 
+    @staticmethod
+    def _has_forbidden_question_reference(protocol: Dict[str, Any]) -> bool:
+        forbidden_terms = ("marked", "tag", "display", "candidate", "cand_", "#")
+        for question in protocol.get("Question") or []:
+            text = str(question.get("text") or "").lower()
+            if any(term in text for term in forbidden_terms):
+                return True
+            if any(char.isdigit() for char in text):
+                return True
+        return False
+
     def _generate_protocol(self, messages: List[Dict[str, Any]]) -> Tuple[str, Dict[str, Any]]:
         response = self._chat(messages=messages)
         raw = response.choices[0].message.content or ""
         try:
-            return raw, extract_protocol_json(raw)
+            protocol = extract_protocol_json(raw)
         except Exception:
             follow = (
                 "CONTINUE.\n"
@@ -163,7 +174,29 @@ class ClarificationEngine:
                 max_tokens=min(self.gen_max_tokens, 1500),
             )
             raw_second = second.choices[0].message.content or ""
-            return raw_second, extract_protocol_json(raw_second)
+            protocol = extract_protocol_json(raw_second)
+            raw = raw_second
+
+        if self._has_forbidden_question_reference(protocol):
+            repair = (
+                "REWRITE the final protocol JSON.\n"
+                "Your previous questions mentioned candidate numbers/tags/marks/ids. That is forbidden.\n"
+                "Ask only about visible object properties such as color, left/right position, relative position, "
+                "size, or shape. Do not mention numbers, marks, tags, display IDs, candidate IDs, or bbox values.\n"
+                "Keep the same protocol schema and count fields. Output exactly one final JSON object."
+            )
+            repaired = self._chat(
+                messages=messages + [{"role": "assistant", "content": json.dumps(protocol, ensure_ascii=False)}]
+                + [{"role": "user", "content": repair}],
+                max_tokens=min(self.gen_max_tokens, 1200),
+            )
+            raw_repaired = repaired.choices[0].message.content or ""
+            repaired_protocol = extract_protocol_json(raw_repaired)
+            if self._has_forbidden_question_reference(repaired_protocol):
+                raise ValueError("VLM proposed a question about candidate numbers/tags after repair")
+            return raw_repaired, repaired_protocol
+
+        return raw, protocol
 
     @staticmethod
     def _candidate_display_id(candidate: Candidate) -> int | str:
@@ -177,6 +210,9 @@ class ClarificationEngine:
 
     @classmethod
     def _candidate_payload(cls, candidates: List[Candidate]) -> Dict[str, Any]:
+        def rounded(values: List[float] | Tuple[float, ...], ndigits: int = 1) -> List[float]:
+            return [round(float(value), ndigits) for value in values]
+
         centers: Dict[str, Tuple[float, float]] = {}
         for candidate in candidates:
             x1, y1, x2, y2 = [float(value) for value in candidate.bbox_xyxy]
@@ -206,11 +242,11 @@ class ClarificationEngine:
                 "display_id": display_id,
                 "visual_tag": str(display_id),
                 "label": candidate.label,
-                "bbox": [x1, y1, x2, y2],
-                "bbox_center": [cx, cy],
+                "bbox": rounded([x1, y1, x2, y2]),
+                "bbox_center": rounded([cx, cy]),
                 "left_to_right_rank": left_to_right[candidate.candidate_id],
                 "top_to_bottom_rank": top_to_bottom[candidate.candidate_id],
-                "score": candidate.score,
+                "score": round(float(candidate.score), 3),
             }
         return payload
 
@@ -221,11 +257,6 @@ class ClarificationEngine:
             "Round": round_idx,
             "Image": image_id,
             "Target_Instruction": target,
-            "Candidate_View": (
-                "The image is an annotated candidate overlay. Each GroundingDINO candidate has a small "
-                "numeric visual_tag drawn on its bounding box. Use visual_tag/display_id to match the "
-                "image to the Candidates table; final Target.name must still be the cand_XXX key."
-            ),
             "Candidates": cls._candidate_payload(candidates),
         }
 

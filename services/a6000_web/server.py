@@ -63,6 +63,9 @@ REAL_REPLAN_AFTER_BASE_REACH = os.getenv("ASK2ACT_REAL_REPLAN_AFTER_BASE_REACH",
 }
 REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS = int(os.getenv("ASK2ACT_REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS", "2"))
 SESSION_RECORD_ROOT = Path(os.getenv("ASK2ACT_SESSION_RECORD_ROOT", str(ROOT / "artifacts" / "session_records"))).expanduser()
+GEN_MAX_TOKENS_REQUESTED = int(os.getenv("ASK2ACT_GEN_MAX_TOKENS", "1500"))
+GEN_MAX_TOKENS_CAP = int(os.getenv("ASK2ACT_GEN_MAX_TOKENS_CAP", "1500"))
+GEN_MAX_TOKENS = max(256, min(GEN_MAX_TOKENS_REQUESTED, GEN_MAX_TOKENS_CAP))
 
 SESSIONS: Dict[str, SessionState] = {}
 
@@ -72,7 +75,7 @@ clarifier = ClarificationEngine(
     base_url=VLLM_BASE_URL,
     model=VLLM_MODEL,
     system_prompt_path=SYSTEM_PROMPT_PATH,
-    gen_max_tokens=int(os.getenv("ASK2ACT_GEN_MAX_TOKENS", "2000")),
+    gen_max_tokens=GEN_MAX_TOKENS,
     think_hint=os.getenv("ASK2ACT_THINK_HINT", "0") == "1",
 )
 stretch_transport = StretchTransportClient(
@@ -483,6 +486,7 @@ def health():
         "sessions": len(SESSIONS),
         "vllm_base_url": VLLM_BASE_URL,
         "vllm_model": VLLM_MODEL,
+        "gen_max_tokens": GEN_MAX_TOKENS,
         "stretch_transport_mode": stretch_transport.mode,
         "stretch_zmq_endpoint": STRETCH_ZMQ_ENDPOINT if stretch_transport.mode == "zmq" else None,
         "pipeline_mode": grasp_runtime.mode,

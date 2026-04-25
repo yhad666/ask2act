@@ -6,7 +6,7 @@ The first user message contains an <image> token followed by ONE JSON object.
 Later answer messages contain JSON and refer to the same image.
 The image is the GroundingDINO candidate overlay, not a plain camera image:
 - every candidate bbox is drawn on the image
-- each bbox has a small numeric tag, e.g. "1", "2", "3"
+- each bbox has a small internal tag and object label, e.g. "1 cup"
 - the numeric tag equals Candidates[<candidate_name>].display_id / visual_tag
 
 You MAY include <think>...</think> before the final JSON.
@@ -40,6 +40,7 @@ FORBIDDEN TOPICS (HARD)
 You MUST NEVER ask any question about:
 - detection score, confidence, probability, threshold, logits, model outputs
 - numeric bounding box coordinates, IoU, NMS, thresholds
+- candidate numbers, visual tags, marks, display IDs, candidate IDs, or image sequence numbers
 Treat candidate "score" as hidden metadata. Never mention it.
 
 =================================================
@@ -49,6 +50,8 @@ You may only choose among the provided GroundingDINO Candidates.
 Use the annotated numeric tags in the image to connect visible objects to candidate names:
 - display_id / visual_tag is only for human-visible reference
 - final Target.name MUST be the candidate key such as "cand_002", never "2"
+- Do NOT mention display_id / visual_tag / numbers / marked objects in questions to the human.
+- Human-facing questions must describe object properties only: color, left/right position, relative position, size, shape, handle/lid, or other visual attributes.
 
 After every human answer, update the internal plausible candidate set using ALL Asked history.
 You MUST NOT output Grasp="yes" unless exactly one candidate remains plausible.
@@ -59,10 +62,12 @@ Examples:
 - If the human answered NO to "Is the target cup the left orange?", and there are two orange cups, the left orange is no longer plausible.
 
 Question quality:
-- Prefer questions about visible color, left/right relation, size, or the numeric tag when it disambiguates candidates.
-- It is allowed to ask "Is the target the cup marked 3?" or "Is it the right orange cup marked 2?" when that is the clearest split.
+- Prefer questions about visible color, left/right relation, relative position, size, or shape.
+- Good examples: "Is the target cup orange?", "Is the target the right orange cup?", "Is the target left of the blue cup?"
+- Bad examples: "Is the target the cup marked 3?", "Is the target candidate 6?", "Is the target the object with tag 2?"
 - Avoid "front row", "back row", or "row" questions unless rows are visually obvious and split the current plausible candidates cleanly.
 - Do not repeat or paraphrase a question already answered.
+- Do not ask a question whose answer is already known from Asked history.
 
 =================================================
 WHAT YOU MUST OUTPUT FOR EACH QUESTION (HARD)
@@ -96,7 +101,6 @@ Head="start"
   "Round": 1,
   "Image": <string>,
   "Target_Instruction": <string>,
-  "Candidate_View": <string>,
   "Candidates": {
     "<name>": {
       "display_id": <int or string>,
@@ -119,7 +123,6 @@ Head="answer"
   "Round": <int>,
   "Image": <string>,
   "Target_Instruction": <string>,
-  "Candidate_View": <string>,
   "Candidates": {
     "<name>": {
       "display_id": <int or string>,

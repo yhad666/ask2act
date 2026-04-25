@@ -32,7 +32,7 @@ CUDA_VISIBLE_DEVICES=0 VLLM_USE_V1=1 \
   --max-model-len 16384 \
   --gpu-memory-utilization 0.92 \
   --enable-prefix-caching \
-  --prefix-caching-hash-algo xxhash \
+  --prefix-caching-hash-algo sha256 \
   --max-num-seqs 1 \
   --max-num-batched-tokens 4096 \
   --limit-mm-per-prompt '{"image": 1}' \
@@ -57,7 +57,8 @@ export ASK2ACT_VLLM_BASE_URL=http://127.0.0.1:8000/v1
 export ASK2ACT_VLLM_MODEL=mimo-vl
 export ASK2ACT_DETECTOR_DEVICE=cuda:1
 export ASK2ACT_DINO_BOX_THRESHOLD=0.38
-export ASK2ACT_GEN_MAX_TOKENS=8000
+export ASK2ACT_GEN_MAX_TOKENS=1500
+export ASK2ACT_GEN_MAX_TOKENS_CAP=1500
 export ASK2ACT_THINK_HINT=1
 export ASK2ACT_STRETCH_TRANSPORT=mock
 export ASK2ACT_PIPELINE_MODE=mock
