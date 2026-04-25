@@ -1168,7 +1168,7 @@ class MotionPlanner:
                 MotionWaypoint(
                     name="open_gripper",
                     joint_targets={"stretch_gripper": gripper_open_cmd},
-                    settle_s=0.3,
+                    settle_s=1.0 if approach_type == "top_down" else 0.3,
                 ),
                 MotionWaypoint(
                     name="move_to_pregrasp",
@@ -1179,6 +1179,13 @@ class MotionPlanner:
         )
 
         if approach_type == "top_down":
+            waypoints.append(
+                MotionWaypoint(
+                    name="open_gripper_at_pregrasp",
+                    joint_targets={"stretch_gripper": gripper_open_cmd},
+                    settle_s=0.8,
+                )
+            )
             waypoints.append(
                 MotionWaypoint(
                     name="descend_to_grasp",
