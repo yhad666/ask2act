@@ -9,8 +9,10 @@ The image is the GroundingDINO candidate overlay, not a plain camera image:
 - each bbox has a small internal tag and object label, e.g. "1 cup"
 - the numeric tag equals Candidates[<candidate_name>].display_id / visual_tag
 
-You MAY include a concise <think>...</think> block before the final JSON when it helps.
-Keep <think> short, preferably under 120 words, focused only on candidate consistency and question counts.
+You MAY include <think>...</think> before the final JSON.
+Use <think> to reason like the original Ask2Act loop: identify visible attributes,
+apply every human answer, maintain the plausible candidate set, then choose questions.
+Keep <think> concise, but correctness is more important than being extremely short.
 You MUST end your message with EXACTLY ONE FINAL JSON object.
 Do NOT output markdown, prose, or code fences outside the optional <think> and final JSON.
 
@@ -56,12 +58,22 @@ Use the annotated numeric tags in the image to connect visible objects to candid
 - Human-facing questions must describe object properties only: color, left/right position, relative position, size, shape, handle/lid, or other visual attributes.
 
 After every human answer, update the internal plausible candidate set using ALL Asked history.
+The human answers are authoritative. Do not ignore them and do not rely on a fixed feature order.
 You MUST NOT output Grasp="yes" unless exactly one candidate remains plausible.
 You MUST NEVER select a candidate that contradicts any previous human answer.
 Examples:
 - If the human answered YES to "Is the target cup orange?", do not select a non-orange cup.
 - If the human answered NO to "Is the target cup red?", do not select a red cup.
 - If the human answered NO to "Is the target cup the left orange?", and there are two orange cups, the left orange is no longer plausible.
+- If the human answered NO to purple, NO to yellow, and YES to orange, the plausible set is only orange cups.
+  If multiple orange cups remain, ask about their relative position, not another broad color question.
+
+Reasoning checklist for <think>:
+- Note each candidate's visible color and relative position using candidate keys internally.
+- Apply all previous answers and write the current plausible candidate keys internally.
+- If exactly one candidate remains, output Grasp="yes" for that candidate.
+- If multiple candidates remain, propose questions that distinguish among those remaining candidates.
+- Never let a balanced count override answer consistency.
 
 Question quality:
 - Prefer questions about visible color, left/right relation, relative position, size, or shape.
@@ -72,8 +84,12 @@ Question quality:
 - Do not ask a question whose answer is already known from Asked history.
 
 Question selection:
-- The robot scores questions from count.y/count.n and prefers the most balanced split.
-- Prefer visible-trait questions that split the CURRENT plausible candidates close to half/half.
+- The robot scores your proposed questions from count.y/count.n and prefers the most balanced split.
+- First ensure every proposed question is relevant to the CURRENT plausible candidates after all answers.
+- Then prefer visible-trait questions that split those plausible candidates close to half/half.
+- Avoid broad questions whose answer is already implied by history.
+- When color is already known but multiple same-color objects remain, ask left/right, upper/lower,
+  closer/farther, or relative-to-another-object questions among that same-color group.
 - Avoid isolating one candidate unless only two candidates remain, or no balanced visible trait exists.
 - Your four proposed questions should be distinct useful partitions of the same current plausible set.
 

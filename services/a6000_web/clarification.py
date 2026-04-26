@@ -231,6 +231,73 @@ class ClarificationEngine:
 
         return raw, protocol
 
+    def _repair_question_counts(self, messages: List[Dict[str, Any]], protocol: Dict[str, Any]) -> Dict[str, Any]:
+        questions = protocol.get("Question") or []
+        if not questions:
+            return protocol
+
+        original_by_id: Dict[int, Dict[str, Any]] = {}
+        for question in questions:
+            try:
+                original_by_id[int(question["id"])] = question
+            except Exception:
+                continue
+        if not original_by_id:
+            return protocol
+
+        count_check_prompt = (
+            "COUNT CHECK ONLY.\n"
+            "Re-evaluate count.total/count.y/count.n for the exact questions in the previous protocol.\n"
+            "Use the image and ALL Asked history. First determine the current plausible candidate set internally, "
+            "then count how many plausible candidates would remain for YES and for NO.\n"
+            "Do NOT change any question text, ids, Head, Round, Grasp, or Target fields. Only fix count values.\n"
+            "Remember: y + n must equal total, and total is the current plausible candidate count after all history.\n"
+            "You MAY use a short <think>, but the final output must be exactly one protocol JSON object."
+        )
+        try:
+            repaired = self._chat(
+                messages=messages
+                + [{"role": "assistant", "content": json.dumps(protocol, ensure_ascii=False)}]
+                + [{"role": "user", "content": count_check_prompt}],
+                max_tokens=min(self.gen_max_tokens, 2200),
+            )
+            repaired_raw = repaired.choices[0].message.content or ""
+            repaired_protocol = extract_protocol_json(repaired_raw)
+        except Exception:
+            return protocol
+
+        merged = dict(protocol)
+        repaired_questions = repaired_protocol.get("Question") or []
+        repaired_count_by_id: Dict[int, Dict[str, int]] = {}
+        for question in repaired_questions:
+            try:
+                question_id = int(question["id"])
+                count = question.get("count") or {}
+                total = int(count.get("total", 0))
+                y_count = int(count.get("y", 0))
+                n_count = int(count.get("n", 0))
+            except Exception:
+                continue
+            if total > 0 and y_count >= 0 and n_count >= 0 and y_count + n_count == total:
+                repaired_count_by_id[question_id] = {"total": total, "y": y_count, "n": n_count}
+
+        if not repaired_count_by_id:
+            return protocol
+
+        merged_questions = []
+        for question in questions:
+            try:
+                question_id = int(question["id"])
+            except Exception:
+                merged_questions.append(question)
+                continue
+            merged_question = dict(question)
+            if question_id in repaired_count_by_id:
+                merged_question["count"] = repaired_count_by_id[question_id]
+            merged_questions.append(merged_question)
+        merged["Question"] = merged_questions
+        return merged
+
     @staticmethod
     def _candidate_display_id(candidate: Candidate) -> int | str:
         if candidate.display_id is not None:
@@ -375,6 +442,7 @@ class ClarificationEngine:
 
     def advance_without_answer(self, session: SessionState) -> None:
         raw, protocol = self._generate_protocol(session.vlm_messages)
+        protocol = self._repair_question_counts(session.vlm_messages, protocol)
         session.last_protocol_json = protocol
         session.vlm_messages.append({"role": "assistant", "content": json.dumps(protocol, ensure_ascii=False)})
         head = protocol.get("Head")
