@@ -1148,11 +1148,14 @@ class MotionPlanner:
         print("=========================\n", flush=True)
 
         retract_wrist_yaw = tucked_wrist_yaw
+        retract_wrist_pitch = tucked_pitch
         if approach_type == "top_down":
             # For top-down calibration/execution, avoid an unnecessary large
-            # yaw sweep into a tucked pose and then back out again. That extra
-            # rotation is what most often times out under the GUI viewer.
+            # yaw/pitch sweep into a tucked pose and then back out again. The
+            # real robot must keep the gripper geometry matched to the IK
+            # model before extending and descending.
             retract_wrist_yaw = desired_wrist_yaw
+            retract_wrist_pitch = desired_wrist_pitch
 
         waypoints: list[MotionWaypoint] = [
             MotionWaypoint(
@@ -1162,7 +1165,7 @@ class MotionPlanner:
                     "lift": max(float(current_state.get("lift", 0.0)), min(pregrasp_lift, postgrasp_lift)),
                     "arm": 0.0,
                     "wrist_yaw": retract_wrist_yaw,
-                    "wrist_pitch": tucked_pitch,
+                    "wrist_pitch": retract_wrist_pitch,
                     "wrist_roll": 0.0,
                 },
                 settle_s=0.6,

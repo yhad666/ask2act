@@ -258,7 +258,7 @@ def _joint_timeout_s(joint_name: str, waypoint_name: str) -> float:
 def _wait_required_for_joint(joint_name: str) -> bool:
     raw = os.getenv(
         "ASK2ACT_STRETCH_REQUIRED_WAIT_JOINTS",
-        "lift,arm,base_rotate,base_translate_forward,base_translate_arm_axis,stretch_gripper",
+        "lift,arm,wrist_yaw,wrist_pitch,wrist_roll,base_rotate,base_translate_forward,base_translate_arm_axis,stretch_gripper",
     )
     required = {item.strip() for item in raw.split(",") if item.strip()}
     return joint_name in required
