@@ -197,7 +197,11 @@ def _read_joint_position(robot: Any, joint_name: str) -> float | None:
             for key in candidates:
                 entry = status.get(key)
                 if isinstance(entry, dict):
-                    for pos_key in ("pos", "pos_rad", "pos_m", "pos_pct"):
+                    if joint_name == "stretch_gripper" and os.getenv("ASK2ACT_STRETCH_GRIPPER_COMMAND_MODE", "real_pct").strip().lower() == "real_pct":
+                        pos_keys = ("pos_pct", "pos", "pos_rad", "pos_m")
+                    else:
+                        pos_keys = ("pos", "pos_rad", "pos_m", "pos_pct")
+                    for pos_key in pos_keys:
                         if pos_key in entry:
                             return float(entry[pos_key])
                 elif isinstance(entry, (int, float)):
