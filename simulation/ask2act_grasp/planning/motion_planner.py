@@ -48,6 +48,15 @@ GEOMETRIC_TOP_DOWN_RETURN_BASE_ROTATE_TO_START = (
 GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M", "0.025")
 )
+GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M", "0.0")
+)
+GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M", "0.0")
+)
+GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M", "0.0")
+)
 GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE = (
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE", "1").strip().lower()
     in {"1", "true", "yes", "on"}
@@ -335,6 +344,15 @@ class MotionPlanner:
         gripper_open_cmd = self._topdown_gripper_open_cmd(requested_open_width)
         wrist_to_grasp_center_local = np.asarray(topdown_wrist_to_grasp_center_offset_m(), dtype=float)
         grasp_center_to_rubber_local = np.asarray(topdown_grasp_center_to_rubber_offset_m(gripper_open_cmd), dtype=float)
+        rubber_local_correction = np.array(
+            [
+                GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M,
+                GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M,
+                GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M,
+            ],
+            dtype=float,
+        )
+        grasp_center_to_rubber_local = grasp_center_to_rubber_local + rubber_local_correction
 
         desired_wrist_yaw = 0.0
         if requested_open_width < 0.04:
@@ -477,6 +495,8 @@ class MotionPlanner:
         fk_error = float(np.linalg.norm(predicted_rubber_world - desired_rubber_xyz))
 
         print("\n=== SimpleIK RESULT ===", flush=True)
+        if np.linalg.norm(rubber_local_correction) > 1e-9:
+            print(f"  Rubber local correction: {rubber_local_correction.tolist()}", flush=True)
         print(f"  Desired rubber tip: {desired_rubber_xyz.tolist()}", flush=True)
         print(f"  Desired grasp ctr:  {desired_grasp_center_xyz.tolist()}", flush=True)
         print(f"  Desired wrist_yaw:  {desired_wrist_yaw_pos.tolist()}", flush=True)
@@ -517,6 +537,7 @@ class MotionPlanner:
             "approach_direction": [0.0, 0.0, -1.0],
             "contact_point": desired_rubber_xyz.tolist(),
             "requested_contact_point": requested_rubber_xyz.tolist(),
+            "rubber_local_correction_m": rubber_local_correction.tolist(),
             "planning_mode": planning_mode,
             "grip_angle_rad": float(grip_angle_rad),
             "ik_base_rotate": base_rotate,
