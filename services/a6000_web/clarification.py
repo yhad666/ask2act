@@ -183,6 +183,8 @@ class ClarificationEngine:
                 "Your previous questions mentioned candidate numbers/tags/marks/ids. That is forbidden.\n"
                 "Ask only about visible object properties such as color, left/right position, relative position, "
                 "size, or shape. Do not mention numbers, marks, tags, display IDs, candidate IDs, or bbox values.\n"
+                "For each visible-trait question, prefer the split whose count.y/count.n is closest to half/half "
+                "over questions that isolate a single object.\n"
                 "Keep the same protocol schema and count fields. Output exactly one final JSON object."
             )
             repaired = self._chat(
