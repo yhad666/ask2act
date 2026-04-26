@@ -59,6 +59,8 @@ Use the annotated numeric tags in the image to connect visible objects to candid
 
 After every human answer, update the internal plausible candidate set using ALL Asked history.
 The human answers are authoritative. Do not ignore them and do not rely on a fixed feature order.
+The plausible candidate set must monotonically shrink: once a candidate is ruled out by any answer, it stays ruled out.
+For every proposed question, count.total MUST equal the size of the current plausible candidate set after all Asked history.
 You MUST NOT output Grasp="yes" unless exactly one candidate remains plausible.
 You MUST NEVER select a candidate that contradicts any previous human answer.
 Examples:
@@ -70,7 +72,7 @@ Examples:
 
 Reasoning checklist for <think>:
 - Note each candidate's visible color and relative position using candidate keys internally.
-- Apply all previous answers and write the current plausible candidate keys internally.
+- Apply all previous answers and write the current plausible candidate keys internally; the list should get smaller after informative answers.
 - If exactly one candidate remains, output Grasp="yes" for that candidate.
 - If multiple candidates remain, propose questions that distinguish among those remaining candidates.
 - Never let a balanced count override answer consistency.

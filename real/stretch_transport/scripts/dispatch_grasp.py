@@ -146,6 +146,60 @@ def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> 
     }
 
 
+def _command_return_base_rotate_to_reference(robot: Any, *, base_reference_theta: float, reason: str) -> dict[str, Any]:
+    status_before = _status_snapshot(robot)
+    current_theta = _current_base_theta(robot)
+    delta = _angle_diff_rad(float(base_reference_theta), current_theta)
+    eps = float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_EPS_RAD", "0.02"))
+    result: dict[str, Any] = {
+        "name": f"return_base_rotate_{reason}",
+        "target_theta_rad": float(base_reference_theta),
+        "current_theta_rad": float(current_theta),
+        "delta_rad": float(delta),
+        "status_before": status_before,
+    }
+    if abs(delta) <= eps:
+        result.update(
+            {
+                "ok": True,
+                "skipped": True,
+                "skip_reason": f"abs(delta) <= {eps}",
+                "status_after": _status_snapshot(robot),
+            }
+        )
+        return result
+
+    max_delta = float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_RETURN_MAX_DELTA_RAD", "0.60"))
+    if abs(delta) > max_delta:
+        result.update(
+            {
+                "ok": False,
+                "skipped": True,
+                "error": f"Refusing large final base rotation delta {delta:.3f} rad > {max_delta:.3f} rad",
+                "status_after": _status_snapshot(robot),
+            }
+        )
+        return result
+
+    robot.base.rotate_by(delta)
+    robot.push_command()
+    wait_result = _wait_for_base_theta(
+        robot,
+        target_theta=float(base_reference_theta),
+        timeout_s=float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_RETURN_WAIT_TIMEOUT_S", "12.0")),
+        tolerance_rad=float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_WAIT_TOLERANCE_RAD", "0.035")),
+    )
+    result.update(
+        {
+            "ok": bool(wait_result.get("ok", False)),
+            "skipped": False,
+            "wait": wait_result,
+            "status_after": _status_snapshot(robot),
+        }
+    )
+    return result
+
+
 def _current_base_theta(robot: Any) -> float:
     try:
         robot.pull_status()
@@ -793,6 +847,14 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                     _command_default_pose(
                         robot,
                         include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_END", "0"),
+                        reason="execute_end",
+                    )
+                )
+            if _truthy("ASK2ACT_STRETCH_RETURN_BASE_ROTATE_ON_EXECUTE_END", "1"):
+                trace.append(
+                    _command_return_base_rotate_to_reference(
+                        robot,
+                        base_reference_theta=base_reference_theta,
                         reason="execute_end",
                     )
                 )
