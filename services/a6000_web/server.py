@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import io
 import json
 import os
 import time
@@ -62,6 +63,9 @@ REAL_REPLAN_AFTER_BASE_REACH = os.getenv("ASK2ACT_REAL_REPLAN_AFTER_BASE_REACH",
     "on",
 }
 REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS = int(os.getenv("ASK2ACT_REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS", "2"))
+REAL_REOBSERVE_TARGET_LOCK_AMBIGUITY_MARGIN = float(
+    os.getenv("ASK2ACT_REOBSERVE_TARGET_LOCK_AMBIGUITY_MARGIN", "0.02")
+)
 SESSION_RECORD_ROOT = Path(os.getenv("ASK2ACT_SESSION_RECORD_ROOT", str(ROOT / "artifacts" / "session_records"))).expanduser()
 GEN_MAX_TOKENS_REQUESTED = int(os.getenv("ASK2ACT_GEN_MAX_TOKENS", "4096"))
 GEN_MAX_TOKENS_CAP = int(os.getenv("ASK2ACT_GEN_MAX_TOKENS_CAP", "4096"))
@@ -243,44 +247,297 @@ def _make_base_reach_preposition_payload(plan_result: Dict[str, Any], waypoint: 
     return dispatch_payload
 
 
-def _select_reobserved_target(original: ResolvedTarget, candidates) -> ResolvedTarget:
+def _bbox_center_xy(bbox: Any) -> tuple[float, float] | None:
+    try:
+        values = [float(value) for value in bbox]
+    except Exception:
+        return None
+    if len(values) != 4:
+        return None
+    return (0.5 * (values[0] + values[2]), 0.5 * (values[1] + values[3]))
+
+
+def _bbox_wh(bbox: Any) -> tuple[float, float] | None:
+    try:
+        values = [float(value) for value in bbox]
+    except Exception:
+        return None
+    if len(values) != 4:
+        return None
+    return (abs(values[2] - values[0]), abs(values[3] - values[1]))
+
+
+def _label_matches(candidate_label: str | None, target_label: str | None) -> bool:
+    target = (target_label or "").strip().lower()
+    label = (candidate_label or "").strip().lower()
+    return bool(target and (label == target or target in label or label in target))
+
+
+def _candidate_visual_signature(image_bytes: bytes | None, bbox_xyxy: Any) -> Dict[str, Any] | None:
+    if not image_bytes:
+        return None
+    try:
+        import numpy as np
+        from PIL import Image
+
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        width, height = image.size
+        values = [float(value) for value in bbox_xyxy]
+        if len(values) != 4:
+            return None
+        x0, y0, x1, y1 = values
+        x0, x1 = sorted((max(0.0, min(float(width), x0)), max(0.0, min(float(width), x1))))
+        y0, y1 = sorted((max(0.0, min(float(height), y0)), max(0.0, min(float(height), y1))))
+        if x1 - x0 < 4.0 or y1 - y0 < 4.0:
+            return None
+        pad_x = 0.12 * (x1 - x0)
+        pad_y = 0.12 * (y1 - y0)
+        crop_box = (
+            int(round(x0 + pad_x)),
+            int(round(y0 + pad_y)),
+            int(round(x1 - pad_x)),
+            int(round(y1 - pad_y)),
+        )
+        crop = image.crop(crop_box).resize((24, 24))
+        arr = np.asarray(crop, dtype=np.float32) / 255.0
+        mean_rgb = arr.reshape(-1, 3).mean(axis=0)
+        hist_parts = []
+        for channel in range(3):
+            hist, _ = np.histogram(arr[:, :, channel], bins=8, range=(0.0, 1.0), density=False)
+            hist = hist.astype(np.float32)
+            hist_parts.append(hist / max(float(hist.sum()), 1.0))
+        return {
+            "mean_rgb": mean_rgb.tolist(),
+            "hist_rgb": np.concatenate(hist_parts).tolist(),
+            "image_size": [width, height],
+        }
+    except Exception:
+        return None
+
+
+def _visual_signature_distance(a: Dict[str, Any] | None, b: Dict[str, Any] | None) -> float | None:
+    if not a or not b:
+        return None
+    try:
+        import numpy as np
+
+        mean_a = np.asarray(a["mean_rgb"], dtype=np.float32)
+        mean_b = np.asarray(b["mean_rgb"], dtype=np.float32)
+        hist_a = np.asarray(a["hist_rgb"], dtype=np.float32)
+        hist_b = np.asarray(b["hist_rgb"], dtype=np.float32)
+        mean_dist = float(np.linalg.norm(mean_a - mean_b) / max(np.sqrt(3.0), 1e-6))
+        hist_dist = float(0.5 * np.sum(np.abs(hist_a - hist_b)) / 3.0)
+        return 0.65 * mean_dist + 0.35 * hist_dist
+    except Exception:
+        return None
+
+
+def _candidate_layout_signature(target: Any, candidates: Any, image_size: Any = None) -> Dict[str, Any] | None:
+    target_center = _bbox_center_xy(getattr(target, "bbox_xyxy", None))
+    if target_center is None:
+        return None
+    tx, ty = target_center
+    target_label = getattr(target, "label", None)
+    peers = [
+        candidate
+        for candidate in candidates or []
+        if _label_matches(getattr(candidate, "label", None), target_label)
+        and _bbox_center_xy(getattr(candidate, "bbox_xyxy", None)) is not None
+    ]
+    if not peers:
+        return None
+
+    centers = [(candidate, _bbox_center_xy(candidate.bbox_xyxy)) for candidate in peers]
+    centers = [(candidate, center) for candidate, center in centers if center is not None]
+    if not centers:
+        return None
+
+    try:
+        width = float(image_size[0]) if image_size and len(image_size) == 2 else 0.0
+        height = float(image_size[1]) if image_size and len(image_size) == 2 else 0.0
+    except Exception:
+        width = 0.0
+        height = 0.0
+    max_x = max([abs(center[0]) for _, center in centers] + [abs(tx), width, 1.0])
+    max_y = max([abs(center[1]) for _, center in centers] + [abs(ty), height, 1.0])
+    norm_x = max(width, max_x, 1.0)
+    norm_y = max(height, max_y, 1.0)
+    norm = max(norm_x, norm_y, 1.0)
+
+    n = len(centers)
+    denom = max(n - 1, 1)
+    sorted_x = sorted(centers, key=lambda item: item[1][0])
+    sorted_y = sorted(centers, key=lambda item: item[1][1])
+    target_id = getattr(target, "candidate_id", None)
+
+    def rank_in(sorted_items, axis: int) -> float:
+        best_index = 0
+        best_distance = float("inf")
+        for index, (candidate, center) in enumerate(sorted_items):
+            if target_id is not None and getattr(candidate, "candidate_id", None) == target_id:
+                return index / denom
+            distance = abs(center[axis] - (tx if axis == 0 else ty))
+            if distance < best_distance:
+                best_distance = distance
+                best_index = index
+        return best_index / denom
+
+    left: list[float] = []
+    right: list[float] = []
+    above: list[float] = []
+    below: list[float] = []
+    vectors: list[tuple[float, float, float]] = []
+    for candidate, center in centers:
+        if target_id is not None and getattr(candidate, "candidate_id", None) == target_id:
+            continue
+        cx, cy = center
+        dx = (cx - tx) / norm_x
+        dy = (cy - ty) / norm_y
+        if cx < tx - 1.0:
+            left.append((tx - cx) / norm)
+        if cx > tx + 1.0:
+            right.append((cx - tx) / norm)
+        if cy < ty - 1.0:
+            above.append((ty - cy) / norm)
+        if cy > ty + 1.0:
+            below.append((cy - ty) / norm)
+        vectors.append((dx, dy, float((dx * dx + dy * dy) ** 0.5)))
+    vectors.sort(key=lambda item: item[2])
+    nearest_vectors = [[dx, dy] for dx, dy, _ in vectors[:4]]
+    while len(nearest_vectors) < 4:
+        nearest_vectors.append([1.0, 1.0])
+
+    wh = _bbox_wh(getattr(target, "bbox_xyxy", None)) or (0.0, 0.0)
+    return {
+        "count": n,
+        "x_rank": rank_in(sorted_x, 0),
+        "y_rank": rank_in(sorted_y, 1),
+        "left_count": len(left) / denom,
+        "right_count": len(right) / denom,
+        "above_count": len(above) / denom,
+        "below_count": len(below) / denom,
+        "nearest_left": min(left) if left else 1.0,
+        "nearest_right": min(right) if right else 1.0,
+        "nearest_above": min(above) if above else 1.0,
+        "nearest_below": min(below) if below else 1.0,
+        "bbox_wh": [wh[0] / norm_x, wh[1] / norm_y],
+        "nearest_vectors": nearest_vectors,
+    }
+
+
+def _layout_signature_distance(a: Dict[str, Any] | None, b: Dict[str, Any] | None) -> float | None:
+    if not a or not b:
+        return None
+    try:
+        scalar_keys = [
+            "x_rank",
+            "y_rank",
+            "left_count",
+            "right_count",
+            "above_count",
+            "below_count",
+            "nearest_left",
+            "nearest_right",
+            "nearest_above",
+            "nearest_below",
+        ]
+        scalar_distance = sum(abs(float(a[key]) - float(b[key])) for key in scalar_keys) / len(scalar_keys)
+        size_a = a.get("bbox_wh") or [0.0, 0.0]
+        size_b = b.get("bbox_wh") or [0.0, 0.0]
+        size_distance = 0.5 * (abs(float(size_a[0]) - float(size_b[0])) + abs(float(size_a[1]) - float(size_b[1])))
+        vectors_a = a.get("nearest_vectors") or []
+        vectors_b = b.get("nearest_vectors") or []
+        vector_distance = 0.0
+        vector_count = max(min(len(vectors_a), len(vectors_b)), 1)
+        for vec_a, vec_b in zip(vectors_a[:vector_count], vectors_b[:vector_count]):
+            dx = float(vec_a[0]) - float(vec_b[0])
+            dy = float(vec_a[1]) - float(vec_b[1])
+            vector_distance += float((dx * dx + dy * dy) ** 0.5)
+        vector_distance /= vector_count
+        count_distance = min(abs(float(a.get("count", 0)) - float(b.get("count", 0))) / max(float(a.get("count", 1)), 1.0), 1.0)
+        return 0.50 * scalar_distance + 0.35 * vector_distance + 0.10 * size_distance + 0.05 * count_distance
+    except Exception:
+        return None
+
+
+def _select_reobserved_target(
+    original: ResolvedTarget,
+    candidates,
+    *,
+    previous_candidates=None,
+    previous_image_bytes: bytes | None = None,
+    reobserved_image_bytes: bytes | None = None,
+) -> ResolvedTarget:
     if not candidates:
         raise RuntimeError("Reobserve after base reach returned no GroundingDINO candidates")
 
-    original_label = (original.label or "").strip().lower()
-
-    def label_match(candidate) -> bool:
-        label = (candidate.label or "").strip().lower()
-        return bool(original_label and (label == original_label or original_label in label or label in original_label))
-
-    matching = [candidate for candidate in candidates if label_match(candidate)]
+    matching = [candidate for candidate in candidates if _label_matches(candidate.label, original.label)]
     pool = matching or list(candidates)
+    original_signature = _candidate_visual_signature(previous_image_bytes, original.bbox_xyxy)
+    original_image_size = original_signature.get("image_size") if original_signature else None
+    original_layout = _candidate_layout_signature(original, previous_candidates or [], original_image_size)
 
-    def bbox_center_xy(bbox: Any) -> tuple[float, float] | None:
-        try:
-            values = [float(value) for value in bbox]
-        except Exception:
-            return None
-        if len(values) != 4:
-            return None
-        return (0.5 * (values[0] + values[2]), 0.5 * (values[1] + values[3]))
-
-    original_center = bbox_center_xy(original.bbox_xyxy)
+    original_center = _bbox_center_xy(original.bbox_xyxy)
     if original_center is not None:
         ox, oy = original_center
 
-        def continuity_rank(candidate) -> tuple[float, float]:
-            center = bbox_center_xy(candidate.bbox_xyxy)
+        def target_lock_rank(candidate) -> Dict[str, Any]:
+            center = _bbox_center_xy(candidate.bbox_xyxy)
+            candidate_signature = _candidate_visual_signature(reobserved_image_bytes, candidate.bbox_xyxy)
+            appearance_distance = _visual_signature_distance(original_signature, candidate_signature)
             if center is None:
-                return (float("inf"), -float(candidate.score))
-            cx, cy = center
-            # After arm-axis base preposition, the target can move vertically
-            # in the camera view, while left/right ordering is usually stable.
-            # Prefer the same visual slot over the highest-scoring same-label cup.
-            continuity_distance = abs(cx - ox) + 0.35 * abs(cy - oy)
-            return (continuity_distance, -float(candidate.score))
+                continuity_distance = float("inf")
+            else:
+                cx, cy = center
+                # After arm-axis base preposition, the target can move vertically
+                # in the camera view, while left/right ordering is usually stable.
+                # Prefer the same visual slot over the highest-scoring same-label cup.
+                continuity_distance = abs(cx - ox) + 0.35 * abs(cy - oy)
+            image_size = candidate_signature.get("image_size") if candidate_signature else None
+            if isinstance(image_size, list) and len(image_size) == 2:
+                norm = max(float(image_size[0]), float(image_size[1]), 1.0)
+            elif center is not None:
+                cx, cy = center
+                norm = max(abs(cx), abs(cy), abs(ox), abs(oy), 1.0)
+            else:
+                norm = 1.0
+            continuity_score = min(float(continuity_distance / norm), 1.0)
+            candidate_layout = _candidate_layout_signature(candidate, candidates, image_size)
+            layout_distance = _layout_signature_distance(original_layout, candidate_layout)
 
-        selected = min(pool, key=continuity_rank)
+            components: list[tuple[float, float]] = []
+            if appearance_distance is not None:
+                components.append((0.35, float(appearance_distance)))
+            if layout_distance is not None:
+                components.append((0.45, float(layout_distance)))
+            components.append((0.20 if len(components) >= 2 else 0.35, continuity_score))
+            total_weight = sum(weight for weight, _ in components)
+            combined_distance = sum(weight * value for weight, value in components) / max(total_weight, 1e-6)
+            return {
+                "candidate": candidate,
+                "combined_distance": combined_distance,
+                "appearance_distance": appearance_distance,
+                "layout_distance": layout_distance,
+                "continuity_score": continuity_score,
+                "score": -float(candidate.score),
+            }
+
+        ranked = sorted(
+            [target_lock_rank(candidate) for candidate in pool],
+            key=lambda item: (item["combined_distance"], item["score"]),
+        )
+        if len(ranked) > 1:
+            best = float(ranked[0]["combined_distance"])
+            second = float(ranked[1]["combined_distance"])
+            if second - best < REAL_REOBSERVE_TARGET_LOCK_AMBIGUITY_MARGIN:
+                best_candidate = ranked[0]["candidate"]
+                second_candidate = ranked[1]["candidate"]
+                raise RuntimeError(
+                    "Target lock after base reach is ambiguous between "
+                    f"{getattr(best_candidate, 'candidate_id', '?')} and {getattr(second_candidate, 'candidate_id', '?')} "
+                    f"(distance gap {second - best:.4f}); refusing to grasp the wrong same-label object."
+                )
+        selected = ranked[0]["candidate"]
     else:
         selected = max(pool, key=lambda candidate: float(candidate.score))
     return ResolvedTarget(
@@ -301,7 +558,14 @@ def _refresh_session_observation_after_base_reach(session: SessionState, *, atte
     detection = detector.detect(image_bytes=observation.image_bytes, instruction=session.instruction)
     if session.resolved_target is None:
         raise RuntimeError("Cannot reselect target after base reach because session has no resolved target")
-    reselected_target = _select_reobserved_target(session.resolved_target, detection.candidates)
+    previous_image_bytes = session.observation_image_bytes
+    reselected_target = _select_reobserved_target(
+        session.resolved_target,
+        detection.candidates,
+        previous_candidates=session.candidates,
+        previous_image_bytes=previous_image_bytes,
+        reobserved_image_bytes=detection.prepared_image_bytes,
+    )
 
     session.observation_id = observation.observation_id or session.session_id
     session.observation_source = f"stretch_{stretch_transport.mode}_reobserve_after_base_reach"
