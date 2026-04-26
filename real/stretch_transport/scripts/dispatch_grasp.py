@@ -318,6 +318,24 @@ def _wait_required_for_joint(joint_name: str) -> bool:
     return joint_name in required
 
 
+def _csv_env(name: str, default: str) -> set[str]:
+    raw = os.getenv(name, default)
+    return {item.strip() for item in raw.split(",") if item.strip()}
+
+
+def _nonfatal_cleanup_wait_failure(waypoint_name: str, failed_waits: list[dict[str, Any]]) -> bool:
+    if not _truthy("ASK2ACT_STRETCH_NONFATAL_CLEANUP_WAIT_FAILURES", "1"):
+        return False
+    cleanup_waypoints = _csv_env(
+        "ASK2ACT_STRETCH_NONFATAL_CLEANUP_WAYPOINTS",
+        "retract_arm_after_grasp,return_base_rotate_after_grasp",
+    )
+    allowed_joints = _csv_env("ASK2ACT_STRETCH_NONFATAL_CLEANUP_JOINTS", "arm")
+    if waypoint_name not in cleanup_waypoints or not failed_waits:
+        return False
+    return all(str(item.get("joint_name") or "") in allowed_joints for item in failed_waits)
+
+
 def _wait_for_joint_target(
     robot: Any,
     *,
@@ -818,7 +836,14 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                             for item in waypoint_trace["wait_trace"]
                             if isinstance(item, dict) and not bool(item.get("ok", False))
                         ]
-                        raise RuntimeError(f"{name}: failed to reach waypoint targets: {failed_waits}")
+                        if _nonfatal_cleanup_wait_failure(name, failed_waits):
+                            waypoint_trace["cleanup_warning"] = {
+                                "message": "cleanup waypoint did not reach all strict wait targets; treating grasp as completed",
+                                "failed_waits": failed_waits,
+                            }
+                            waypoint_ok = True
+                        else:
+                            raise RuntimeError(f"{name}: failed to reach waypoint targets: {failed_waits}")
                     settle_s = max(default_settle_s, float(waypoint.get("settle_s") or 0.0))
                     if settle_s > 0.0:
                         time.sleep(settle_s)
