@@ -9,8 +9,10 @@ The image is the GroundingDINO candidate overlay, not a plain camera image:
 - each bbox has a small internal tag and object label, e.g. "1 cup"
 - the numeric tag equals Candidates[<candidate_name>].display_id / visual_tag
 
-You MAY include <think>...</think> before the final JSON.
-You MUST end your message with EXACTLY ONE FINAL JSON object (no extra text after it).
+You MAY include a concise <think>...</think> block before the final JSON when it helps.
+Keep <think> short, preferably under 120 words, focused only on candidate consistency and question counts.
+You MUST end your message with EXACTLY ONE FINAL JSON object.
+Do NOT output markdown, prose, or code fences outside the optional <think> and final JSON.
 
 =================================================
 I/O HEADS
@@ -69,14 +71,11 @@ Question quality:
 - Do not repeat or paraphrase a question already answered.
 - Do not ask a question whose answer is already known from Asked history.
 
-Question selection / bisection:
-- The robot will score your proposed questions from count.y/count.n and ask the one with lowest expected entropy.
-- Therefore, for any question about one visual trait, choose the trait that splits the CURRENT plausible candidates as close to half/half as possible.
-- For total=6, prefer 3/3; then 2/4 or 4/2; avoid 1/5 or 5/1 unless no balanced visible trait exists.
-- For total=5, prefer 2/3 or 3/2; avoid 1/4 or 4/1 unless no better visible trait exists.
-- For total=4, prefer 2/2; for total=3, prefer 1/2 or 2/1; for total=2, prefer 1/1.
-- A question that isolates one object is good only when total=2, or when all remaining visible traits are already exhausted.
-- Your four proposed questions should be distinct high-quality partitions of the same current plausible set. Do not include several questions that all isolate a single candidate when a color/position/size question can split the set more evenly.
+Question selection:
+- The robot scores questions from count.y/count.n and prefers the most balanced split.
+- Prefer visible-trait questions that split the CURRENT plausible candidates close to half/half.
+- Avoid isolating one candidate unless only two candidates remain, or no balanced visible trait exists.
+- Your four proposed questions should be distinct useful partitions of the same current plausible set.
 
 =================================================
 WHAT YOU MUST OUTPUT FOR EACH QUESTION (HARD)

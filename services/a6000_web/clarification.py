@@ -71,21 +71,39 @@ def extract_protocol_json(text: str) -> Dict[str, Any]:
     text = (text or "").strip()
     if not text:
         raise ValueError("Empty model output")
-    spans = _find_all_complete_json_object_spans(text)
-    if not spans:
-        raise ValueError("No balanced JSON object found in model output")
+
+    # Prefer the final answer region after the model's optional reasoning block.
+    # If the model includes JSON-like scratch content in <think>, this keeps us
+    # focused on the protocol JSON that should actually drive the robot.
+    search_texts = []
+    think_end = text.lower().rfind("</think>")
+    if think_end >= 0:
+        search_texts.append(text[think_end + len("</think>") :].strip())
+    search_texts.append(text)
+
     parsed: List[Dict[str, Any]] = []
-    for start, end in spans:
-        chunk = text[start : end + 1]
-        try:
-            obj = json.loads(chunk)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(obj, dict):
-            parsed.append(obj)
-    for obj in reversed(parsed):
-        if obj.get("Head") in {"probose", "decision"} and ("Task_ID" in obj):
-            return obj
+    for search_text in search_texts:
+        spans = _find_all_complete_json_object_spans(search_text)
+        for start, end in spans:
+            chunk = search_text[start : end + 1]
+            try:
+                obj = json.loads(chunk)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(obj, dict):
+                parsed.append(obj)
+        for obj in reversed(parsed):
+            head = str(obj.get("Head") or "").strip().lower()
+            if head in {"probose", "propose", "proposal"} and ("Task_ID" in obj):
+                normalized = dict(obj)
+                normalized["Head"] = "probose"
+                return normalized
+            if head in {"decision", "decide"} and ("Task_ID" in obj):
+                normalized = dict(obj)
+                normalized["Head"] = "decision"
+                return normalized
+    if not parsed:
+        raise ValueError("No balanced JSON object found in model output")
     raise ValueError("No valid Ask2Act protocol JSON found in model output")
 
 
@@ -132,9 +150,9 @@ class ClarificationEngine:
         self.system_prompt = self.system_prompt_path.read_text(encoding="utf-8").strip()
         if think_hint:
             self.system_prompt += (
-                "\n\nSOFT THINKING HINT:\n"
-                "- You may use <think>, but keep it concise while staying correct.\n"
-                "- Focus on the minimum reasoning needed to produce the final JSON.\n"
+                "\n\nRESPONSE HINT:\n"
+                "- You may use one short <think> block, preferably under 120 words.\n"
+                "- The final robot-driving output must be the last JSON object in the response.\n"
             )
 
     def _chat(self, messages: List[Dict[str, Any]], max_tokens: Optional[int] = None):
@@ -164,18 +182,32 @@ class ClarificationEngine:
             protocol = extract_protocol_json(raw)
         except Exception:
             follow = (
-                "CONTINUE.\n"
-                "You MAY use <think>, but you MUST end with EXACTLY ONE FINAL protocol JSON.\n"
-                "Make <think> as short as possible while staying correct.\n"
-                "No extra text after the JSON.\n"
+                "Your previous response did not contain a valid Ask2Act protocol JSON.\n"
+                "Output ONLY one JSON object now. Do NOT output <think>, markdown, explanations, or code fences.\n"
+                'The object Head must be "probose" or "decision", and it must include Task_ID.\n'
+                "Use the exact schema from the system prompt. Start with { and end with }.\n"
             )
             second = self._chat(
                 messages=messages + [{"role": "user", "content": follow}],
-                max_tokens=min(self.gen_max_tokens, 1500),
+                max_tokens=min(self.gen_max_tokens, 1800),
             )
             raw_second = second.choices[0].message.content or ""
-            protocol = extract_protocol_json(raw_second)
-            raw = raw_second
+            try:
+                protocol = extract_protocol_json(raw_second)
+                raw = raw_second
+            except Exception:
+                final_repair = (
+                    "Still invalid. Return ONLY the final Ask2Act protocol JSON.\n"
+                    "No <think>. No prose. No markdown. No code fence.\n"
+                    "Start with { and end with }."
+                )
+                third = self._chat(
+                    messages=messages + [{"role": "user", "content": final_repair}],
+                    max_tokens=min(self.gen_max_tokens, 1600),
+                )
+                raw_third = third.choices[0].message.content or ""
+                protocol = extract_protocol_json(raw_third)
+                raw = raw_third
 
         if self._has_forbidden_question_reference(protocol):
             repair = (
@@ -183,9 +215,8 @@ class ClarificationEngine:
                 "Your previous questions mentioned candidate numbers/tags/marks/ids. That is forbidden.\n"
                 "Ask only about visible object properties such as color, left/right position, relative position, "
                 "size, or shape. Do not mention numbers, marks, tags, display IDs, candidate IDs, or bbox values.\n"
-                "For each visible-trait question, prefer the split whose count.y/count.n is closest to half/half "
-                "over questions that isolate a single object.\n"
-                "Keep the same protocol schema and count fields. Output exactly one final JSON object."
+                "Prefer balanced visible-attribute splits when possible.\n"
+                "Keep the same protocol schema and count fields. Output only one JSON object; no <think>."
             )
             repaired = self._chat(
                 messages=messages + [{"role": "assistant", "content": json.dumps(protocol, ensure_ascii=False)}]
