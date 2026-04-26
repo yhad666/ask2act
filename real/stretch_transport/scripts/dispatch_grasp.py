@@ -248,7 +248,7 @@ def _joint_timeout_s(joint_name: str, waypoint_name: str) -> float:
 
 
 def _wait_required_for_joint(joint_name: str) -> bool:
-    raw = os.getenv("ASK2ACT_STRETCH_REQUIRED_WAIT_JOINTS", "lift,arm,base_rotate,base_translate_arm_axis")
+    raw = os.getenv("ASK2ACT_STRETCH_REQUIRED_WAIT_JOINTS", "lift,arm,base_rotate,base_translate_forward,base_translate_arm_axis")
     required = {item.strip() for item in raw.split(",") if item.strip()}
     return joint_name in required
 
@@ -260,7 +260,7 @@ def _wait_for_joint_target(
     target: float,
     waypoint_name: str,
 ) -> dict[str, Any]:
-    if joint_name == "base_translate_arm_axis":
+    if joint_name in {"base_translate_forward", "base_translate_arm_axis"}:
         return {"joint_name": joint_name, "ok": True, "skipped": True, "reason": "waited_inside_command"}
     if joint_name == "base_rotate":
         return {"joint_name": joint_name, "ok": True, "skipped": True, "reason": "handled_by_base_theta_wait"}
@@ -532,6 +532,63 @@ def _move_base_translate_arm_axis(robot: Any, distance_m: float) -> dict[str, An
     }
 
 
+def _move_base_translate_forward(robot: Any, distance_m: float) -> dict[str, Any]:
+    if not _truthy("ASK2ACT_STRETCH_BASE_TRANSLATE_FORWARD_ENABLED", "1"):
+        raise RuntimeError("base_translate_forward requested but ASK2ACT_STRETCH_BASE_TRANSLATE_FORWARD_ENABLED=0")
+    requested = float(distance_m)
+    eps = float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_EPS_M", "0.01"))
+    if abs(requested) <= eps:
+        return {
+            "joint_name": "base_translate_forward",
+            "requested_distance_m": requested,
+            "skipped": True,
+            "skip_reason": f"abs(distance) <= {eps}",
+        }
+    max_distance = float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_FORWARD_MAX_M", "0.10"))
+    if abs(requested) > max_distance:
+        raise RuntimeError(
+            f"Refusing base_translate_forward distance {requested:.3f} m; "
+            f"max is {max_distance:.3f} m"
+        )
+
+    translate_timeout_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_FORWARD_TIMEOUT_S", "8.0")))
+    translate_tolerance_m = max(0.001, float(os.getenv("ASK2ACT_STRETCH_BASE_TRANSLATE_TOLERANCE_M", "0.02")))
+    start_theta = _current_base_theta(robot)
+    start_xy = _current_base_xy(robot)
+    status_before = _status_snapshot(robot)
+
+    robot.base.translate_by(requested)
+    robot.push_command()
+    translate_wait = _wait_for_base_translation_delta(
+        robot,
+        start_xy=start_xy,
+        start_theta=start_theta,
+        target_distance_m=requested,
+        timeout_s=translate_timeout_s,
+        tolerance_m=translate_tolerance_m,
+    )
+    if not translate_wait["ok"]:
+        raise RuntimeError(
+            "base_translate_forward failed while translating for lateral centering: "
+            f"distance_error={float(translate_wait.get('final_error_m', 0.0)):.3f} m"
+        )
+
+    final_theta = _current_base_theta(robot)
+    return {
+        "joint_name": "base_translate_forward",
+        "requested_distance_m": requested,
+        "start_theta_rad": start_theta,
+        "translate_wait": translate_wait,
+        "final_theta_rad": final_theta,
+        "final_theta_error_rad": _angle_diff_rad(start_theta, final_theta),
+        "translate_timeout_s": translate_timeout_s,
+        "translate_tolerance_m": translate_tolerance_m,
+        "skipped": False,
+        "status_before": status_before,
+        "status_after": _status_snapshot(robot),
+    }
+
+
 def _move_component(robot: Any, joint_name: str, target: float, *, base_reference_theta: float) -> dict[str, Any] | None:
     if joint_name == "lift":
         robot.lift.move_to(target)
@@ -589,6 +646,8 @@ def _move_component(robot: Any, joint_name: str, target: float, *, base_referenc
         }
     elif joint_name == "base_translate_arm_axis":
         return _move_base_translate_arm_axis(robot, target)
+    elif joint_name == "base_translate_forward":
+        return _move_base_translate_forward(robot, target)
     else:
         raise RuntimeError(f"Unsupported real-robot joint target: {joint_name}")
 

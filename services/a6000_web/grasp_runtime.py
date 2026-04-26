@@ -372,54 +372,73 @@ class LocalGraspRuntime:
         }
 
     @staticmethod
-    def _base_reach_preposition_distance_m(geometric_grasp: Dict[str, Any], grasp_config: Any) -> tuple[float, Dict[str, Any]]:
-        import math
+    def _base_reach_preposition_moves_m(geometric_grasp: Dict[str, Any], grasp_config: Any) -> tuple[Dict[str, float], Dict[str, Any]]:
         import numpy as np
 
         target_x = float(geometric_grasp["grasp_x"])
         target_y = float(geometric_grasp["grasp_y"])
-        # In the base-relative world frame the Stretch arm reaches along -Y.
-        # The robot-side base_translate_arm_axis primitive rotates the base 90
-        # deg, translates along that reach axis, then rotates back before the
-        # A6000 reobserves and replans.
+        # In the base-relative world frame, Stretch's base-forward direction is
+        # +X and the arm reaches along -Y. Match the simulation policy: first
+        # center laterally without rotating, then adjust reach distance along
+        # the arm axis only as much as needed before reobserving.
+        lateral_error = target_x
         arm_axis_distance = float(-target_y)
         goal_distance = float(
             os.getenv("ASK2ACT_REAL_BASE_PREPOSITION_GOAL_DISTANCE_M", str(grasp_config.base_preposition_goal_distance_m))
         )
-        extra_margin = float(
-            os.getenv(
-                "ASK2ACT_REAL_BASE_PREPOSITION_LONGITUDINAL_EXTRA_M",
-                str(grasp_config.base_preposition_longitudinal_extra_m),
-            )
-        )
+        correction_fraction = float(os.getenv("ASK2ACT_REAL_BASE_PREPOSITION_CORRECTION_FRACTION", "0.70"))
         cfg_max_translate = float(getattr(grasp_config, "base_preposition_max_translate_m", 0.40))
         env_max_translate = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MAX_M", "0.16"))
-        max_translate = max(0.0, min(cfg_max_translate, env_max_translate))
+        global_max_translate = max(0.0, min(cfg_max_translate, env_max_translate))
+        max_lateral_translate = max(
+            0.0,
+            min(
+                global_max_translate,
+                float(os.getenv("ASK2ACT_REAL_BASE_PREPOSITION_LATERAL_MAX_M", "0.08")),
+            ),
+        )
+        max_longitudinal_translate = max(
+            0.0,
+            min(
+                global_max_translate,
+                float(os.getenv("ASK2ACT_REAL_BASE_PREPOSITION_LONGITUDINAL_MAX_M", "0.08")),
+            ),
+        )
+        lateral_deadband = float(os.getenv("ASK2ACT_REAL_BASE_PREPOSITION_LATERAL_DEADBAND_M", "0.035"))
+        longitudinal_deadband = float(os.getenv("ASK2ACT_REAL_BASE_PREPOSITION_LONGITUDINAL_DEADBAND_M", "0.04"))
         reach_error = arm_axis_distance - goal_distance
-        deadband = float(os.getenv("ASK2ACT_REAL_BASE_PREPOSITION_DEADBAND_M", "0.015"))
-        if abs(reach_error) <= deadband or max_translate <= 0.0:
-            requested = 0.0
-        else:
-            requested = float(
-                np.clip(
-                    reach_error + math.copysign(extra_margin, reach_error),
-                    -max_translate,
-                    max_translate,
-                )
-            )
+
+        def damped_move(error: float, deadband: float, limit: float) -> float:
+            if abs(error) <= deadband or limit <= 0.0:
+                return 0.0
+            usable_error = float(np.sign(error) * max(0.0, abs(error) - deadband))
+            return float(np.clip(correction_fraction * usable_error, -limit, limit))
+
+        lateral_move = damped_move(lateral_error, lateral_deadband, max_lateral_translate)
+        longitudinal_move = damped_move(reach_error, longitudinal_deadband, max_longitudinal_translate)
+        moves = {
+            "base_translate_forward": lateral_move,
+            "base_translate_arm_axis": longitudinal_move,
+        }
         reason = "target_beyond_comfort_reach_hand_short" if reach_error > 0.0 else "target_inside_comfort_reach_hand_long"
         diagnostics = {
             "target_grasp_xy_m": [target_x, target_y],
+            "lateral_error_m": lateral_error,
             "arm_axis_distance_m": arm_axis_distance,
             "goal_distance_m": goal_distance,
             "reach_error_m": reach_error,
-            "extra_margin_m": extra_margin,
-            "max_translate_m": max_translate,
-            "deadband_m": deadband,
-            "requested_base_translate_arm_axis_m": requested,
+            "correction_fraction": correction_fraction,
+            "global_max_translate_m": global_max_translate,
+            "max_lateral_translate_m": max_lateral_translate,
+            "max_longitudinal_translate_m": max_longitudinal_translate,
+            "lateral_deadband_m": lateral_deadband,
+            "longitudinal_deadband_m": longitudinal_deadband,
+            "requested_base_translate_forward_m": lateral_move,
+            "requested_base_translate_arm_axis_m": longitudinal_move,
+            "requested_base_translate_vector_m": [lateral_move, longitudinal_move],
             "reason": reason,
         }
-        return requested, diagnostics
+        return moves, diagnostics
 
     def _build_base_reach_preposition_plan(
         self,
@@ -443,17 +462,24 @@ class LocalGraspRuntime:
     ) -> Dict[str, Any]:
         from ask2act_grasp.types import MotionPlan, MotionWaypoint
 
-        requested_move, base_preposition = self._base_reach_preposition_distance_m(geometric_grasp, grasp_config)
-        if abs(requested_move) <= 0.01:
+        requested_moves, base_preposition = self._base_reach_preposition_moves_m(geometric_grasp, grasp_config)
+        joint_targets: Dict[str, float] = {}
+        lateral_move = float(requested_moves.get("base_translate_forward", 0.0))
+        longitudinal_move = float(requested_moves.get("base_translate_arm_axis", 0.0))
+        if abs(lateral_move) > 0.01:
+            joint_targets["base_translate_forward"] = lateral_move
+        if abs(longitudinal_move) > 0.01:
+            joint_targets["base_translate_arm_axis"] = longitudinal_move
+        if not joint_targets:
             raise RuntimeError(
                 "SimpleIK could not produce an accurate top-down grasp, but the target is already near the "
-                "base preposition comfort distance; refusing to move on stale coordinates. "
+                "base preposition comfort region; refusing to move on stale coordinates. "
                 f"IK/planning error: {planning_error}"
             ) from planning_error
 
         waypoint = MotionWaypoint(
             name="base_translate_for_reach",
-            joint_targets={"base_translate_arm_axis": float(requested_move)},
+            joint_targets=joint_targets,
             settle_s=0.4,
         )
         motion_plan = MotionPlan(
@@ -462,12 +488,13 @@ class LocalGraspRuntime:
             metadata={
                 "planning_mode": "base_reach_preposition_then_reobserve",
                 "numeric_targets": {
-                    "base_translate_arm_axis_m": float(requested_move),
+                    "base_translate_forward_m": lateral_move,
+                    "base_translate_arm_axis_m": longitudinal_move,
                     "planning_error": str(planning_error),
                     "simple_ik": simple_ik_status,
                     **base_preposition,
                 },
-                "joint_targets": {"base_translate_arm_axis_m": float(requested_move)},
+                "joint_targets": {f"{name}_m": float(value) for name, value in joint_targets.items()},
                 "base_preposition": base_preposition,
             },
         )
