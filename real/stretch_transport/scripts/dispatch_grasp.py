@@ -67,7 +67,7 @@ def _default_pose_targets() -> dict[str, float]:
 
 def _map_stretch_gripper_target(target: float) -> tuple[float, str]:
     """Map planner gripper commands to the real Stretch Body gripper units."""
-    mode = os.getenv("ASK2ACT_STRETCH_GRIPPER_COMMAND_MODE", "real_pct").strip().lower()
+    mode = _gripper_command_mode()
     target = float(target)
     if mode in {"raw", "passthrough", "planner"}:
         return target, mode
@@ -81,6 +81,10 @@ def _map_stretch_gripper_target(target: float) -> tuple[float, str]:
     if target <= close_threshold:
         return close_cmd, mode
     return target, mode
+
+
+def _gripper_command_mode() -> str:
+    return os.getenv("ASK2ACT_STRETCH_GRIPPER_COMMAND_MODE", "real_pct").strip().lower()
 
 
 def _status_snapshot(robot: Any) -> dict[str, Any]:
@@ -197,7 +201,7 @@ def _read_joint_position(robot: Any, joint_name: str) -> float | None:
             for key in candidates:
                 entry = status.get(key)
                 if isinstance(entry, dict):
-                    if joint_name == "stretch_gripper" and os.getenv("ASK2ACT_STRETCH_GRIPPER_COMMAND_MODE", "real_pct").strip().lower() == "real_pct":
+                    if joint_name == "stretch_gripper" and _gripper_command_mode() == "real_pct":
                         pos_keys = ("pos_pct", "pos", "pos_rad", "pos_m")
                     else:
                         pos_keys = ("pos", "pos_rad", "pos_m", "pos_pct")
@@ -252,7 +256,10 @@ def _joint_timeout_s(joint_name: str, waypoint_name: str) -> float:
 
 
 def _wait_required_for_joint(joint_name: str) -> bool:
-    raw = os.getenv("ASK2ACT_STRETCH_REQUIRED_WAIT_JOINTS", "lift,arm,base_rotate,base_translate_forward,base_translate_arm_axis")
+    raw = os.getenv(
+        "ASK2ACT_STRETCH_REQUIRED_WAIT_JOINTS",
+        "lift,arm,base_rotate,base_translate_forward,base_translate_arm_axis,stretch_gripper",
+    )
     required = {item.strip() for item in raw.split(",") if item.strip()}
     return joint_name in required
 
@@ -306,13 +313,23 @@ def _wait_for_joint_target(
             ok = True
             break
         if joint_name == "stretch_gripper" and target >= 50.0:
-            open_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_POS", "80.0"))
+            open_threshold = float(
+                os.getenv(
+                    "ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_PCT"
+                    if _gripper_command_mode() == "real_pct"
+                    else "ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_POS",
+                    "80.0",
+                )
+            )
             planner_open_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_PLANNER_POS", "0.45"))
             if actual >= open_threshold or (actual <= 1.5 and actual >= planner_open_threshold):
                 ok = True
                 break
         if joint_name == "stretch_gripper" and target <= -0.35:
-            close_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_CLOSE_ACCEPT_POS", "0.05"))
+            if _gripper_command_mode() == "real_pct":
+                close_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_CLOSE_ACCEPT_PCT", "70.0"))
+            else:
+                close_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_CLOSE_ACCEPT_POS", "0.05"))
             if actual <= close_threshold:
                 ok = True
                 break
