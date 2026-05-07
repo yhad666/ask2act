@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ask2Act Offline Experiments</title>
+  <style>
+    body { margin: 0; font-family: "Avenir Next", "Segoe UI", sans-serif; background: #f5f7f6; color: #142f2c; }
+    .shell { max-width: 1440px; margin: 0 auto; padding: 20px; }
+    .topbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 16px; }
+    h1 { margin: 0; font-size: 34px; letter-spacing: 0; }
+    h2 { margin: 0 0 12px; font-size: 21px; letter-spacing: 0; }
+    a { color: #0d5e58; }
+    .grid { display: grid; grid-template-columns: 340px 1fr 380px; gap: 16px; align-items: start; }
+    .panel { background: white; border: 1px solid #dbe8e3; border-radius: 8px; padding: 16px; box-shadow: 0 8px 24px rgba(20,47,44,0.05); }
+    .stack { display: grid; gap: 16px; }
+    label { display: block; font-size: 13px; color: #55716b; margin: 10px 0 5px; }
+    input, select, textarea { width: 100%; box-sizing: border-box; border: 1px solid #cddbd6; border-radius: 6px; padding: 10px 11px; font: inherit; background: #fbfdfc; color: #142f2c; }
+    textarea { min-height: 84px; resize: vertical; }
+    button { border: 0; border-radius: 6px; padding: 10px 13px; cursor: pointer; font: inherit; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .primary { background: #0d5e58; color: white; }
+    .secondary { background: #e2f2df; color: #174d45; }
+    .ghost { background: white; border: 1px solid #cddbd6; color: #174d45; }
+    .danger { background: #b95750; color: white; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .banner { padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; }
+    .banner.ok { background: #e6f6ed; color: #155b47; }
+    .banner.err { background: #fdeceb; color: #9b3329; }
+    .banner.info { background: #e9f1f5; color: #244b5a; }
+    .hidden { display: none; }
+    .meta { color: #607a74; font-size: 13px; line-height: 1.45; }
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+    .kpi { background: #123f3b; color: white; border-radius: 6px; padding: 12px; min-height: 58px; }
+    .kpi span { display: block; font-size: 12px; opacity: 0.75; }
+    .kpi strong { display: block; font-size: 22px; margin-top: 3px; }
+    img { width: 100%; max-height: 760px; object-fit: contain; background: #edf2ef; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid #e1ebe7; text-align: left; padding: 7px 5px; vertical-align: top; }
+    th { color: #55716b; font-weight: 600; }
+    .list { display: grid; gap: 8px; max-height: 260px; overflow: auto; }
+    .item { border: 1px solid #e1ebe7; border-radius: 6px; padding: 9px 10px; background: #fbfdfc; }
+    .question { font-size: 23px; line-height: 1.3; margin: 8px 0; }
+    .pill { display: inline-block; border-radius: 999px; background: #edf5f1; padding: 5px 9px; margin: 0 5px 5px 0; font-size: 12px; color: #395b55; }
+    @media (max-width: 1180px) { .grid { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div>
+        <h1>Offline Experiment Console</h1>
+        <div class="meta">Capture one scene, run many prompts/methods, and save every trial for later analysis.</div>
+      </div>
+      <a href="/">Back to live grasp UI</a>
+    </div>
+
+    <div id="banner" class="banner hidden"></div>
+
+    <div class="kpis">
+      <div class="kpi"><span>Trials</span><strong id="kpiTrials">0</strong></div>
+      <div class="kpi"><span>Finished</span><strong id="kpiFinished">0</strong></div>
+      <div class="kpi"><span>Success Rate</span><strong id="kpiSuccess">0%</strong></div>
+      <div class="kpi"><span>Mean Questions</span><strong id="kpiQuestions">-</strong></div>
+    </div>
+
+    <div class="grid">
+      <div class="stack">
+        <section class="panel">
+          <h2>Experiment</h2>
+          <label>Load existing</label>
+          <select id="experimentSelect"></select>
+          <div class="actions">
+            <button class="ghost" id="refreshExperimentsBtn">Refresh</button>
+            <button class="secondary" id="loadExperimentBtn">Load</button>
+          </div>
+          <label>Experiment ID</label>
+          <input id="experimentIdInput" placeholder="offline_cups_001" />
+          <label>Name</label>
+          <input id="experimentNameInput" placeholder="50-scene offline pilot" />
+          <label>Experiment Type</label>
+          <select id="experimentTypeInput">
+            <option value="main">main</option>
+            <option value="non_interactive_baselines">non_interactive_baselines</option>
+            <option value="interactive_baselines">interactive_baselines</option>
+            <option value="efe_ablation">efe_ablation</option>
+            <option value="pilot" selected>pilot</option>
+          </select>
+          <label>Notes</label>
+          <textarea id="experimentNotesInput" placeholder="50 scenes x 9 prompts; operator answers yes/no."></textarea>
+          <div class="actions">
+            <button class="primary" id="saveExperimentBtn">Create / Update</button>
+          </div>
+          <div class="meta" id="experimentRootText" style="margin-top:10px;">No experiment loaded.</div>
+        </section>
+
+        <section class="panel">
+          <h2>Scene</h2>
+          <label>Scene ID</label>
+          <input id="sceneIdInput" placeholder="scene_001" />
+          <label>Scene Type</label>
+          <select id="sceneTypeInput">
+            <option value="cup_only">cup_only</option>
+            <option value="bottle_only">bottle_only</option>
+            <option value="utensil_only">utensil_only</option>
+            <option value="mixed">mixed</option>
+            <option value="pilot">pilot</option>
+          </select>
+          <label>Object Categories</label>
+          <input id="objectCategoriesInput" placeholder="cup,bottle,spoon" />
+          <label>Scene Notes</label>
+          <textarea id="sceneNotesInput" placeholder="Manual layout details."></textarea>
+          <label>Optional image upload instead of robot observation</label>
+          <input id="sceneImageInput" type="file" accept="image/*" />
+          <div class="actions">
+            <button class="primary" id="captureSceneBtn">Capture / Save Scene</button>
+          </div>
+          <div class="meta" id="sceneStatusText" style="margin-top:10px;">Scene not captured.</div>
+          <div class="meta" style="margin-top:14px;">Saved scenes</div>
+          <div id="sceneList" class="list"><div class="item meta">No scenes yet.</div></div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel">
+          <h2>Current Trial</h2>
+          <label>Prompt</label>
+          <textarea id="promptInput" placeholder="Pick up the right orange cup."></textarea>
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div>
+              <label>Prompt Type</label>
+              <select id="promptTypeInput">
+                <option value="clear">clear</option>
+                <option value="ambiguous">ambiguous</option>
+                <option value="partial">partial</option>
+              </select>
+            </div>
+            <div>
+              <label>Method</label>
+              <select id="methodInput">
+                <option value="proposed_efe">proposed_efe</option>
+                <option value="top_score">top_score</option>
+                <option value="random_candidate">random_candidate</option>
+                <option value="vlm_direct">vlm_direct</option>
+                <option value="first_question">first_question</option>
+                <option value="random_question">random_question</option>
+                <option value="vlm_best_question">vlm_best_question</option>
+              </select>
+            </div>
+            <div>
+              <label>Expected Display ID</label>
+              <input id="expectedDisplayIdInput" placeholder="optional" />
+            </div>
+          </div>
+          <label>Trial Notes</label>
+          <input id="trialNotesInput" placeholder="optional" />
+          <div class="actions">
+            <button class="primary" id="startTrialBtn">Start Trial</button>
+            <button class="ghost" id="reloadTrialBtn" disabled>Reload Trial</button>
+          </div>
+          <div class="meta" id="trialStatusText" style="margin-top:10px;">No active trial.</div>
+
+          <div id="questionBox" style="margin-top:16px;">
+            <div class="meta">Current question</div>
+            <div class="question" id="questionText">No question yet.</div>
+            <div class="meta" id="questionMeta"></div>
+            <div class="actions">
+              <button class="primary" id="answerYesBtn" disabled>Yes</button>
+              <button class="danger" id="answerNoBtn" disabled>No</button>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <div class="meta">Finish trial outcome</div>
+            <div class="actions">
+              <button class="primary" data-outcome="correct" disabled>Correct</button>
+              <button class="danger" data-outcome="wrong" disabled>Wrong</button>
+              <button class="secondary" data-outcome="unresolved" disabled>Unresolved</button>
+              <button class="secondary" data-outcome="target_pruned" disabled>Target Pruned</button>
+              <button class="ghost" data-outcome="aborted" disabled>Aborted</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Scene / Candidate View</h2>
+          <img id="mainImage" alt="offline experiment scene" />
+          <div class="meta" id="imageMeta" style="margin-top:8px;">No image loaded.</div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel">
+          <h2>Metrics</h2>
+          <div id="metricsTables" class="meta">No metrics yet.</div>
+        </section>
+
+        <section class="panel">
+          <h2>Candidates</h2>
+          <div id="candidateList" class="list"><div class="item meta">No candidates yet.</div></div>
+        </section>
+
+        <section class="panel">
+          <h2>Recent Trials</h2>
+          <div id="trialList" class="list"><div class="item meta">No trials yet.</div></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentExperiment = null;
+    let currentExperimentBundle = null;
+    let currentTrial = null;
+    let currentSceneImageDataUrl = null;
+    let uploadedSceneImageDataUrl = null;
+
+    const $ = (id) => document.getElementById(id);
+    const banner = $("banner");
+    const experimentSelect = $("experimentSelect");
+    const mainImage = $("mainImage");
+    const outcomeButtons = Array.from(document.querySelectorAll("[data-outcome]"));
+
+    function setBanner(kind, text) {
+      if (!text) { banner.className = "banner hidden"; banner.textContent = ""; return; }
+      banner.className = `banner ${kind}`;
+      banner.textContent = text;
+    }
+
+    async function postJson(url, payload) {
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail || data);
+        throw new Error(detail || `Request failed with ${res.status}`);
+      }
+      return data;
+    }
+
+    function pct(value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return "-";
+      return `${Math.round(Number(value) * 100)}%`;
+    }
+
+    function fmt(value, digits = 2) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return "-";
+      return Number(value).toFixed(digits);
+    }
+
+    function candidateDisplay(cand) {
+      if (!cand) return "";
+      if (cand.display_id !== undefined && cand.display_id !== null) return String(cand.display_id);
+      const match = String(cand.candidate_id || "").match(/(\d+)$/);
+      return match ? String(Number(match[1])) : String(cand.candidate_id || "");
+    }
+
+    function expectedDisplayId() {
+      const raw = $("expectedDisplayIdInput").value.trim();
+      if (!raw) return null;
+      const value = Number(raw);
+      return Number.isFinite(value) ? value : null;
+    }
+
+    function renderMetrics(metrics) {
+      const overall = metrics?.overall || {};
+      $("kpiTrials").textContent = String(overall.total || 0);
+      $("kpiFinished").textContent = String(overall.finished || 0);
+      $("kpiSuccess").textContent = pct(overall.resolution_success_rate || 0);
+      $("kpiQuestions").textContent = fmt(overall.mean_questions, 2);
+
+      const groups = [
+        ["By Method", metrics?.by_method || {}],
+        ["By Prompt Type", metrics?.by_prompt_type || {}],
+      ];
+      $("metricsTables").innerHTML = groups.map(([title, rows]) => {
+        const body = Object.entries(rows).map(([name, row]) => `
+          <tr>
+            <td>${name}</td><td>${row.finished}/${row.total}</td><td>${pct(row.resolution_success_rate)}</td>
+            <td>${pct(row.wrong_object_rate)}</td><td>${fmt(row.mean_questions, 2)}</td><td>${fmt(row.avg_latency_s, 1)}</td>
+          </tr>`).join("");
+        return `<div style="margin-bottom:12px;"><strong>${title}</strong><table><thead><tr><th>Group</th><th>Done</th><th>Success</th><th>Wrong</th><th>Q</th><th>Latency</th></tr></thead><tbody>${body || '<tr><td colspan="6">No data</td></tr>'}</tbody></table></div>`;
+      }).join("");
+    }
+
+    function renderExperimentBundle(bundle) {
+      currentExperimentBundle = bundle;
+      currentExperiment = bundle?.experiment || currentExperiment;
+      if (currentExperiment) {
+        $("experimentIdInput").value = currentExperiment.experiment_id || "";
+        $("experimentNameInput").value = currentExperiment.name || "";
+        $("experimentTypeInput").value = currentExperiment.experiment_type || "pilot";
+        $("experimentNotesInput").value = currentExperiment.notes || "";
+        $("experimentRootText").textContent = `root=${bundle.root || ""} - experiment=${currentExperiment.experiment_id}`;
+      }
+      renderMetrics(bundle?.metrics || {});
+      renderSceneList(bundle?.scenes || []);
+      renderTrialList(bundle?.trials || []);
+    }
+
+    function renderSceneList(scenes) {
+      const list = $("sceneList");
+      list.innerHTML = "";
+      if (!scenes?.length) { list.innerHTML = '<div class="item meta">No scenes yet.</div>'; return; }
+      for (const scene of scenes.slice(0, 30)) {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<strong>${scene.scene_id}</strong> - ${scene.scene_type}<br><span class="meta">${(scene.object_categories || []).join(", ") || "-"} - ${scene.observation_source || ""}</span>`;
+        div.addEventListener("click", () => loadScene(scene.scene_id));
+        list.appendChild(div);
+      }
+    }
+
+    function renderTrialList(trials) {
+      const list = $("trialList");
+      list.innerHTML = "";
+      if (!trials?.length) { list.innerHTML = '<div class="item meta">No trials yet.</div>'; return; }
+      for (const trial of trials.slice(0, 20)) {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<strong>${trial.scene_id}</strong> - ${trial.prompt_type} - ${trial.method}<br><span class="meta">${trial.status || "unknown"} - outcome=${trial.outcome || "-"} - q=${trial.question_count ?? 0}<br>${trial.prompt || ""}</span>`;
+        div.addEventListener("click", () => loadTrial(trial.trial_id));
+        list.appendChild(div);
+      }
+    }
+
+    function renderCandidates(candidates) {
+      const list = $("candidateList");
+      list.innerHTML = "";
+      if (!candidates?.length) { list.innerHTML = '<div class="item meta">No candidates yet.</div>'; return; }
+      for (const cand of candidates) {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<strong>${candidateDisplay(cand)} ${cand.label || ""}</strong><br><span class="meta">${cand.candidate_id} - score=${fmt(cand.score, 3)} - bbox=${(cand.bbox_xyxy || []).map(v => fmt(v, 1)).join(", ")}</span>`;
+        list.appendChild(div);
+      }
+    }
+
+    function renderTrialView(data) {
+      currentTrial = data?.trial || null;
+      if (data?.metrics) renderMetrics(data.metrics);
+      const session = data?.session;
+      const trial = data?.trial;
+      $("reloadTrialBtn").disabled = !trial;
+      if (!trial) return;
+      $("trialStatusText").textContent = `${trial.trial_id} - ${trial.status} - ${trial.prompt_type} - ${trial.method} - outcome=${trial.outcome || "-"}`;
+      if (session?.candidate_overlay_data_url) {
+        mainImage.src = session.candidate_overlay_data_url;
+        $("imageMeta").textContent = `trial=${trial.trial_id} - session=${session.session_id}`;
+      } else if (currentSceneImageDataUrl) {
+        mainImage.src = currentSceneImageDataUrl;
+        $("imageMeta").textContent = "Scene image; active session image is unavailable.";
+      }
+      renderCandidates(session?.candidates || trial.session_snapshot?.candidates || []);
+      const question = session?.current_question;
+      if (question && session.status === "awaiting_answer") {
+        $("questionText").textContent = question.text;
+        $("questionMeta").textContent = `Round ${session.current_round} - P(y)=${fmt(question.score_py, 3)} - P(n)=${fmt(question.score_pn, 3)} - EFE=${fmt(question.efe_score, 4)}`;
+        $("answerYesBtn").disabled = false;
+        $("answerNoBtn").disabled = false;
+      } else {
+        $("questionText").textContent = session?.resolved_target ? `Resolved: ${candidateDisplay(session.resolved_target)} ${session.resolved_target.label}` : "No active question.";
+        $("questionMeta").textContent = trial.auto_outcome ? `auto_outcome=${trial.auto_outcome}` : "";
+        $("answerYesBtn").disabled = true;
+        $("answerNoBtn").disabled = true;
+      }
+      const canFinish = !!trial && trial.status !== "finished";
+      outcomeButtons.forEach(button => button.disabled = !canFinish);
+    }
+
+    async function refreshExperimentList() {
+      const data = await fetch("/api/offline/experiments").then(r => r.json());
+      experimentSelect.innerHTML = "";
+      for (const exp of data.experiments || []) {
+        const opt = document.createElement("option");
+        opt.value = exp.experiment_id;
+        opt.textContent = `${exp.experiment_id} - ${exp.experiment_type} - ${exp.metrics?.overall?.finished || 0}/${exp.metrics?.overall?.total || 0}`;
+        experimentSelect.appendChild(opt);
+      }
+      if (!experimentSelect.options.length) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "No saved experiments";
+        experimentSelect.appendChild(opt);
+      }
+    }
+
+    async function loadExperiment(expId = null) {
+      const id = expId || experimentSelect.value || $("experimentIdInput").value.trim();
+      if (!id) { setBanner("err", "No experiment ID to load."); return; }
+      const bundle = await fetch(`/api/offline/experiments/${encodeURIComponent(id)}`).then(r => r.json());
+      if (bundle.detail) throw new Error(bundle.detail);
+      renderExperimentBundle(bundle);
+      setBanner("ok", `Loaded experiment ${id}`);
+    }
+
+    async function saveExperiment() {
+      const payload = {
+        experiment_id: $("experimentIdInput").value.trim() || null,
+        name: $("experimentNameInput").value.trim(),
+        experiment_type: $("experimentTypeInput").value,
+        notes: $("experimentNotesInput").value.trim(),
+      };
+      const bundle = await postJson("/api/offline/experiments", payload);
+      renderExperimentBundle(bundle);
+      await refreshExperimentList();
+      setBanner("ok", `Experiment saved: ${bundle.experiment.experiment_id}`);
+    }
+
+    async function captureScene() {
+      if (!currentExperiment?.experiment_id && !$("experimentIdInput").value.trim()) {
+        await saveExperiment();
+      }
+      const experimentId = currentExperiment?.experiment_id || $("experimentIdInput").value.trim();
+      const payload = {
+        scene_id: $("sceneIdInput").value.trim(),
+        scene_type: $("sceneTypeInput").value,
+        object_categories: $("objectCategoriesInput").value.split(",").map(v => v.trim()).filter(Boolean),
+        notes: $("sceneNotesInput").value.trim(),
+        fetch_observation: !uploadedSceneImageDataUrl,
+        observation_image_data_url: uploadedSceneImageDataUrl,
+      };
+      if (!payload.scene_id) throw new Error("scene_id is required");
+      const data = await postJson(`/api/offline/experiments/${encodeURIComponent(experimentId)}/scenes`, payload);
+      currentSceneImageDataUrl = data.scene.observation_image_data_url;
+      mainImage.src = currentSceneImageDataUrl;
+      $("sceneStatusText").textContent = `Saved ${data.scene.scene_id} - ${data.scene.observation_source} - ${data.scene.observation_id || "n/a"}`;
+      $("imageMeta").textContent = `Scene ${data.scene.scene_id}`;
+      await loadExperiment(experimentId);
+      setBanner("ok", "Scene saved. Prompts can now reuse this observation.");
+    }
+
+    async function loadScene(sceneId) {
+      const experimentId = currentExperiment?.experiment_id || $("experimentIdInput").value.trim();
+      if (!experimentId || !sceneId) return;
+      const data = await fetch(`/api/offline/experiments/${encodeURIComponent(experimentId)}/scenes/${encodeURIComponent(sceneId)}`).then(r => r.json());
+      if (data.detail) throw new Error(data.detail);
+      const scene = data.scene;
+      $("sceneIdInput").value = scene.scene_id || "";
+      $("sceneTypeInput").value = scene.scene_type || "pilot";
+      $("objectCategoriesInput").value = (scene.object_categories || []).join(",");
+      $("sceneNotesInput").value = scene.notes || "";
+      currentSceneImageDataUrl = scene.observation_image_data_url;
+      mainImage.src = currentSceneImageDataUrl;
+      $("sceneStatusText").textContent = `Loaded ${scene.scene_id} - ${scene.observation_source} - ${scene.observation_id || "n/a"}`;
+      $("imageMeta").textContent = `Scene ${scene.scene_id}`;
+    }
+
+    async function startTrial() {
+      const experimentId = currentExperiment?.experiment_id || $("experimentIdInput").value.trim();
+      if (!experimentId) throw new Error("Load or create an experiment first.");
+      const payload = {
+        scene_id: $("sceneIdInput").value.trim(),
+        prompt: $("promptInput").value.trim(),
+        prompt_type: $("promptTypeInput").value,
+        method: $("methodInput").value,
+        expected_display_id: expectedDisplayId(),
+        notes: $("trialNotesInput").value.trim(),
+      };
+      if (!payload.scene_id || !payload.prompt) throw new Error("scene_id and prompt are required.");
+      const data = await postJson(`/api/offline/experiments/${encodeURIComponent(experimentId)}/trials/start`, payload);
+      renderTrialView(data);
+      await loadExperiment(experimentId);
+      setBanner("ok", `Started trial ${data.trial.trial_id}; prompt_type=${data.trial.prompt_type}`);
+    }
+
+    async function loadTrial(trialId = null) {
+      const experimentId = currentExperiment?.experiment_id || $("experimentIdInput").value.trim();
+      const id = trialId || currentTrial?.trial_id;
+      if (!experimentId || !id) return;
+      const data = await fetch(`/api/offline/experiments/${encodeURIComponent(experimentId)}/trials/${encodeURIComponent(id)}`).then(r => r.json());
+      if (data.detail) throw new Error(data.detail);
+      renderTrialView(data);
+    }
+
+    async function answerTrial(answer) {
+      const experimentId = currentExperiment?.experiment_id;
+      const trialId = currentTrial?.trial_id;
+      if (!experimentId || !trialId) return;
+      const data = await postJson(`/api/offline/experiments/${encodeURIComponent(experimentId)}/trials/${encodeURIComponent(trialId)}/step`, { answer });
+      renderTrialView(data);
+      await loadExperiment(experimentId);
+    }
+
+    async function finishTrial(outcome) {
+      const experimentId = currentExperiment?.experiment_id;
+      const trialId = currentTrial?.trial_id;
+      if (!experimentId || !trialId) return;
+      const note = window.prompt(`Note for ${outcome} (optional)`, "") || "";
+      const data = await postJson(`/api/offline/experiments/${encodeURIComponent(experimentId)}/trials/${encodeURIComponent(trialId)}/finish`, {
+        outcome,
+        expected_display_id: expectedDisplayId(),
+        note,
+      });
+      renderTrialView(data);
+      await loadExperiment(experimentId);
+      setBanner(outcome === "correct" ? "ok" : "info", `Recorded outcome=${outcome}`);
+    }
+
+    $("sceneImageInput").addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) { uploadedSceneImageDataUrl = null; return; }
+      uploadedSceneImageDataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      setBanner("ok", "Loaded scene image override; Capture / Save Scene will store it.");
+    });
+
+    $("refreshExperimentsBtn").addEventListener("click", () => refreshExperimentList().catch(e => setBanner("err", e.message)));
+    $("loadExperimentBtn").addEventListener("click", () => loadExperiment().catch(e => setBanner("err", e.message)));
+    $("saveExperimentBtn").addEventListener("click", () => saveExperiment().catch(e => setBanner("err", e.message)));
+    $("captureSceneBtn").addEventListener("click", () => captureScene().catch(e => setBanner("err", e.message)));
+    $("startTrialBtn").addEventListener("click", () => startTrial().catch(e => setBanner("err", e.message)));
+    $("reloadTrialBtn").addEventListener("click", () => loadTrial().catch(e => setBanner("err", e.message)));
+    $("answerYesBtn").addEventListener("click", () => answerTrial("y").catch(e => setBanner("err", e.message)));
+    $("answerNoBtn").addEventListener("click", () => answerTrial("n").catch(e => setBanner("err", e.message)));
+    outcomeButtons.forEach(button => button.addEventListener("click", () => finishTrial(button.dataset.outcome).catch(e => setBanner("err", e.message))));
+
+    refreshExperimentList().catch(e => setBanner("err", e.message));
+  </script>
+</body>
+</html>

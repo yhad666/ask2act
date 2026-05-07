@@ -245,6 +245,34 @@ python services/a6000_web/dev/stretch_zmq_smoke_test.py
   Records are written under `ASK2ACT_SESSION_RECORD_ROOT` as one JSON file per
   trial plus a `session_records.jsonl` index.
 
+## Offline Experiment Console
+
+Open `GET /offline` for the offline large-scale experiment workflow. The
+console lets you:
+
+- create or load an experiment with an `experiment_type`
+- capture/update a scene observation from Stretch, or upload a saved image
+- run repeated prompts on the same scene image
+- record `prompt_type` as `clear`, `ambiguous`, or `partial`
+- choose the trial method: `proposed_efe`, `top_score`, `random_candidate`,
+  `vlm_direct`, `first_question`, `random_question`, or `vlm_best_question`
+- answer interactive yes/no questions without executing a grasp
+- mark the outcome as `correct`, `wrong`, `unresolved`, `target_pruned`, or
+  `aborted`
+- watch aggregate metrics grouped by method and prompt type
+
+Offline records are written under `ASK2ACT_OFFLINE_EXPERIMENT_ROOT` as
+experiment-scoped `experiment.json`, `scenes/*/scene.json`, `trials/*.json`,
+`trials.jsonl`, and `events.jsonl` files. This keeps offline evaluation data
+separate from live grasp `session_records`.
+
+Useful config:
+
+```bash
+export ASK2ACT_OFFLINE_EXPERIMENT_ROOT=/abs/path/to/offline_experiments
+export ASK2ACT_OFFLINE_MAX_ROUNDS=6
+```
+
 ## Session State
 
 Each in-memory session stores:

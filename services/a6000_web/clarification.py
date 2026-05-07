@@ -313,7 +313,7 @@ class ClarificationEngine:
         return payload
 
     @staticmethod
-    def _score_questions(protocol: Dict[str, Any]) -> List[ScoredQuestion]:
+    def _score_questions(protocol: Dict[str, Any], *, sort_by_efe: bool = True) -> List[ScoredQuestion]:
         questions = protocol.get("Question", [])
         scored: List[ScoredQuestion] = []
         for question in questions:
@@ -333,7 +333,9 @@ class ClarificationEngine:
                     efe_score=efe_neg_entropy(py, pn),
                 )
             )
-        return sorted(scored, key=lambda item: item.efe_score)
+        if sort_by_efe:
+            return sorted(scored, key=lambda item: item.efe_score)
+        return scored
 
     @staticmethod
     def _resolve_target(protocol: Dict[str, Any], session: SessionState) -> ResolvedTarget:
@@ -373,6 +375,58 @@ class ClarificationEngine:
             },
         ]
         self.advance_without_answer(session)
+
+    def direct_select(self, session: SessionState, task_id: int = 1) -> None:
+        try:
+            annotated_image_bytes = data_url_to_bytes(session.candidate_overlay_data_url)
+        except Exception:
+            annotated_image_bytes = session.observation_image_bytes
+        image_data_url = compress_to_data_url(
+            annotated_image_bytes,
+            max_side=self.max_side,
+            jpeg_quality=self.jpeg_quality,
+        )
+        payload = {
+            "Head": "start",
+            **self._base_payload(task_id, session.observation_id or session.session_id, session.instruction, session.candidates),
+            "Offline_Baseline": "vlm_direct_target_selection",
+            "Instruction": (
+                "Select the intended target candidate directly from the annotated image and candidate metadata. "
+                "Do not ask clarification questions. Output a decision JSON with Grasp=yes and Target.name."
+            ),
+        }
+        messages = [
+            {"role": "system", "content": self.system_prompt},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": image_data_url}},
+                    {"type": "text", "text": json.dumps(payload, ensure_ascii=False)},
+                ],
+            },
+        ]
+        raw = self._chat(messages=messages).choices[0].message.content or ""
+        try:
+            protocol = extract_protocol_json(raw)
+        except Exception:
+            protocol = {}
+        if str(protocol.get("Head") or "").lower() != "decision" or protocol.get("Grasp") != "yes":
+            repair = (
+                "For this offline non-interactive baseline, questions are forbidden. "
+                "Return ONLY one Ask2Act decision JSON object now. "
+                'It must have Head=\"decision\", Grasp=\"yes\", and Target.name equal to one candidate_id.'
+            )
+            raw = self._chat(messages=messages + [{"role": "user", "content": repair}]).choices[0].message.content or ""
+            protocol = extract_protocol_json(raw)
+        if str(protocol.get("Head") or "").lower() != "decision" or protocol.get("Grasp") != "yes":
+            raise ValueError("VLM direct baseline did not return a decision")
+
+        session.vlm_messages = messages + [{"role": "assistant", "content": raw}]
+        session.last_protocol_json = protocol
+        session.resolved_target = self._resolve_target(protocol, session)
+        session.current_question = None
+        session.current_questions = []
+        session.status = "resolved"
 
     def advance_without_answer(self, session: SessionState) -> None:
         raw, protocol = self._generate_protocol(session.vlm_messages)

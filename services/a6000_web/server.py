@@ -4,6 +4,7 @@ import base64
 import io
 import json
 import os
+import random
 import time
 import uuid
 from pathlib import Path
@@ -16,11 +17,21 @@ from fastapi.staticfiles import StaticFiles
 from .clarification import ClarificationEngine
 from .detection import GroundingDinoDetector
 from .grasp_runtime import LocalGraspRuntime
+from .offline_experiments import (
+    OfflineExperimentStore,
+    compact_session_view,
+    data_url_to_bytes as offline_data_url_to_bytes,
+)
 from .phrase_extractor import InstructionPhraseExtractor
 from .schemas import (
     ConfirmSessionRequest,
     ExecuteSessionRequest,
     GraspPlanResult,
+    OfflineExperimentRequest,
+    OfflineSceneRequest,
+    OfflineTrialFinishRequest,
+    OfflineTrialStartRequest,
+    OfflineTrialStepRequest,
     ResolvedTarget,
     SessionState,
     StartSessionRequest,
@@ -67,11 +78,16 @@ REAL_REOBSERVE_TARGET_LOCK_AMBIGUITY_MARGIN = float(
     os.getenv("ASK2ACT_REOBSERVE_TARGET_LOCK_AMBIGUITY_MARGIN", "0.02")
 )
 SESSION_RECORD_ROOT = Path(os.getenv("ASK2ACT_SESSION_RECORD_ROOT", str(ROOT / "artifacts" / "session_records"))).expanduser()
+OFFLINE_EXPERIMENT_ROOT = Path(
+    os.getenv("ASK2ACT_OFFLINE_EXPERIMENT_ROOT", str(ROOT / "artifacts" / "offline_experiments"))
+).expanduser()
+OFFLINE_MAX_ROUNDS = int(os.getenv("ASK2ACT_OFFLINE_MAX_ROUNDS", "6"))
 GEN_MAX_TOKENS_REQUESTED = int(os.getenv("ASK2ACT_GEN_MAX_TOKENS", "4096"))
 GEN_MAX_TOKENS_CAP = int(os.getenv("ASK2ACT_GEN_MAX_TOKENS_CAP", "4096"))
 GEN_MAX_TOKENS = max(256, min(GEN_MAX_TOKENS_REQUESTED, GEN_MAX_TOKENS_CAP))
 
 SESSIONS: Dict[str, SessionState] = {}
+OFFLINE_TRIAL_SESSIONS: Dict[str, str] = {}
 
 phrase_extractor = InstructionPhraseExtractor()
 detector = GroundingDinoDetector(phrase_extractor=phrase_extractor)
@@ -98,6 +114,7 @@ grasp_runtime = LocalGraspRuntime(
     headless=PIPELINE_HEADLESS,
     show_viewer_ui=PIPELINE_SHOW_VIEWER,
 )
+offline_store = OfflineExperimentStore(OFFLINE_EXPERIMENT_ROOT)
 
 app = FastAPI(title="Ask2Act A6000 Service")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -706,7 +723,12 @@ def execute_resolved_session(session: SessionState, *, dry_run: bool, raise_on_e
             raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-def create_session(request: StartSessionRequest) -> SessionState:
+def create_session(
+    request: StartSessionRequest,
+    *,
+    initialize_clarification: bool = True,
+    auto_execute: bool = True,
+) -> SessionState:
     instruction = (request.instruction or "").strip()
     if not instruction:
         raise HTTPException(status_code=400, detail="instruction is required")
@@ -753,11 +775,14 @@ def create_session(request: StartSessionRequest) -> SessionState:
 
         if len(session.candidates) == 1:
             resolve_single_candidate(session)
-        else:
+        elif initialize_clarification:
             clarifier.initialize_session(session)
+        else:
+            session.status = "detected"
         if session.resolved_target is not None:
             finalize_resolved_target(session)
-            maybe_auto_execute(session)
+            if auto_execute:
+                maybe_auto_execute(session)
         return session
     except HTTPException:
         raise
@@ -765,9 +790,156 @@ def create_session(request: StartSessionRequest) -> SessionState:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+def _candidate_to_resolved(candidate) -> ResolvedTarget:
+    return ResolvedTarget(
+        candidate_id=candidate.candidate_id,
+        display_id=candidate.display_id,
+        label=candidate.label,
+        score=candidate.score,
+        bbox_xyxy=candidate.bbox_xyxy,
+        mask_rle=candidate.mask_rle,
+    )
+
+
+def _expected_candidate_id_from_display(session: SessionState, display_id: int | None) -> str | None:
+    if display_id is None:
+        return None
+    for candidate in session.candidates:
+        if candidate.display_id == display_id:
+            return candidate.candidate_id
+    return None
+
+
+def _apply_offline_question_method(session: SessionState, method: str, *, trial_id: str) -> None:
+    if session.resolved_target is not None or session.status != "awaiting_answer":
+        return
+    protocol = session.last_protocol_json or {}
+    if method == "proposed_efe":
+        session.current_questions = clarifier._score_questions(protocol, sort_by_efe=True)
+        if session.current_questions:
+            session.current_question = session.current_questions[0]
+        return
+
+    questions = clarifier._score_questions(protocol, sort_by_efe=False)
+    if not questions:
+        return
+    session.current_questions = questions
+    if method in {"first_question", "vlm_best_question"}:
+        session.current_question = questions[0]
+    elif method == "random_question":
+        seed = f"{trial_id}:{session.current_round}:{len(session.question_history)}"
+        session.current_question = random.Random(seed).choice(questions)
+
+
+def _apply_offline_trial_method(session: SessionState, method: str, *, trial_id: str) -> None:
+    if session.status == "failed_no_candidates":
+        return
+    if session.resolved_target is not None:
+        return
+    if method == "top_score":
+        if not session.candidates:
+            return
+        session.resolved_target = _candidate_to_resolved(max(session.candidates, key=lambda item: item.score))
+        session.status = "resolved"
+        session.current_question = None
+        session.current_questions = []
+        session.last_protocol_json = {
+            "Head": "decision",
+            "Task_ID": 1,
+            "Grasp": "yes",
+            "Target": {"name": session.resolved_target.candidate_id},
+            "Reason": "Offline top-score baseline selected the highest GroundingDINO score.",
+        }
+    elif method == "random_candidate":
+        if not session.candidates:
+            return
+        candidate = random.Random(trial_id).choice(session.candidates)
+        session.resolved_target = _candidate_to_resolved(candidate)
+        session.status = "resolved"
+        session.current_question = None
+        session.current_questions = []
+        session.last_protocol_json = {
+            "Head": "decision",
+            "Task_ID": 1,
+            "Grasp": "yes",
+            "Target": {"name": candidate.candidate_id},
+            "Reason": "Offline random-candidate baseline selected uniformly from the CP-gated candidates.",
+        }
+    elif method == "vlm_direct":
+        clarifier.direct_select(session)
+    else:
+        _apply_offline_question_method(session, method, trial_id=trial_id)
+
+    if session.resolved_target is not None:
+        finalize_resolved_target(session)
+
+
+def _offline_session_status(session: SessionState) -> str:
+    if session.status == "awaiting_answer":
+        return "awaiting_answer"
+    if session.resolved_target is not None:
+        return "resolved"
+    if session.status == "failed_no_candidates":
+        return "failed_no_candidates"
+    if session.status == "offline_max_rounds":
+        return "max_rounds"
+    return session.status
+
+
+def _update_offline_trial_from_session(
+    experiment_id: str,
+    trial: Dict[str, Any],
+    session: SessionState,
+    *,
+    status: str | None = None,
+) -> Dict[str, Any]:
+    view = build_session_view(session)
+    expected_candidate_id = trial.get("expected_candidate_id") or _expected_candidate_id_from_display(
+        session,
+        trial.get("expected_display_id"),
+    )
+    trial.update(
+        {
+            "session_id": session.session_id,
+            "status": status or _offline_session_status(session),
+            "candidate_count": len(session.candidates),
+            "question_count": len(session.question_history),
+            "resolved_candidate_id": session.resolved_target.candidate_id if session.resolved_target else None,
+            "expected_candidate_id": expected_candidate_id,
+            "session_snapshot": compact_session_view(view),
+            "latency_s": time.time() - float(trial.get("started_at_epoch_s") or time.time()),
+        }
+    )
+    if expected_candidate_id and session.resolved_target is not None:
+        trial["auto_outcome"] = "correct" if session.resolved_target.candidate_id == expected_candidate_id else "wrong"
+    offline_store.write_trial(experiment_id, trial)
+    return trial
+
+
+def _offline_trial_view(experiment_id: str, trial_id: str) -> Dict[str, Any]:
+    trial = offline_store.read_trial(experiment_id, trial_id)
+    session = None
+    session_id = trial.get("session_id") or OFFLINE_TRIAL_SESSIONS.get(trial_id)
+    if session_id:
+        active = SESSIONS.get(str(session_id))
+        if active is not None:
+            session = build_session_view(active)
+    return {
+        "experiment": offline_store.read_experiment(experiment_id),
+        "trial": trial,
+        "session": session,
+        "metrics": offline_store.metrics(experiment_id),
+    }
+
+
 @app.get("/")
 def index():
     return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/offline")
+def offline_index():
+    return FileResponse(STATIC_DIR / "offline.html")
 
 
 @app.get("/health")
@@ -785,6 +957,212 @@ def health():
         "stretch_observe_timeout_ms": STRETCH_OBSERVE_TIMEOUT_MS,
         "stretch_execute_timeout_ms": STRETCH_EXECUTE_TIMEOUT_MS,
     }
+
+
+@app.get("/api/offline/experiments")
+def list_offline_experiments():
+    return {"experiments": offline_store.list_experiments(), "root": str(OFFLINE_EXPERIMENT_ROOT)}
+
+
+@app.post("/api/offline/experiments")
+def create_offline_experiment(request: OfflineExperimentRequest):
+    try:
+        experiment = offline_store.create_experiment(
+            experiment_id=request.experiment_id,
+            name=request.name,
+            experiment_type=request.experiment_type,
+            notes=request.notes or "",
+        )
+        return {
+            "experiment": experiment,
+            "scenes": offline_store.list_scenes(experiment["experiment_id"]),
+            "trials": offline_store.list_trials(experiment["experiment_id"]),
+            "metrics": offline_store.metrics(experiment["experiment_id"]),
+            "root": str(OFFLINE_EXPERIMENT_ROOT),
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/offline/experiments/{experiment_id}")
+def get_offline_experiment(experiment_id: str):
+    try:
+        return {
+            "experiment": offline_store.read_experiment(experiment_id),
+            "scenes": offline_store.list_scenes(experiment_id),
+            "trials": offline_store.list_trials(experiment_id),
+            "metrics": offline_store.metrics(experiment_id),
+            "root": str(OFFLINE_EXPERIMENT_ROOT),
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/offline/experiments/{experiment_id}/scenes")
+def save_offline_scene(experiment_id: str, request: OfflineSceneRequest):
+    try:
+        instruction = f"offline scene capture {request.scene_id}".strip()
+        if request.observation_image_data_url:
+            image_bytes, mime_type = offline_data_url_to_bytes(request.observation_image_data_url)
+            observation_id = request.observation_id or f"{experiment_id}:{request.scene_id}"
+            observation_source = "browser_upload"
+            observation_metadata = None
+        elif request.fetch_observation:
+            observation = stretch_transport.fetch_observation(session_id=str(uuid.uuid4()), instruction=instruction)
+            image_bytes = observation.image_bytes
+            mime_type = observation.mime_type or "image/png"
+            observation_id = observation.observation_id or f"{experiment_id}:{request.scene_id}"
+            observation_source = f"stretch_{stretch_transport.mode}"
+            observation_metadata = _public_observation_metadata(observation.raw_response)
+        else:
+            raise HTTPException(status_code=400, detail="Provide observation_image_data_url or enable fetch_observation")
+        scene = offline_store.save_scene(
+            experiment_id=experiment_id,
+            scene_id=request.scene_id,
+            scene_type=request.scene_type,
+            object_categories=request.object_categories,
+            notes=request.notes or "",
+            image_bytes=image_bytes,
+            mime_type=mime_type,
+            observation_id=observation_id,
+            observation_source=observation_source,
+            observation_metadata=observation_metadata,
+        )
+        return {
+            "scene": scene,
+            "scenes": offline_store.list_scenes(experiment_id),
+            "metrics": offline_store.metrics(experiment_id),
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/offline/experiments/{experiment_id}/scenes/{scene_id}")
+def get_offline_scene(experiment_id: str, scene_id: str):
+    try:
+        return {"scene": offline_store.scene_view(experiment_id, scene_id)}
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/offline/experiments/{experiment_id}/trials/start")
+def start_offline_trial(experiment_id: str, request: OfflineTrialStartRequest):
+    try:
+        scene = offline_store.scene_view(experiment_id, request.scene_id)
+        method = request.method
+        trial_id = f"trial_{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+        initialize_clarification = method in {"proposed_efe", "first_question", "random_question", "vlm_best_question"}
+        session = create_session(
+            StartSessionRequest(
+                instruction=request.prompt,
+                fetch_observation=False,
+                observation_image_data_url=scene["observation_image_data_url"],
+                observation_id=scene.get("observation_id") or f"{experiment_id}:{request.scene_id}",
+            ),
+            initialize_clarification=initialize_clarification,
+            auto_execute=False,
+        )
+        _apply_offline_trial_method(session, method, trial_id=trial_id)
+        if session.status == "awaiting_answer" and len(session.question_history) >= OFFLINE_MAX_ROUNDS:
+            session.status = "offline_max_rounds"
+            session.current_question = None
+        SESSIONS[session.session_id] = session
+        OFFLINE_TRIAL_SESSIONS[trial_id] = session.session_id
+        trial = {
+            "trial_id": trial_id,
+            "experiment_id": experiment_id,
+            "experiment_type": offline_store.read_experiment(experiment_id).get("experiment_type"),
+            "scene_id": request.scene_id,
+            "scene_type": scene.get("scene_type"),
+            "object_categories": scene.get("object_categories") or [],
+            "prompt": request.prompt,
+            "prompt_type": request.prompt_type,
+            "method": method,
+            "expected_candidate_id": request.expected_candidate_id,
+            "expected_display_id": request.expected_display_id,
+            "notes": request.notes or "",
+            "started_at_epoch_s": time.time(),
+            "scene_observation_path": scene.get("observation_path"),
+        }
+        _update_offline_trial_from_session(experiment_id, trial, session)
+        offline_store.append_event(experiment_id, {"event": "trial_started", "trial_id": trial_id, "method": method})
+        return _offline_trial_view(experiment_id, trial_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/offline/experiments/{experiment_id}/trials/{trial_id}")
+def get_offline_trial(experiment_id: str, trial_id: str):
+    try:
+        return _offline_trial_view(experiment_id, trial_id)
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/offline/experiments/{experiment_id}/trials/{trial_id}/step")
+def step_offline_trial(experiment_id: str, trial_id: str, request: OfflineTrialStepRequest):
+    try:
+        trial = offline_store.read_trial(experiment_id, trial_id)
+        session_id = trial.get("session_id") or OFFLINE_TRIAL_SESSIONS.get(trial_id)
+        session = SESSIONS.get(str(session_id))
+        if session is None:
+            raise HTTPException(status_code=409, detail="active session is not in memory; start a new trial or mark this one aborted")
+        if session.status != "awaiting_answer" or session.current_question is None:
+            raise HTTPException(status_code=409, detail="trial is not waiting for a clarification answer")
+        clarifier.answer_current_question(session, request.answer)
+        if session.resolved_target is not None:
+            finalize_resolved_target(session)
+        elif len(session.question_history) >= OFFLINE_MAX_ROUNDS:
+            session.status = "offline_max_rounds"
+            session.current_question = None
+            session.current_questions = []
+        else:
+            _apply_offline_question_method(session, str(trial.get("method") or "proposed_efe"), trial_id=trial_id)
+        _update_offline_trial_from_session(experiment_id, trial, session)
+        offline_store.append_event(experiment_id, {"event": "trial_answered", "trial_id": trial_id, "answer": request.answer})
+        return _offline_trial_view(experiment_id, trial_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/offline/experiments/{experiment_id}/trials/{trial_id}/finish")
+def finish_offline_trial(experiment_id: str, trial_id: str, request: OfflineTrialFinishRequest):
+    try:
+        trial = offline_store.read_trial(experiment_id, trial_id)
+        session_id = trial.get("session_id") or OFFLINE_TRIAL_SESSIONS.get(trial_id)
+        session = SESSIONS.get(str(session_id)) if session_id else None
+        if request.expected_candidate_id:
+            trial["expected_candidate_id"] = request.expected_candidate_id
+        if request.expected_display_id is not None:
+            trial["expected_display_id"] = request.expected_display_id
+        trial["outcome"] = request.outcome
+        trial["operator_note"] = request.note or ""
+        trial["finished_at_epoch_s"] = time.time()
+        trial["status"] = "finished"
+        if session is not None:
+            _update_offline_trial_from_session(experiment_id, trial, session, status="finished")
+        else:
+            trial["latency_s"] = trial["finished_at_epoch_s"] - float(trial.get("started_at_epoch_s") or trial["finished_at_epoch_s"])
+            offline_store.write_trial(experiment_id, trial)
+        offline_store.append_event(
+            experiment_id,
+            {"event": "trial_finished", "trial_id": trial_id, "outcome": request.outcome},
+        )
+        return _offline_trial_view(experiment_id, trial_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/api/offline/experiments/{experiment_id}/metrics")
+def get_offline_metrics(experiment_id: str):
+    try:
+        return offline_store.metrics(experiment_id)
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.post("/api/sessions/start")

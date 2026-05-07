@@ -76,6 +76,52 @@ class ConfirmSessionRequest(BaseModel):
     reset_ready: bool = True
 
 
+class OfflineExperimentRequest(BaseModel):
+    experiment_id: Optional[str] = None
+    name: str = ""
+    experiment_type: str = "pilot"
+    notes: Optional[str] = None
+
+
+class OfflineSceneRequest(BaseModel):
+    scene_id: str
+    scene_type: str
+    object_categories: List[str] = Field(default_factory=list)
+    notes: Optional[str] = None
+    fetch_observation: bool = True
+    observation_image_data_url: Optional[str] = None
+    observation_id: Optional[str] = None
+
+
+class OfflineTrialStartRequest(BaseModel):
+    scene_id: str
+    prompt: str
+    prompt_type: Literal["clear", "ambiguous", "partial"]
+    method: Literal[
+        "proposed_efe",
+        "top_score",
+        "random_candidate",
+        "vlm_direct",
+        "first_question",
+        "random_question",
+        "vlm_best_question",
+    ] = "proposed_efe"
+    expected_candidate_id: Optional[str] = None
+    expected_display_id: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class OfflineTrialStepRequest(BaseModel):
+    answer: Literal["y", "n"]
+
+
+class OfflineTrialFinishRequest(BaseModel):
+    outcome: Literal["correct", "wrong", "unresolved", "target_pruned", "aborted"]
+    expected_candidate_id: Optional[str] = None
+    expected_display_id: Optional[int] = None
+    note: Optional[str] = None
+
+
 @dataclass
 class SessionState:
     session_id: str
