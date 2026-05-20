@@ -771,7 +771,7 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                 trace.append(
                     _command_default_pose(
                         robot,
-                        include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_START", "1"),
+                        include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_START", "0"),
                         reason="execute_start",
                     )
                 )

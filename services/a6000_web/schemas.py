@@ -22,6 +22,8 @@ class ScoredQuestion(BaseModel):
     score_py: float
     score_pn: float
     efe_score: float
+    yes_candidate_ids: List[str] = Field(default_factory=list)
+    no_candidate_ids: List[str] = Field(default_factory=list)
 
 
 class QuestionTurn(BaseModel):
@@ -113,10 +115,97 @@ class OfflineTrialStartRequest(BaseModel):
 
 class OfflineTrialStepRequest(BaseModel):
     answer: Literal["y", "n"]
+    request_id: Optional[str] = None
+    question_count: Optional[int] = None
 
 
 class OfflineTrialFinishRequest(BaseModel):
     outcome: Literal["correct", "wrong", "unresolved", "target_pruned", "aborted"]
+    expected_candidate_id: Optional[str] = None
+    expected_display_id: Optional[int] = None
+    note: Optional[str] = None
+
+
+class OfflineTrialManualSelectRequest(BaseModel):
+    candidate_id: Optional[str] = None
+    display_id: Optional[int] = None
+    note: Optional[str] = None
+
+
+class OfflineAuditUpdateRequest(BaseModel):
+    outcome: Optional[Literal["correct", "wrong", "unresolved"]] = None
+    include_in_audit: Optional[bool] = None
+    failure_reason: Optional[str] = None
+    failure_reason_detail: Optional[str] = None
+    audit_note: Optional[str] = None
+    prompt_type: Optional[Literal["clear", "ambiguous", "partial"]] = None
+    scene_type: Optional[str] = None
+    reviewer: Optional[str] = None
+
+
+class OnlineExperimentRequest(BaseModel):
+    experiment_id: Optional[str] = None
+    name: str = ""
+    experiment_type: str = "online_main"
+    notes: Optional[str] = None
+
+
+class OnlineSceneRequest(BaseModel):
+    scene_id: str
+    scene_type: Literal["cup_only", "bottle_only", "utensil_only", "mixed", "pilot"] = "pilot"
+    object_categories: List[str] = Field(default_factory=list)
+    notes: Optional[str] = None
+    fetch_observation: bool = True
+    observation_image_data_url: Optional[str] = None
+    observation_id: Optional[str] = None
+
+
+class OnlineTrialStartRequest(BaseModel):
+    scene_id: str
+    prompt: str
+    prompt_type: Literal["clear", "ambiguous", "partial"]
+    method: Literal[
+        "proposed_efe",
+        "top_score",
+        "random_candidate",
+        "vlm_best_question",
+    ] = "proposed_efe"
+    expected_candidate_id: Optional[str] = None
+    expected_display_id: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class OnlineTrialStepRequest(BaseModel):
+    answer: Literal["y", "n"]
+    request_id: Optional[str] = None
+    question_count: Optional[int] = None
+
+
+class OnlineTrialExecuteRequest(BaseModel):
+    expected_candidate_id: Optional[str] = None
+    expected_display_id: Optional[int] = None
+    dry_run: bool = False
+    note: Optional[str] = None
+
+
+class OnlineTrialConfirmRequest(BaseModel):
+    physical_grasp_success: bool
+    correct_object_grasp_success: Optional[bool] = None
+    wrong_object_grasp: bool = False
+    note: Optional[str] = None
+    reset_ready: bool = True
+
+
+class OnlineTrialFinishRequest(BaseModel):
+    outcome: Literal[
+        "correct",
+        "wrong",
+        "unresolved",
+        "skipped_wrong_target",
+        "grasp_failed",
+        "execution_failed",
+        "aborted",
+    ]
     expected_candidate_id: Optional[str] = None
     expected_display_id: Optional[int] = None
     note: Optional[str] = None
@@ -136,6 +225,13 @@ class SessionState:
     candidates: List[Candidate]
     vlm_messages: List[Dict[str, Any]]
     observation_raw_response: Optional[Dict[str, Any]] = None
+    question_mode: Optional[str] = None
+    prompt_type: Optional[str] = None
+    single_candidate_audit: bool = False
+    plausible_candidate_ids: List[str] = field(default_factory=list)
+    eliminated_candidate_ids: List[str] = field(default_factory=list)
+    last_removed_candidate_ids: List[str] = field(default_factory=list)
+    candidate_state_history: List[Dict[str, Any]] = field(default_factory=list)
     current_round: int = 1
     current_questions: List[ScoredQuestion] = field(default_factory=list)
     current_question: Optional[ScoredQuestion] = None

@@ -110,7 +110,21 @@ ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD=-1.57
 ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD=-0.68
 ASK2ACT_STRETCH_INIT_HEAD_SETTLE_S=2.0
 ASK2ACT_STRETCH_INIT_HEAD_TOLERANCE_RAD=0.15
+ASK2ACT_STRETCH_HOME_POSE_ON_OBSERVE=0
+ASK2ACT_STRETCH_HOME_GRIPPER_ON_OBSERVE=0
+ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_START=0
+ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_END=0
+ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_FAILURE=0
 ```
+
+For the online experiment, keep `ASK2ACT_STRETCH_INIT_HEAD_POSE_MODE=every_observe`.
+That makes each trial actively point the head camera at the tabletop before
+capturing RGB-D. `HOME_POSE_ON_OBSERVE=0` avoids repeated arm/lift/wrist homing
+before every image, and the gripper flags leave the gripper unchanged during
+observe/home and execute-start/end/failure homing. The grasp trajectory still
+opens/closes the gripper when an actual grasp is executed. Wrong target
+selections should be skipped on the A6000 `/online` console before any execute
+request is sent to the robot.
 
 After that, a single command is enough:
 

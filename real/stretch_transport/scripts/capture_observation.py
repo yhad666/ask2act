@@ -129,7 +129,7 @@ def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> 
 
 
 def _ensure_default_pose_before_observe() -> dict | None:
-    if not _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_OBSERVE", "1"):
+    if not _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_OBSERVE", "0"):
         return None
     try:
         import stretch_body.robot
@@ -146,7 +146,11 @@ def _ensure_default_pose_before_observe() -> dict | None:
             note="Another process may already be using Stretch.",
         )
     try:
-        return _command_default_pose(robot, include_gripper=True, reason="observe_start")
+        return _command_default_pose(
+            robot,
+            include_gripper=_truthy("ASK2ACT_STRETCH_HOME_GRIPPER_ON_OBSERVE", "0"),
+            reason="observe_start",
+        )
     except Exception as exc:
         return _head_pose_failure_payload(
             error=str(exc),

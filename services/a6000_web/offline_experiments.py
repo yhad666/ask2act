@@ -16,6 +16,8 @@ EXPERIMENT_TYPES = {
     "interactive_baselines",
     "efe_ablation",
     "pilot",
+    "online_main",
+    "online_pilot",
 }
 TRIAL_METHODS = {
     "proposed_efe",
@@ -175,13 +177,48 @@ class OfflineExperimentStore:
         self.append_event(experiment_id, {"event": "scene_saved", "scene": record})
         return self.scene_view(experiment_id, scene_id)
 
+    def save_scene_metadata(
+        self,
+        *,
+        experiment_id: str,
+        scene_id: str,
+        scene_type: str,
+        object_categories: list[str],
+        notes: str,
+        observation_id: str | None = None,
+        observation_source: str = "metadata_only",
+        observation_metadata: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        self.read_experiment(experiment_id)
+        scene_dir = self._scene_dir(experiment_id, scene_id)
+        scene_dir.mkdir(parents=True, exist_ok=True)
+        record = {
+            "experiment_id": experiment_id,
+            "scene_id": scene_id,
+            "scene_type": scene_type,
+            "object_categories": object_categories,
+            "notes": notes,
+            "observation_id": observation_id,
+            "observation_source": observation_source,
+            "observation_mime_type": None,
+            "observation_path": None,
+            "observation_metadata": observation_metadata or {},
+            "updated_at_epoch_s": now_epoch_s(),
+        }
+        if not self._scene_path(experiment_id, scene_id).exists():
+            record["created_at_epoch_s"] = record["updated_at_epoch_s"]
+        self._scene_path(experiment_id, scene_id).write_text(json.dumps(record, indent=2, default=str), encoding="utf-8")
+        self.append_event(experiment_id, {"event": "scene_metadata_saved", "scene": record})
+        return self.scene_view(experiment_id, scene_id)
+
     def scene_view(self, experiment_id: str, scene_id: str, *, include_image: bool = True) -> Dict[str, Any]:
         path = self._scene_path(experiment_id, scene_id)
         if not path.exists():
             raise FileNotFoundError(f"scene not found: {scene_id}")
         record = json.loads(path.read_text(encoding="utf-8"))
-        if include_image:
-            image_path = Path(record["observation_path"])
+        image_path_raw = record.get("observation_path")
+        if include_image and image_path_raw:
+            image_path = Path(image_path_raw)
             record["observation_image_data_url"] = bytes_to_data_url(
                 image_path.read_bytes(),
                 record.get("observation_mime_type") or "image/png",
@@ -271,27 +308,54 @@ class OfflineExperimentStore:
             trials = []
 
         def summarize(items: list[Dict[str, Any]]) -> Dict[str, Any]:
+            def metric_outcome(item: Dict[str, Any]) -> str | None:
+                outcome = item.get("outcome")
+                if outcome in {"correct", "wrong", "unresolved"}:
+                    return str(outcome)
+                if item.get("status") == "resolved" and item.get("auto_outcome") in {"correct", "wrong"}:
+                    return str(item.get("auto_outcome"))
+                return None
+
             total = len(items)
             finished = [item for item in items if item.get("outcome") in TRIAL_OUTCOMES]
-            correct = sum(1 for item in finished if item.get("outcome") == "correct")
-            wrong = sum(1 for item in finished if item.get("outcome") == "wrong")
-            unresolved = sum(1 for item in finished if item.get("outcome") == "unresolved")
+            evaluated_items = [(item, metric_outcome(item)) for item in items]
+            evaluated_items = [(item, outcome) for item, outcome in evaluated_items if outcome is not None]
+            question_counts = [
+                int(item.get("question_count") or 0)
+                for item, _ in evaluated_items
+                if int(item.get("question_count") or 0) > 0
+            ]
+            correct = sum(1 for _, outcome in evaluated_items if outcome == "correct")
+            wrong = sum(1 for _, outcome in evaluated_items if outcome == "wrong")
+            unresolved = sum(1 for _, outcome in evaluated_items if outcome == "unresolved")
+            fail = wrong + unresolved
             pruned = sum(1 for item in finished if item.get("outcome") == "target_pruned")
-            evaluated = max(len(finished), 1)
+            evaluated = len(evaluated_items)
             return {
                 "total": total,
                 "finished": len(finished),
-                "active": sum(1 for item in items if item.get("status") in {"active", "awaiting_answer", "resolved"}),
+                "active": sum(
+                    1
+                    for item in items
+                    if item.get("status") in {"active", "awaiting_answer"}
+                    or (item.get("status") == "resolved" and metric_outcome(item) is None)
+                ),
                 "correct": correct,
                 "wrong": wrong,
                 "unresolved": unresolved,
+                "fail": fail,
                 "target_pruned": pruned,
-                "resolution_success_rate": correct / evaluated,
-                "wrong_object_rate": wrong / evaluated,
-                "unresolved_rate": unresolved / evaluated,
-                "target_pruned_rate": pruned / evaluated,
-                "mean_questions": self._mean(item.get("question_count", 0) for item in finished),
-                "avg_latency_s": self._mean(item.get("latency_s", 0.0) for item in finished if item.get("latency_s") is not None),
+                "evaluated": evaluated,
+                "resolution_success_rate": correct / evaluated if evaluated else None,
+                "fail_rate": fail / evaluated if evaluated else None,
+                "wrong_object_rate": fail / evaluated if evaluated else None,
+                "unresolved_rate": unresolved / evaluated if evaluated else None,
+                "target_pruned_rate": pruned / evaluated if evaluated else None,
+                "mean_questions": self._mean(question_counts),
+                "question_trial_count": len(question_counts),
+                "avg_latency_s": self._mean(
+                    item.get("latency_s", 0.0) for item, _ in evaluated_items if item.get("latency_s") is not None
+                ),
             }
 
         by_method = {}

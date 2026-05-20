@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 
 import numpy as np
 from scipy.optimize import least_squares
@@ -108,6 +109,78 @@ def validate_grasp_point(
     return bool(len(nearby) > 5)
 
 
+def _pca_xy(points_xy: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    xy = np.asarray(points_xy, dtype=float)
+    center = np.median(xy, axis=0)
+    centered = xy - center[None, :]
+    if len(centered) < 3:
+        axes = np.eye(2, dtype=float)
+        spans = np.zeros(2, dtype=float)
+        return center, axes, spans
+    cov = np.cov(centered.T)
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    order = np.argsort(eigvals)[::-1]
+    axes = eigvecs[:, order]
+    projections = centered @ axes
+    spans = np.percentile(projections, 95.0, axis=0) - np.percentile(projections, 5.0, axis=0)
+    return center, axes, spans
+
+
+def _slender_object_grasp(points: np.ndarray, table_z: float, *, slice_thickness: float, max_gripper_width_m: float | None) -> dict[str, object]:
+    z_top = float(np.percentile(points[:, 2], 95.0))
+    z_bottom = float(np.percentile(points[:, 2], 5.0))
+    object_height = float(z_top - z_bottom)
+    center_z = float((z_top + z_bottom) / 2.0)
+    slice_pts = _select_slice_points(points, center_z=center_z, slice_thickness=max(slice_thickness, 0.02))
+    center_xy, axes, spans = _pca_xy(slice_pts[:, :2])
+    major_width = float(max(spans[0], 1e-4))
+    minor_width = float(max(spans[1], 1e-4))
+    minor_axis = axes[:, 1]
+    grip_angle_rad = float(np.arctan2(minor_axis[1], minor_axis[0]))
+    clearance_margin = float(os.getenv("ASK2ACT_GEOMETRIC_SLENDER_GRIP_CLEARANCE_M", "0.018"))
+    min_open_width = float(os.getenv("ASK2ACT_GEOMETRIC_SLENDER_MIN_OPEN_WIDTH_M", "0.032"))
+    gripper_open_width = float(max(min_open_width, minor_width + clearance_margin))
+    if max_gripper_width_m is not None:
+        gripper_open_width = float(min(gripper_open_width, float(max_gripper_width_m)))
+    grasp_xy = np.asarray(center_xy, dtype=float)
+    return {
+        "grasp_x": float(grasp_xy[0]),
+        "grasp_y": float(grasp_xy[1]),
+        "grasp_z": center_z,
+        "grip_angle_rad": grip_angle_rad,
+        "gripper_open_width": gripper_open_width,
+        "min_cross_section_width": minor_width,
+        "object_center": [float(grasp_xy[0]), float(grasp_xy[1]), center_z],
+        "object_height": object_height,
+        "object_top_z": z_top,
+        "object_bottom_z": z_bottom,
+        "slice_center_z": center_z,
+        "slice_point_count": int(len(slice_pts)),
+        "fitted_circle_center_xy": [float(grasp_xy[0]), float(grasp_xy[1])],
+        "fitted_circle_radius": float(minor_width / 2.0),
+        "estimated_error": 0.0,
+        "residual_std": 0.0,
+        "arc_coverage_rad": 0.0,
+        "arc_coverage_deg": 0.0,
+        "conservative_diameter": minor_width,
+        "uncertainty_margin": 0.0,
+        "fixed_clearance_margin": clearance_margin,
+        "grasp_point_validated": bool(validate_grasp_point(points, grasp_xy, tolerance=0.02)),
+        "slice_thickness_m": float(slice_thickness),
+        "validation_tolerance_m": 0.02,
+        "table_z": float(table_z),
+        "width_near_limit": bool(
+            max_gripper_width_m is not None and gripper_open_width > float(max_gripper_width_m) - 0.01
+        ),
+        "open_width_exceeds_max": False,
+        "max_gripper_width_m": None if max_gripper_width_m is None else float(max_gripper_width_m),
+        "method": "geometric_point_cloud_pca_slender",
+        "major_axis_width": major_width,
+        "minor_axis_width": minor_width,
+        "xy_aspect_ratio": float(major_width / max(minor_width, 1e-4)),
+    }
+
+
 def compute_geometric_grasp(
     pcd: np.ndarray,
     table_z: float,
@@ -123,6 +196,18 @@ def compute_geometric_grasp(
     object_height = float(z_top - z_bottom)
     center_z = float((z_top + z_bottom) / 2.0)
     slice_pts = _select_slice_points(points, center_z=center_z, slice_thickness=slice_thickness)
+    center_xy, _axes, spans = _pca_xy(slice_pts[:, :2])
+    major_width = float(max(spans[0], 1e-4))
+    minor_width = float(max(spans[1], 1e-4))
+    slender_aspect_threshold = float(os.getenv("ASK2ACT_GEOMETRIC_SLENDER_OBJECT_ASPECT_RATIO", "2.5"))
+    slender_max_height_m = float(os.getenv("ASK2ACT_GEOMETRIC_SLENDER_OBJECT_MAX_HEIGHT_M", "0.065"))
+    if object_height <= slender_max_height_m and major_width / max(minor_width, 1e-4) >= slender_aspect_threshold:
+        return _slender_object_grasp(
+            points,
+            table_z,
+            slice_thickness=slice_thickness,
+            max_gripper_width_m=max_gripper_width_m,
+        )
 
     (
         fitted_cx,

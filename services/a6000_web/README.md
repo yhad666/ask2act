@@ -91,9 +91,15 @@ export ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MAX_M=0.16
 export ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MARGIN_M=0.02
 export ASK2ACT_REAL_REPLAN_AFTER_BASE_REACH=1
 export ASK2ACT_REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS=2
-export ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=1
+export ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=0
 export ASK2ACT_SESSION_RECORD_ROOT=/abs/path/to/session_records
+export ASK2ACT_ONLINE_EXPERIMENT_ROOT=/abs/path/to/online_experiments
 ```
+
+For online robot experiments, keep `ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=0`.
+The `/online` console performs an explicit target-correctness gate before any
+physical execution, so wrong target selections are logged and skipped instead
+of being sent to Stretch.
 
 For real runs, `ASK2ACT_REAL_TABLE_TOP_Z_M=auto` estimates the tabletop/object
 support height from the target bbox depth in the current observation. If you
@@ -165,6 +171,22 @@ python services/a6000_web/dev/stretch_zmq_smoke_test.py
 
 ## Browser Flow
 
+The original live UI is available at `/`. The online experiment console is available at `/online`.
+
+For the online experiment, use `/online`; it records 20 physical scenes × 3 prompts × 4 methods while fetching a fresh robot observation for every trial. Registered scene images are only references for the operator and are not reused by the trial.
+
+The online console is intentionally operator-gated:
+
+1. Register or load an online experiment.
+2. Register the current physical scene.
+3. Start one live trial; Stretch turns the head to the configured tabletop pose and captures a new RGB-D observation.
+4. Answer clarification questions if the selected method asks them.
+5. Enter the expected candidate display id from the overlay.
+6. Press `Execute If Correct`; if target resolution picked the wrong candidate, the trial is logged and the robot does not move.
+7. Only if the target is correct does the service dispatch the grasp trajectory, then you confirm correct grasp, grasp failure, or wrong-object grasp.
+
+For the original single-session UI:
+
 1. Type one instruction.
 2. Optionally attach a local image override for debugging.
 3. Press `Start Session`.
@@ -176,7 +198,7 @@ python services/a6000_web/dev/stretch_zmq_smoke_test.py
 5. The UI shows one yes/no question at a time.
 6. Each answer updates the candidate belief state.
 7. When only one candidate is detected, clarification is skipped.
-8. Once resolved, `ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=1` plans from the latest head D435i depth frame and dispatches the trajectory to Stretch automatically.
+8. Once resolved, use preview/execute from the UI. For online experiments keep `ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=0` so execution is always gated by the operator.
 
 ## Operator Flow
 
@@ -271,6 +293,56 @@ Useful config:
 ```bash
 export ASK2ACT_OFFLINE_EXPERIMENT_ROOT=/abs/path/to/offline_experiments
 export ASK2ACT_OFFLINE_MAX_ROUNDS=6
+```
+
+## Online Robot Experiment Console
+
+Open `GET /online` for the real-robot online evaluation workflow. This console
+is separate from `/offline`: scene records are only metadata/reference images,
+while every trial starts with a fresh live Stretch observation.
+
+The intended main experiment is:
+
+- 20 physical tabletop scenes
+- 3 prompts per scene: `clear`, `ambiguous`, and `partial`
+- 4 methods: `top_score`, `random_candidate`, `vlm_best_question`, and
+  `proposed_efe`
+- 240 total trials
+
+Online trial flow:
+
+1. Register the physical scene and scene type. A reference image is optional.
+2. Enter the prompt, prompt type, method, and expected candidate display ID.
+3. Press `Start Live Trial`. The A6000 requests a new Stretch RGB-D observation
+   for that trial, so old offline scene images are not reused.
+4. Answer clarification questions when the selected method asks them.
+5. Press `Plan Dry Run` if you want a non-motion handoff check.
+6. Press `Execute If Correct`. The service first compares the resolved target
+   with the expected candidate. If the target is wrong or unresolved, it records
+   the failure and skips the physical grasp.
+7. After an executed grasp, record whether the physical grasp succeeded, whether
+   the correct object was grasped, or whether the wrong object was grasped.
+
+The online metrics include target selection accuracy, physical grasp success,
+correct-object grasp success, wrong-object grasp rate, task success rate, mean
+questions for asked trials, and total time.
+
+Useful online config:
+
+```bash
+export ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=0
+export ASK2ACT_ONLINE_EXPERIMENT_ROOT=/abs/path/to/online_experiments
+export ASK2ACT_ONLINE_MAX_ROUNDS=6
+```
+
+For utensil-like thin objects, the geometric grasp planner has a conservative
+PCA-based slender-object mode. The defaults are intentionally modest:
+
+```bash
+export ASK2ACT_GEOMETRIC_SLENDER_OBJECT_ASPECT_RATIO=2.5
+export ASK2ACT_GEOMETRIC_SLENDER_OBJECT_MAX_HEIGHT_M=0.065
+export ASK2ACT_GEOMETRIC_SLENDER_GRIP_CLEARANCE_M=0.018
+export ASK2ACT_GEOMETRIC_SLENDER_MIN_OPEN_WIDTH_M=0.032
 ```
 
 ## Session State
