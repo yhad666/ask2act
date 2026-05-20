@@ -445,16 +445,24 @@ class HeadCameraVideoManager:
         profile = None
         started_at = time.time()
         frame_count = 0
+        video_default_pose_result = None
         video_head_pose_result = None
         try:
             capture_module = _load_capture_module()
-            if capture_module is not None and _truthy("ASK2ACT_STRETCH_VIDEO_INIT_HEAD_POSE_ON_START", "1"):
-                video_head_pose_result = capture_module._ensure_initial_head_pose()
-                if video_head_pose_result and not bool(video_head_pose_result.get("ok", False)):
-                    if _truthy("ASK2ACT_STRETCH_INIT_HEAD_POSE_REQUIRED", "0"):
-                        error = str(video_head_pose_result.get("error") or "Initial head pose failed")
-                        note = str(video_head_pose_result.get("note") or "")
+            if capture_module is not None:
+                video_default_pose_result = capture_module._ensure_default_pose_before_observe()
+                if video_default_pose_result and not bool(video_default_pose_result.get("ok", False)):
+                    if _truthy("ASK2ACT_STRETCH_HOME_POSE_REQUIRED", "1"):
+                        error = str(video_default_pose_result.get("error") or "Default observe-start pose failed")
+                        note = str(video_default_pose_result.get("note") or "")
                         raise RuntimeError(error if not note else f"{error}. {note}")
+                if _truthy("ASK2ACT_STRETCH_VIDEO_INIT_HEAD_POSE_ON_START", "1"):
+                    video_head_pose_result = capture_module._ensure_initial_head_pose()
+                    if video_head_pose_result and not bool(video_head_pose_result.get("ok", False)):
+                        if _truthy("ASK2ACT_STRETCH_INIT_HEAD_POSE_REQUIRED", "0"):
+                            error = str(video_head_pose_result.get("error") or "Initial head pose failed")
+                            note = str(video_head_pose_result.get("note") or "")
+                            raise RuntimeError(error if not note else f"{error}. {note}")
 
             serial = (
                 os.getenv("ASK2ACT_STRETCH_D435I_SERIAL", "").strip()
@@ -516,6 +524,7 @@ class HeadCameraVideoManager:
                             "video_height": video_height,
                             "writer_backend": writer.backend,
                             "camera_serial": camera_serial,
+                            "default_pose_init": video_default_pose_result,
                             "head_pose_init": video_head_pose_result,
                         }
                     )
@@ -570,6 +579,7 @@ class HeadCameraVideoManager:
                         "started_at_epoch_s": started_at,
                         "stopped_at_epoch_s": time.time(),
                         "frame_count": frame_count,
+                        "default_pose_init": video_default_pose_result,
                         "head_pose_init": video_head_pose_result,
                     },
                     indent=2,
@@ -605,6 +615,7 @@ class HeadCameraVideoManager:
                             "frame_count": frame_count,
                             "output_path": str(output_path),
                             "writer": writer_result,
+                            "default_pose_init": video_default_pose_result,
                             "head_pose_init": video_head_pose_result,
                             "note": "Robot-side video file is deleted after it is transferred to A6000.",
                         },

@@ -62,15 +62,32 @@ def _head_pose_failure_payload(error: str, note: str, **extra: object) -> dict:
     return payload
 
 
-def _default_pose_targets() -> dict[str, float]:
+def _reason_key(reason: str) -> str:
+    return "".join(ch if ch.isalnum() else "_" for ch in reason.upper()).strip("_")
+
+
+def _reason_float_env(name: str, reason: str, default: str, *, unit_suffix: str = "") -> float:
+    reason_key = _reason_key(reason)
+    specific = f"{name}_{reason_key}{unit_suffix}" if reason_key else ""
+    return float(os.getenv(specific, os.getenv(f"{name}{unit_suffix}", default)))
+
+
+def _default_pose_targets(*, reason: str = "") -> dict[str, float]:
     return {
-        "lift": float(os.getenv("ASK2ACT_STRETCH_HOME_LIFT_M", "0.60")),
-        "arm": float(os.getenv("ASK2ACT_STRETCH_HOME_ARM_M", "0.0")),
-        "wrist_yaw": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_YAW_RAD", "0.0")),
-        "wrist_pitch": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_PITCH_RAD", "-1.57")),
-        "wrist_roll": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_ROLL_RAD", "0.0")),
-        "stretch_gripper": float(os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "0.56")),
+        "lift": _reason_float_env("ASK2ACT_STRETCH_HOME_LIFT", reason, "0.60", unit_suffix="_M"),
+        "arm": _reason_float_env("ASK2ACT_STRETCH_HOME_ARM", reason, "0.0", unit_suffix="_M"),
+        "wrist_yaw": _reason_float_env("ASK2ACT_STRETCH_HOME_WRIST_YAW", reason, "0.0", unit_suffix="_RAD"),
+        "wrist_pitch": _reason_float_env("ASK2ACT_STRETCH_HOME_WRIST_PITCH", reason, "-1.57", unit_suffix="_RAD"),
+        "wrist_roll": _reason_float_env("ASK2ACT_STRETCH_HOME_WRIST_ROLL", reason, "0.0", unit_suffix="_RAD"),
+        "stretch_gripper": _reason_float_env("ASK2ACT_STRETCH_HOME_GRIPPER", reason, "0.56", unit_suffix="_CMD"),
     }
+
+
+def _home_settle_s(reason: str) -> float:
+    reason_key = _reason_key(reason)
+    specific = f"ASK2ACT_STRETCH_HOME_SETTLE_{reason_key}_S" if reason_key else ""
+    raw = os.getenv(specific, os.getenv("ASK2ACT_STRETCH_HOME_SETTLE_S", "2.0"))
+    return max(0.0, float(raw))
 
 
 def _status_snapshot(robot: Any) -> dict[str, Any]:
@@ -96,8 +113,86 @@ def _status_snapshot(robot: Any) -> dict[str, Any]:
     }
 
 
+def _csv_env(name: str, default: str) -> set[str]:
+    raw = os.getenv(name, default)
+    return {item.strip() for item in raw.split(",") if item.strip()}
+
+
+def _read_joint_position(robot: Any, joint_name: str) -> float | None:
+    try:
+        robot.pull_status()
+    except Exception:
+        pass
+
+    if joint_name == "lift":
+        status = getattr(getattr(robot, "lift", None), "status", None)
+        if isinstance(status, dict) and "pos" in status:
+            return float(status["pos"])
+    if joint_name == "arm":
+        status = getattr(getattr(robot, "arm", None), "status", None)
+        if isinstance(status, dict) and "pos" in status:
+            return float(status["pos"])
+    if joint_name in {"wrist_yaw", "wrist_pitch", "wrist_roll"}:
+        status = getattr(getattr(robot, "end_of_arm", None), "status", None)
+        if isinstance(status, dict):
+            entry = status.get(joint_name)
+            if isinstance(entry, dict):
+                for key in ("pos", "pos_rad", "pos_m"):
+                    if key in entry:
+                        return float(entry[key])
+            if isinstance(entry, (int, float)):
+                return float(entry)
+    return None
+
+
+def _home_verify_tolerance(joint_name: str) -> float:
+    defaults = {
+        "lift": "0.035",
+        "arm": "0.025",
+        "wrist_yaw": "0.10",
+        "wrist_pitch": "0.10",
+        "wrist_roll": "0.10",
+    }
+    key = f"ASK2ACT_STRETCH_HOME_VERIFY_TOLERANCE_{joint_name.upper()}"
+    return max(0.0, float(os.getenv(key, defaults.get(joint_name, "0.05"))))
+
+
+def _verify_default_pose_for_camera(robot: Any, targets: dict[str, float]) -> dict[str, Any]:
+    joints = _csv_env("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_JOINTS", "lift,arm")
+    timeout_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_TIMEOUT_S", "6.0")))
+    started_at = time.monotonic()
+    results: dict[str, dict[str, Any]] = {}
+    pending = set(joints)
+    while pending and time.monotonic() - started_at <= timeout_s:
+        for joint_name in list(pending):
+            if joint_name not in targets:
+                pending.remove(joint_name)
+                continue
+            actual = _read_joint_position(robot, joint_name)
+            tolerance = _home_verify_tolerance(joint_name)
+            target = float(targets[joint_name])
+            error = None if actual is None else float(target - actual)
+            results[joint_name] = {
+                "target": target,
+                "actual": None if actual is None else float(actual),
+                "error": error,
+                "tolerance": tolerance,
+            }
+            if actual is not None and abs(error or 0.0) <= tolerance:
+                pending.remove(joint_name)
+        if pending:
+            time.sleep(0.05)
+    return {
+        "ok": not pending,
+        "timeout_s": timeout_s,
+        "elapsed_s": round(time.monotonic() - started_at, 3),
+        "pending_joints": sorted(pending),
+        "joints": results,
+    }
+
+
 def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> dict:
-    targets = _default_pose_targets()
+    targets = _default_pose_targets(reason=reason)
     status_before = _status_snapshot(robot)
     if include_gripper:
         robot.end_of_arm.move_to("stretch_gripper", targets["stretch_gripper"])
@@ -107,7 +202,7 @@ def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> 
     robot.end_of_arm.move_to("wrist_roll", targets["wrist_roll"])
     robot.lift.move_to(targets["lift"])
     robot.push_command()
-    settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_HOME_SETTLE_S", "2.0")))
+    settle_s = _home_settle_s(reason)
     if settle_s > 0.0:
         time.sleep(settle_s)
     try:
@@ -115,13 +210,23 @@ def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> 
     except Exception:
         pass
     status_after = _status_snapshot(robot)
+    verify_result = None
+    if reason == "observe_start" and _truthy("ASK2ACT_STRETCH_HOME_VERIFY_ON_OBSERVE", "1"):
+        verify_result = _verify_default_pose_for_camera(robot, targets)
     return {
-        "ok": True,
+        "ok": True if verify_result is None else bool(verify_result.get("ok", False)),
         "status": "default_pose_commanded",
+        "error": None
+        if verify_result is None or bool(verify_result.get("ok", False))
+        else "Camera-safe observe-start pose was not reached before capture",
+        "note": None
+        if verify_result is None or bool(verify_result.get("ok", False))
+        else "The D435i capture was blocked before the arm/lift reached the non-occluding observe pose.",
         "reason": reason,
         "include_gripper": include_gripper,
         "targets": targets if include_gripper else {key: value for key, value in targets.items() if key != "stretch_gripper"},
         "settle_s": settle_s,
+        "verify": verify_result,
         "status_before": status_before,
         "status_after": status_after,
         "timestamp_epoch_s": time.time(),

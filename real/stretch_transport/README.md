@@ -110,7 +110,12 @@ ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD=-1.57
 ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD=-0.68
 ASK2ACT_STRETCH_INIT_HEAD_SETTLE_S=2.0
 ASK2ACT_STRETCH_INIT_HEAD_TOLERANCE_RAD=0.15
-ASK2ACT_STRETCH_HOME_POSE_ON_OBSERVE=0
+ASK2ACT_STRETCH_HOME_POSE_ON_OBSERVE=1
+ASK2ACT_STRETCH_HOME_LIFT_OBSERVE_START_M=0.25
+ASK2ACT_STRETCH_HOME_SETTLE_OBSERVE_START_S=0.6
+ASK2ACT_STRETCH_HOME_VERIFY_ON_OBSERVE=1
+ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_JOINTS=lift,arm
+ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_TIMEOUT_S=6.0
 ASK2ACT_STRETCH_HOME_GRIPPER_ON_OBSERVE=0
 ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_START=0
 ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_END=0
@@ -120,11 +125,14 @@ ASK2ACT_STRETCH_HOME_LIFT_EXECUTE_END_M=0.25
 
 For the online experiment, keep `ASK2ACT_STRETCH_INIT_HEAD_POSE_MODE=every_observe`.
 That makes each trial actively point the head camera at the tabletop before
-capturing RGB-D. `HOME_POSE_ON_OBSERVE=0` avoids repeated arm/lift/wrist homing
-before every image, and the gripper flags leave the gripper unchanged during
-observe/home and execute-start/failure homing. After a successful grasp
-trajectory, the cleanup path rotates the base back, sends the default arm/wrist
-pose with the lift lowered to avoid blocking the camera, then opens the gripper
+capturing RGB-D. `HOME_POSE_ON_OBSERVE=1` moves the arm/lift/wrist to a low
+camera-safe pose before starting a normal capture and before opening the shared
+video camera stream. The observe path verifies only `lift` and `arm` before the
+camera starts; if they are still not in the non-occluding pose, capture fails
+early instead of producing an empty target point cloud. The gripper flags leave
+the gripper unchanged during observe/home and execute-start/failure homing.
+After a successful grasp trajectory, the cleanup path rotates the base back,
+sends the same low pose to avoid blocking the camera, then opens the gripper
 with a short fire-and-forget command so the robot does not keep holding the
 object. Wrong target selections should be skipped on the A6000 `/online`
 console before any execute request is sent to the robot.
