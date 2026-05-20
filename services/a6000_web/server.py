@@ -1347,7 +1347,7 @@ def _online_summarize_trials(items: list[Dict[str, Any]]) -> Dict[str, Any]:
     ]
     question_counts = [
         int(item.get("question_count") or 0)
-        for item in target_eval
+        for item, _outcome in target_eval
         if int(item.get("question_count") or 0) > 0
     ]
     total_times = [
@@ -2304,12 +2304,36 @@ def execute_online_trial(experiment_id: str, trial_id: str, request: OnlineTrial
             return _online_trial_view(experiment_id, trial_id)
 
         execute_resolved_session(session, dry_run=request.dry_run, raise_on_error=True)
+        execution_ok = bool(session.execution_result and session.execution_result.get("ok"))
+        if not execution_ok:
+            finished_at = time.time()
+            trial.update(
+                {
+                    "status": "finished",
+                    "outcome": "execution_failed",
+                    "grasp_attempted": not bool(request.dry_run),
+                    "grasp_execution_ok": False,
+                    "wrong_target_grasp_prevented": False,
+                    "operator_note": request.note or "Stretch execution did not complete successfully.",
+                    "execution_result": session.execution_result,
+                    "grasp_plan_result": session.grasp_plan_result.model_dump() if session.grasp_plan_result else None,
+                    "executed_at_epoch_s": finished_at,
+                    "finished_at_epoch_s": finished_at,
+                }
+            )
+            trial["total_time_s"] = finished_at - float(trial.get("started_at_epoch_s") or finished_at)
+            online_store.write_trial(experiment_id, trial)
+            online_store.append_event(
+                experiment_id,
+                {"event": "online_trial_execution_failed", "trial_id": trial_id, "dry_run": request.dry_run},
+            )
+            return _online_trial_view(experiment_id, trial_id)
         trial.update(
             {
                 "status": "executed_dry_run" if request.dry_run else "executed",
                 "outcome": None,
                 "grasp_attempted": not bool(request.dry_run),
-                "grasp_execution_ok": bool(session.execution_result and session.execution_result.get("ok")),
+                "grasp_execution_ok": execution_ok,
                 "wrong_target_grasp_prevented": False,
                 "operator_note": request.note or "",
                 "execution_result": session.execution_result,

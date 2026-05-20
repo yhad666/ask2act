@@ -527,11 +527,11 @@
           prompt: value("promptInput").trim(),
           prompt_type: value("promptTypeInput"),
           method: value("methodInput"),
-          expected_display_id: expectedDisplayId(),
           notes: value("trialNotesInput").trim()
         };
         if (!expId) { setBanner("err", "Load or create an experiment first."); return; }
         if (!payload.scene_id || !payload.prompt) { setBanner("err", "scene_id and prompt are required."); return; }
+        setValue("expectedDisplayIdInput", "");
         setDisabled("startTrialBtn", true);
         setBusy("Starting live trial; robot observe + detection/VLM...");
         postJson("/api/online/experiments/" + encodeURIComponent(expId) + "/trials/start", payload, function (data) {
@@ -602,6 +602,8 @@
           renderTrialView(data);
           var trial = data.trial || {};
           if (trial.outcome === "skipped_wrong_target") setBanner("info", "Wrong target selection detected; grasp skipped.");
+          else if (trial.outcome === "execution_failed") setBanner("err", "Execution failed; no confirmation is needed for this trial.");
+          else if (trial.target_selection_outcome === "unresolved") setBanner("info", "No resolved target; grasp skipped.");
           else setBanner("ok", dryRun ? "Dry run recorded." : "Execution sent. Confirm physical outcome.");
         }, function (err) { clearBusy(); setBanner("err", err); loadTrial(trialId); }, 240000);
       }
