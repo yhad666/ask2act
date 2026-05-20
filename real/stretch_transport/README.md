@@ -115,6 +115,7 @@ ASK2ACT_STRETCH_HOME_GRIPPER_ON_OBSERVE=0
 ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_START=0
 ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_END=0
 ASK2ACT_STRETCH_HOME_GRIPPER_ON_EXECUTE_FAILURE=0
+ASK2ACT_STRETCH_HOME_LIFT_EXECUTE_END_M=0.25
 ```
 
 For the online experiment, keep `ASK2ACT_STRETCH_INIT_HEAD_POSE_MODE=every_observe`.
@@ -123,9 +124,10 @@ capturing RGB-D. `HOME_POSE_ON_OBSERVE=0` avoids repeated arm/lift/wrist homing
 before every image, and the gripper flags leave the gripper unchanged during
 observe/home and execute-start/failure homing. After a successful grasp
 trajectory, the cleanup path rotates the base back, sends the default arm/wrist
-pose, then opens the gripper with a short fire-and-forget command so the robot
-does not keep holding the object. Wrong target selections should be skipped on
-the A6000 `/online` console before any execute request is sent to the robot.
+pose with the lift lowered to avoid blocking the camera, then opens the gripper
+with a short fire-and-forget command so the robot does not keep holding the
+object. Wrong target selections should be skipped on the A6000 `/online`
+console before any execute request is sent to the robot.
 
 After that, a single command is enough:
 

@@ -54,26 +54,36 @@ def _truthy(name: str, default: str = "0") -> bool:
     return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _default_pose_targets() -> dict[str, float]:
+def _reason_key(reason: str) -> str:
+    return "".join(ch if ch.isalnum() else "_" for ch in reason.upper()).strip("_")
+
+
+def _reason_float_env(name: str, reason: str, default: str, *, unit_suffix: str = "") -> float:
+    reason_key = _reason_key(reason)
+    specific = f"{name}_{reason_key}{unit_suffix}" if reason_key else ""
+    return float(os.getenv(specific, os.getenv(f"{name}{unit_suffix}", default)))
+
+
+def _default_pose_targets(*, reason: str = "") -> dict[str, float]:
     return {
-        "lift": float(os.getenv("ASK2ACT_STRETCH_HOME_LIFT_M", "0.60")),
-        "arm": float(os.getenv("ASK2ACT_STRETCH_HOME_ARM_M", "0.0")),
-        "wrist_yaw": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_YAW_RAD", "0.0")),
-        "wrist_pitch": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_PITCH_RAD", "-1.57")),
-        "wrist_roll": float(os.getenv("ASK2ACT_STRETCH_HOME_WRIST_ROLL_RAD", "0.0")),
-        "stretch_gripper": float(os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "0.56")),
+        "lift": _reason_float_env("ASK2ACT_STRETCH_HOME_LIFT", reason, "0.60", unit_suffix="_M"),
+        "arm": _reason_float_env("ASK2ACT_STRETCH_HOME_ARM", reason, "0.0", unit_suffix="_M"),
+        "wrist_yaw": _reason_float_env("ASK2ACT_STRETCH_HOME_WRIST_YAW", reason, "0.0", unit_suffix="_RAD"),
+        "wrist_pitch": _reason_float_env("ASK2ACT_STRETCH_HOME_WRIST_PITCH", reason, "-1.57", unit_suffix="_RAD"),
+        "wrist_roll": _reason_float_env("ASK2ACT_STRETCH_HOME_WRIST_ROLL", reason, "0.0", unit_suffix="_RAD"),
+        "stretch_gripper": _reason_float_env("ASK2ACT_STRETCH_HOME_GRIPPER", reason, "0.56", unit_suffix="_CMD"),
     }
 
 
 def _home_settle_s(reason: str) -> float:
-    reason_key = "".join(ch if ch.isalnum() else "_" for ch in reason.upper()).strip("_")
+    reason_key = _reason_key(reason)
     specific = f"ASK2ACT_STRETCH_HOME_SETTLE_{reason_key}_S" if reason_key else ""
     raw = os.getenv(specific, os.getenv("ASK2ACT_STRETCH_HOME_SETTLE_S", "2.0"))
     return max(0.0, float(raw))
 
 
 def _base_return_wait_timeout_s(reason: str) -> float:
-    reason_key = "".join(ch if ch.isalnum() else "_" for ch in reason.upper()).strip("_")
+    reason_key = _reason_key(reason)
     specific = f"ASK2ACT_STRETCH_BASE_ROTATE_RETURN_WAIT_TIMEOUT_{reason_key}_S" if reason_key else ""
     raw = os.getenv(specific, os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_RETURN_WAIT_TIMEOUT_S", "12.0"))
     return max(0.0, float(raw))
@@ -125,7 +135,7 @@ def _status_snapshot(robot: Any) -> dict[str, Any]:
 
 
 def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> dict[str, Any]:
-    targets = _default_pose_targets()
+    targets = _default_pose_targets(reason=reason)
     command_targets = dict(targets)
     status_before = _status_snapshot(robot)
     if include_gripper:
