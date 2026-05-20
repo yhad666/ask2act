@@ -90,6 +90,12 @@ REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS = int(os.getenv("ASK2ACT_REAL_BASE_REACH_REP
 REAL_REOBSERVE_TARGET_LOCK_AMBIGUITY_MARGIN = float(
     os.getenv("ASK2ACT_REOBSERVE_TARGET_LOCK_AMBIGUITY_MARGIN", "0.02")
 )
+REAL_BASE_REACH_FAIL_FAST_OVERSIZED = os.getenv("ASK2ACT_REAL_BASE_REACH_FAIL_FAST_OVERSIZED", "1").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 SESSION_RECORD_ROOT = Path(os.getenv("ASK2ACT_SESSION_RECORD_ROOT", str(ROOT / "artifacts" / "session_records"))).expanduser()
 OFFLINE_EXPERIMENT_ROOT = Path(
     os.getenv("ASK2ACT_OFFLINE_EXPERIMENT_ROOT", str(ROOT / "artifacts" / "offline_experiments"))
@@ -468,6 +474,53 @@ def _make_base_reach_preposition_payload(plan_result: Dict[str, Any], waypoint: 
     return dispatch_payload
 
 
+def _base_reach_metadata(plan_result: Dict[str, Any]) -> Dict[str, Any]:
+    dispatch_payload = plan_result.get("dispatch_payload") or {}
+    metadata = dispatch_payload.get("motion_plan_metadata") or {}
+    base_preposition = metadata.get("base_preposition") or {}
+    if isinstance(base_preposition, dict):
+        return base_preposition
+    return {}
+
+
+def _base_reach_safe_total_arm_axis_m(max_attempts: int) -> float:
+    explicit = os.getenv("ASK2ACT_REAL_BASE_REACH_MAX_TOTAL_ARM_AXIS_M", "").strip()
+    if explicit:
+        return max(0.0, float(explicit))
+    per_attempt = max(
+        0.0,
+        min(
+            float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MAX_M", "0.16")),
+            float(os.getenv("ASK2ACT_REAL_BASE_PREPOSITION_LONGITUDINAL_MAX_M", "0.08")),
+        ),
+    )
+    return per_attempt * max(0, int(max_attempts))
+
+
+def _raise_if_base_reach_oversized_before_motion(plan_result: Dict[str, Any], max_attempts: int) -> None:
+    if not REAL_BASE_REACH_FAIL_FAST_OVERSIZED:
+        return
+    metadata = _base_reach_metadata(plan_result)
+    if not metadata:
+        return
+    try:
+        reach_error = abs(float(metadata.get("reach_error_m", 0.0)))
+        deadband = max(0.0, float(metadata.get("longitudinal_deadband_m", 0.0)))
+        requested = abs(float(metadata.get("requested_base_translate_arm_axis_m", 0.0)))
+    except Exception:
+        return
+    if requested <= 0.0:
+        return
+    required_after_deadband = max(0.0, reach_error - deadband)
+    safe_total = _base_reach_safe_total_arm_axis_m(max_attempts)
+    if required_after_deadband > safe_total + 1e-6:
+        raise RuntimeError(
+            "Base reach correction would require about "
+            f"{required_after_deadband:.3f} m along the arm axis, exceeding the configured safe cumulative "
+            f"preposition budget of {safe_total:.3f} m. Refusing to move the base before a likely failed replan."
+        )
+
+
 def _bbox_center_xy(bbox: Any) -> tuple[float, float] | None:
     try:
         values = [float(value) for value in bbox]
@@ -833,6 +886,8 @@ def execute_resolved_session(session: SessionState, *, dry_run: bool, raise_on_e
                     "Base reach correction is still required after reobserve/replan attempts; "
                     "refusing to execute stale grasp coordinates."
                 )
+            if attempt_index == 0:
+                _raise_if_base_reach_oversized_before_motion(plan_result, max_attempts)
 
             preposition_payload = _make_base_reach_preposition_payload(plan_result, base_reach_waypoint)
             preposition_transport = stretch_transport.dispatch_grasp(

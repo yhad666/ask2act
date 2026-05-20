@@ -91,6 +91,8 @@ export ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MAX_M=0.16
 export ASK2ACT_GEOMETRIC_TOP_DOWN_BASE_REACH_TRANSLATE_MARGIN_M=0.02
 export ASK2ACT_REAL_REPLAN_AFTER_BASE_REACH=1
 export ASK2ACT_REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS=2
+export ASK2ACT_REAL_BASE_REACH_FAIL_FAST_OVERSIZED=1
+export ASK2ACT_REAL_BASE_REACH_MAX_TOTAL_ARM_AXIS_M=0.12
 export ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=0
 export ASK2ACT_SESSION_RECORD_ROOT=/abs/path/to/session_records
 export ASK2ACT_ONLINE_EXPERIMENT_ROOT=/abs/path/to/online_experiments
@@ -116,6 +118,10 @@ small base reach adjustment. The A6000 executes that adjustment by itself,
 fetches a new observation, reselects the target, replans from the new RGB-D
 frame, and only then sends the final grasp trajectory. If the arm can already
 reach, no base adjustment is sent.
+If the first plan already needs more arm-axis base prepositioning than the
+configured safe cumulative budget, the service fails before moving the base.
+This avoids spending robot motion on a correction that is unlikely to finish
+within the allowed reobserve/replan attempts.
 
 For the real-robot browser service, you can also copy:
 

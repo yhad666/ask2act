@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import time
 
+import pytest
 from fastapi.testclient import TestClient
 
 from services.a6000_web import server as web_server
@@ -180,3 +181,63 @@ def test_online_head_camera_video_is_saved_on_a6000(tmp_path, monkeypatch):
     download = client.get(video["video_url"])
     assert download.status_code == 200
     assert download.content == b"fake-mp4-bytes"
+
+
+def test_oversized_base_reach_refuses_before_robot_motion(monkeypatch):
+    session = _session()
+    session.observation_raw_response = {"depth_aligned_to_color": True}
+    called = {"dispatch": False}
+
+    class FakeGraspRuntime:
+        mode = "real_pointcloud"
+
+        def plan_for_target(self, *args, **kwargs):
+            return {
+                "ok": True,
+                "dispatch_payload": {
+                    "trajectory": [
+                        {
+                            "name": "base_translate_for_reach",
+                            "joint_targets": {"base_translate_arm_axis": 0.06},
+                            "settle_s": 0.4,
+                        }
+                    ],
+                    "motion_plan_metadata": {
+                        "base_preposition": {
+                            "reach_error_m": 0.26,
+                            "longitudinal_deadband_m": 0.04,
+                            "requested_base_translate_arm_axis_m": 0.06,
+                        }
+                    },
+                },
+                "plan_summary": {
+                    "pipeline_mode": "real_pointcloud",
+                    "planner_backend": "real_base_reach_preposition_required",
+                    "target_bbox_xyxy": [10, 10, 40, 40],
+                    "point_cloud_count": 100,
+                    "selected_grasp_score": 0.9,
+                    "trajectory_waypoint_count": 1,
+                    "pipeline_run_dir": "",
+                    "success": True,
+                    "note": "base preposition only",
+                },
+            }
+
+    class FakeStretchTransport:
+        def dispatch_grasp(self, *args, **kwargs):
+            called["dispatch"] = True
+            raise AssertionError("base should not move for oversized preposition")
+
+    monkeypatch.setattr(web_server, "grasp_runtime", FakeGraspRuntime())
+    monkeypatch.setattr(web_server, "stretch_transport", FakeStretchTransport())
+    monkeypatch.setattr(web_server, "REAL_REPLAN_AFTER_BASE_REACH", True)
+    monkeypatch.setattr(web_server, "REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS", 2)
+    monkeypatch.setattr(web_server, "REAL_BASE_REACH_FAIL_FAST_OVERSIZED", True)
+    monkeypatch.setattr(web_server, "finalize_resolved_target", lambda *args, **kwargs: None)
+    monkeypatch.setenv("ASK2ACT_REAL_BASE_REACH_MAX_TOTAL_ARM_AXIS_M", "0.12")
+
+    with pytest.raises(Exception) as exc_info:
+        web_server.execute_resolved_session(session, dry_run=False, raise_on_error=True)
+
+    assert "exceeding the configured safe cumulative preposition budget" in str(exc_info.value)
+    assert called["dispatch"] is False
