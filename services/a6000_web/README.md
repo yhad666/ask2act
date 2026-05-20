@@ -312,16 +312,22 @@ The intended main experiment is:
 Online trial flow:
 
 1. Register the physical scene and scene type. A reference image is optional.
-2. Enter the prompt, prompt type, method, and expected candidate display ID.
-3. Press `Start Live Trial`. The A6000 requests a new Stretch RGB-D observation
+2. Optional: press `Start Video` once at the beginning of the run. When video
+   is active, the robot-side server reuses the same high-resolution D435i stream
+   for both trial observations and the MP4 recording, so it does not start a
+   competing camera pipeline.
+3. Enter the prompt, prompt type, method, and expected candidate display ID.
+4. Press `Start Live Trial`. The A6000 requests a new Stretch RGB-D observation
    for that trial, so old offline scene images are not reused.
-4. Answer clarification questions when the selected method asks them.
-5. Press `Plan Dry Run` if you want a non-motion handoff check.
-6. Press `Execute If Correct`. The service first compares the resolved target
+5. Answer clarification questions when the selected method asks them.
+6. Press `Plan Dry Run` if you want a non-motion handoff check.
+7. Press `Execute If Correct`. The service first compares the resolved target
    with the expected candidate. If the target is wrong or unresolved, it records
    the failure and skips the physical grasp.
-7. After an executed grasp, record whether the physical grasp succeeded, whether
+8. After an executed grasp, record whether the physical grasp succeeded, whether
    the correct object was grasped, or whether the wrong object was grasped.
+9. Press `Stop & Transfer` after the run; the MP4 is saved under the online
+   experiment on A6000 and the robot-side temporary file is deleted.
 
 The online metrics include target selection accuracy, physical grasp success,
 correct-object grasp success, wrong-object grasp rate, task success rate, mean

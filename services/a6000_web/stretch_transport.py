@@ -120,6 +120,98 @@ class StretchTransportClient:
             raw_response=reply,
         )
 
+    def start_head_camera_video(self, *, experiment_id: str, video_id: Optional[str] = None) -> Dict[str, Any]:
+        if self.mode == "mock":
+            started_at = time.time()
+            return {
+                "ok": True,
+                "status": "recording",
+                "mode": "mock",
+                "video_id": video_id or f"mock_head_camera_{int(started_at)}",
+                "started_at_epoch_s": started_at,
+                "source_width": 1280,
+                "source_height": 720,
+                "video_width": 1280,
+                "video_height": 720,
+                "fps": 10,
+                "note": "Mock transport does not record real video.",
+            }
+        if self.mode != "zmq":
+            raise RuntimeError(f"Unsupported stretch transport mode: {self.mode}")
+        reply = self._zmq_roundtrip(
+            {
+                "op": "start_head_camera_video",
+                "experiment_id": experiment_id,
+                "video_id": video_id,
+            },
+            timeout_ms=self.execute_timeout_ms,
+        )
+        if reply.get("ok") is False:
+            raise RuntimeError(reply.get("error") or "Stretch head-camera video start failed")
+        reply["mode"] = "zmq"
+        return reply
+
+    def stop_head_camera_video(self, *, experiment_id: str) -> Dict[str, Any]:
+        if self.mode == "mock":
+            payload = b"mock head camera video"
+            return {
+                "ok": True,
+                "status": "stopped",
+                "mode": "mock",
+                "video_id": f"mock_head_camera_{int(time.time())}",
+                "filename": "mock_head_camera.mp4",
+                "mime_type": "video/mp4",
+                "size_bytes": len(payload),
+                "video_base64": base64.b64encode(payload).decode("ascii"),
+                "metadata": {"ok": True, "mock": True},
+            }
+        if self.mode != "zmq":
+            raise RuntimeError(f"Unsupported stretch transport mode: {self.mode}")
+        reply = self._zmq_roundtrip(
+            {"op": "stop_head_camera_video", "experiment_id": experiment_id},
+            timeout_ms=self.execute_timeout_ms,
+        )
+        if reply.get("ok") is False:
+            raise RuntimeError(reply.get("error") or "Stretch head-camera video stop failed")
+        if reply.get("pending_transfer_id"):
+            video_chunks: list[bytes] = []
+            offset = 0
+            size_bytes = int(reply.get("size_bytes") or 0)
+            transfer_id = str(reply["pending_transfer_id"])
+            while True:
+                chunk_reply = self._zmq_roundtrip(
+                    {
+                        "op": "fetch_head_camera_video",
+                        "experiment_id": experiment_id,
+                        "transfer_id": transfer_id,
+                        "offset": offset,
+                    },
+                    timeout_ms=self.execute_timeout_ms,
+                )
+                if chunk_reply.get("ok") is False:
+                    raise RuntimeError(chunk_reply.get("error") or "Stretch head-camera video transfer failed")
+                video_chunks.append(base64.b64decode(chunk_reply.get("chunk_base64") or ""))
+                offset = int(chunk_reply.get("next_offset") or offset)
+                if chunk_reply.get("done"):
+                    reply["video_bytes"] = b"".join(video_chunks)
+                    reply["size_bytes"] = size_bytes or len(reply["video_bytes"])
+                    reply["filename"] = chunk_reply.get("filename") or reply.get("filename")
+                    reply["mime_type"] = chunk_reply.get("mime_type") or reply.get("mime_type") or "video/mp4"
+                    break
+        reply["mode"] = "zmq"
+        return reply
+
+    def head_camera_video_status(self) -> Dict[str, Any]:
+        if self.mode == "mock":
+            return {"ok": True, "running": False, "status": "idle", "mode": "mock"}
+        if self.mode != "zmq":
+            raise RuntimeError(f"Unsupported stretch transport mode: {self.mode}")
+        reply = self._zmq_roundtrip({"op": "head_camera_video_status"}, timeout_ms=self.timeout_ms)
+        if reply.get("ok") is False:
+            raise RuntimeError(reply.get("error") or "Stretch head-camera video status failed")
+        reply["mode"] = "zmq"
+        return reply
+
     def dispatch_grasp(
         self,
         *,

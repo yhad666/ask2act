@@ -73,6 +73,14 @@ def serve(bind_endpoint: str) -> None:
                     reply = runtime.observe(payload)
                 elif op == "execute_grasp":
                     reply = runtime.execute(payload)
+                elif op == "start_head_camera_video":
+                    reply = runtime.start_video(payload)
+                elif op == "stop_head_camera_video":
+                    reply = runtime.stop_video(payload)
+                elif op == "head_camera_video_status":
+                    reply = runtime.video_status(payload)
+                elif op == "fetch_head_camera_video":
+                    reply = runtime.fetch_video(payload)
                 else:
                     raise ValueError(f"unsupported op: {op}")
             except Exception as exc:

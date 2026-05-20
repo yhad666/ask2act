@@ -24,6 +24,7 @@ from .offline_experiments import (
     OfflineExperimentStore,
     compact_session_view,
     data_url_to_bytes as offline_data_url_to_bytes,
+    slug,
 )
 from .phrase_extractor import InstructionPhraseExtractor
 from .schemas import (
@@ -1506,6 +1507,51 @@ def _online_trial_view(experiment_id: str, trial_id: str) -> Dict[str, Any]:
     }
 
 
+def _online_video_dir(experiment_id: str) -> Path:
+    base = ONLINE_EXPERIMENT_ROOT / slug(experiment_id, "experiment") / "videos"
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+def _public_online_video(experiment_id: str, record: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(record)
+    filename = Path(str(out.get("filename") or "")).name
+    if filename:
+        out["video_url"] = f"/api/online/experiments/{experiment_id}/videos/{filename}"
+    return out
+
+
+def _save_online_video_response(experiment_id: str, response: Dict[str, Any]) -> Dict[str, Any]:
+    video_dir = _online_video_dir(experiment_id)
+    filename = Path(str(response.get("filename") or f"head_camera_{int(time.time())}.mp4")).name
+    if not filename.lower().endswith(".mp4"):
+        filename = f"{Path(filename).stem}.mp4"
+    video_bytes: bytes | None = None
+    if isinstance(response.get("video_bytes"), (bytes, bytearray)):
+        video_bytes = bytes(response["video_bytes"])
+    elif response.get("video_base64"):
+        video_bytes = base64.b64decode(str(response["video_base64"]))
+    if not video_bytes:
+        raise RuntimeError("Stretch video stop reply did not include transferred video bytes")
+    video_path = video_dir / filename
+    video_path.write_bytes(video_bytes)
+    record = {
+        "video_id": response.get("video_id") or Path(filename).stem,
+        "filename": filename,
+        "mime_type": response.get("mime_type") or "video/mp4",
+        "size_bytes": video_path.stat().st_size,
+        "video_path": str(video_path),
+        "metadata": response.get("metadata") or {},
+        "transport_mode": response.get("mode") or stretch_transport.mode,
+        "saved_at_epoch_s": time.time(),
+        "note": "Saved on A6000; robot-side temporary video is deleted after transfer.",
+    }
+    metadata_path = video_dir / f"{Path(filename).stem}.json"
+    metadata_path.write_text(json.dumps(record, indent=2, default=str), encoding="utf-8")
+    online_store.append_event(experiment_id, {"event": "online_head_camera_video_saved", "video": record})
+    return _public_online_video(experiment_id, record)
+
+
 def _mark_online_vlm_failure(
     experiment_id: str,
     trial: Dict[str, Any],
@@ -2043,6 +2089,59 @@ def get_online_experiment(experiment_id: str):
             "metrics": _online_metrics(experiment_id),
             "root": str(ONLINE_EXPERIMENT_ROOT),
         }
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/online/experiments/{experiment_id}/video/start")
+def start_online_head_camera_video(experiment_id: str):
+    try:
+        online_store.read_experiment(experiment_id)
+        video_id = f"{slug(experiment_id, 'online')}_head_camera_{time.strftime('%Y%m%d_%H%M%S')}"
+        status = stretch_transport.start_head_camera_video(experiment_id=experiment_id, video_id=video_id)
+        online_store.append_event(experiment_id, {"event": "online_head_camera_video_started", "video": status})
+        return {"ok": True, "video": status, "metrics": _online_metrics(experiment_id)}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/online/experiments/{experiment_id}/video/stop")
+def stop_online_head_camera_video(experiment_id: str):
+    try:
+        online_store.read_experiment(experiment_id)
+        response = stretch_transport.stop_head_camera_video(experiment_id=experiment_id)
+        if not response.get("ok"):
+            raise RuntimeError(response.get("error") or "Stretch head-camera video stop failed")
+        video = _save_online_video_response(experiment_id, response)
+        return {"ok": True, "video": video, "metrics": _online_metrics(experiment_id)}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/api/online/experiments/{experiment_id}/video/status")
+def online_head_camera_video_status(experiment_id: str):
+    try:
+        online_store.read_experiment(experiment_id)
+        return {"ok": True, "video": stretch_transport.head_camera_video_status()}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/api/online/experiments/{experiment_id}/videos/{filename}")
+def get_online_head_camera_video(experiment_id: str, filename: str):
+    try:
+        safe_name = Path(filename).name
+        if safe_name != filename or not safe_name:
+            raise ValueError("invalid video filename")
+        video_path = _online_video_dir(experiment_id) / safe_name
+        if not video_path.exists():
+            raise FileNotFoundError(safe_name)
+        return FileResponse(
+            video_path,
+            media_type="video/mp4",
+            filename=safe_name,
+            headers={"Cache-Control": "no-store"},
+        )
     except Exception as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

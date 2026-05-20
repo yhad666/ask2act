@@ -94,6 +94,16 @@
           <textarea id="experimentNotesInput" placeholder="20 scenes x 3 prompts x 4 methods."></textarea>
           <div class="actions"><button class="primary" id="saveExperimentBtn">Create / Update</button></div>
           <div class="meta" id="experimentRootText" style="margin-top:10px;">No experiment loaded.</div>
+          <div style="margin-top:16px; border-top:1px solid #e1ebe7; padding-top:12px;">
+            <h2 style="font-size:17px; margin-bottom:8px;">Head Camera Video</h2>
+            <div class="actions">
+              <button class="secondary" id="startVideoBtn">Start Video</button>
+              <button class="ghost" id="videoStatusBtn">Status</button>
+              <button class="primary" id="stopVideoBtn">Stop & Transfer</button>
+            </div>
+            <div class="meta" id="videoStatusText" style="margin-top:8px;">Video is idle.</div>
+            <div class="meta" id="videoDownloadText" style="margin-top:6px;"></div>
+          </div>
         </section>
 
         <section class="panel">
@@ -211,7 +221,7 @@
 
   <script>
     (function () {
-      var state = { experiment: null, trial: null, busy: false, answerPending: false, answerRequestId: 0, awaitingAnswer: false };
+      var state = { experiment: null, trial: null, busy: false, answerPending: false, answerRequestId: 0, awaitingAnswer: false, video: null };
       var ANSWER_PROGRESS_TIMEOUT_MS = 600000;
       function $(id) { return document.getElementById(id); }
       function text(id, value) { var node = $(id); if (node) node.textContent = value; }
@@ -286,6 +296,18 @@
       }
       function activeTrialId() {
         return state.trial && state.trial.trial_id;
+      }
+      function renderVideo(video) {
+        state.video = video || state.video;
+        if (!video) return;
+        var dims = video.video_width && video.video_height ? (video.video_width + "x" + video.video_height) : "";
+        var frames = video.frame_count !== undefined && video.frame_count !== null ? (" frames=" + video.frame_count) : "";
+        var status = video.status || (video.running ? "recording" : "idle");
+        text("videoStatusText", status + (dims ? " - " + dims : "") + frames + (video.fps ? " fps=" + video.fps : ""));
+        if (video.video_url) {
+          $("videoDownloadText").innerHTML = '<a href="' + video.video_url + '" target="_blank" rel="noopener">Download ' +
+            (video.filename || "head camera video") + '</a> <span class="meta">(' + fmt((video.size_bytes || 0) / 1048576, 1) + ' MB)</span>';
+        }
       }
       function renderMetrics(metrics) {
         var overall = metrics && metrics.overall ? metrics.overall : {};
@@ -638,6 +660,46 @@
           setBanner("info", "Trial aborted.");
         }, function (err) { setBanner("err", err); }, 120000);
       }
+      function startVideo() {
+        var expId = activeExperimentId();
+        if (!expId) { setBanner("err", "Load or create an experiment first."); return; }
+        setDisabled("startVideoBtn", true);
+        setBusy("Starting Stretch head-camera video...");
+        postJson("/api/online/experiments/" + encodeURIComponent(expId) + "/video/start", {}, function (data) {
+          setDisabled("startVideoBtn", false);
+          clearBusy();
+          renderVideo(data.video || {});
+          setBanner("ok", "Head-camera video started. Trial observations will use the same high-resolution camera stream.");
+        }, function (err) {
+          setDisabled("startVideoBtn", false);
+          clearBusy();
+          setBanner("err", err);
+        }, 180000);
+      }
+      function stopVideo() {
+        var expId = activeExperimentId();
+        if (!expId) { setBanner("err", "Load or create an experiment first."); return; }
+        setDisabled("stopVideoBtn", true);
+        setBusy("Stopping video and transferring it to A6000...");
+        postJson("/api/online/experiments/" + encodeURIComponent(expId) + "/video/stop", {}, function (data) {
+          setDisabled("stopVideoBtn", false);
+          clearBusy();
+          renderVideo(data.video || {});
+          setBanner("ok", "Head-camera video transferred to the online experiment folder.");
+        }, function (err) {
+          setDisabled("stopVideoBtn", false);
+          clearBusy();
+          setBanner("err", err);
+        }, 600000);
+      }
+      function refreshVideoStatus() {
+        var expId = activeExperimentId();
+        if (!expId) { setBanner("err", "Load or create an experiment first."); return; }
+        getJson("/api/online/experiments/" + encodeURIComponent(expId) + "/video/status", function (data) {
+          renderVideo(data.video || {});
+          setBanner("info", "Video status refreshed.");
+        }, function (err) { setBanner("err", err); }, 120000);
+      }
       function bind() {
         $("refreshExperimentsBtn").onclick = function () { refreshExperimentList(true); };
         $("loadExperimentBtn").onclick = function () { loadExperiment(); };
@@ -654,6 +716,9 @@
         $("confirmSuccessBtn").onclick = function () { confirmTrial("success"); };
         $("confirmMissBtn").onclick = function () { confirmTrial("miss"); };
         $("confirmWrongBtn").onclick = function () { confirmTrial("wrong"); };
+        $("startVideoBtn").onclick = startVideo;
+        $("stopVideoBtn").onclick = stopVideo;
+        $("videoStatusBtn").onclick = refreshVideoStatus;
         window.ask2actOnline = { loadExperiment: loadExperiment, loadTrial: loadTrial, startTrial: startTrial };
         refreshExperimentList(false);
       }

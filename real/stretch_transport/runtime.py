@@ -12,6 +12,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict
 
+from .head_camera_video import HeadCameraVideoManager
+
 
 class StretchRobotRuntime:
     def __init__(
@@ -43,6 +45,7 @@ class StretchRobotRuntime:
             else Path(__file__).resolve().parent / "artifacts"
         )
         self.artifact_root.mkdir(parents=True, exist_ok=True)
+        self.video_manager = HeadCameraVideoManager(artifact_root=self.artifact_root)
 
     def _default_sample_image_path(self) -> Path:
         return (
@@ -170,6 +173,14 @@ class StretchRobotRuntime:
         return normalized
 
     def observe(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
+        if (
+            self.video_manager.is_running()
+            and os.getenv("ASK2ACT_STRETCH_OBSERVE_FROM_VIDEO_STREAM", "1").strip().lower()
+            in {"1", "true", "yes", "on"}
+        ):
+            reply = self.video_manager.capture_observation(request_payload)
+            return self._normalize_observe_reply(reply, request_payload)
+
         if self.observe_mode == "file":
             image_path = self.observation_image_path or str(self._default_sample_image_path())
             reply = {
@@ -191,6 +202,18 @@ class StretchRobotRuntime:
             return self._normalize_observe_reply(reply, request_payload)
 
         raise RuntimeError(f"Unsupported observe mode: {self.observe_mode}")
+
+    def start_video(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.video_manager.start(request_payload)
+
+    def stop_video(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.video_manager.stop(request_payload)
+
+    def video_status(self, request_payload: Dict[str, Any] | None = None) -> Dict[str, Any]:
+        return self.video_manager.status(include_internal=False)
+
+    def fetch_video(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
+        return self.video_manager.fetch(request_payload)
 
     def execute(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
         if self.execute_mode == "ack":

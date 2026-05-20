@@ -247,6 +247,34 @@ It uses:
 - `ASK2ACT_STRETCH_CAMERA_HEIGHT`
 - `ASK2ACT_STRETCH_CAMERA_FPS`
 
+### Head-camera video during online experiments
+
+The robot server also supports experiment video through the same D435i stream:
+
+- `start_head_camera_video` opens one high-resolution RGB-D RealSense pipeline.
+- while video is active, `observe` reuses that same stream for the trial RGB-D
+  frame instead of opening a second camera pipeline
+- the experiment observation resolution remains controlled by
+  `ASK2ACT_STRETCH_CAMERA_WIDTH` / `ASK2ACT_STRETCH_CAMERA_HEIGHT`
+- video resolution defaults to the same size, currently `1280x720`, and is
+  configured separately with `ASK2ACT_STRETCH_VIDEO_WIDTH` and
+  `ASK2ACT_STRETCH_VIDEO_HEIGHT`
+- `stop_head_camera_video` transfers the MP4 back to A6000; the temporary
+  robot-side MP4 is deleted after transfer
+
+For the online experiment, keep:
+
+```bash
+ASK2ACT_STRETCH_OBSERVE_FROM_VIDEO_STREAM=1
+ASK2ACT_STRETCH_VIDEO_WIDTH=1280
+ASK2ACT_STRETCH_VIDEO_HEIGHT=720
+ASK2ACT_STRETCH_VIDEO_FPS=10
+ASK2ACT_STRETCH_VIDEO_INIT_HEAD_POSE_ON_START=1
+```
+
+If video startup fails because `ffmpeg` or OpenCV is missing, leave video off
+and run the experiment normally; the non-video observation path is unchanged.
+
 ### Execution
 
 `scripts/dispatch_grasp.py`:

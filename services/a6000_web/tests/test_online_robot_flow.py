@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import time
 
 from fastapi.testclient import TestClient
@@ -124,3 +125,58 @@ def test_online_execution_failure_is_not_marked_executed(tmp_path, monkeypatch):
     assert trial["outcome"] == "execution_failed"
     assert trial["grasp_execution_ok"] is False
     assert trial["grasp_attempted"] is True
+
+
+def test_online_head_camera_video_is_saved_on_a6000(tmp_path, monkeypatch):
+    store = OfflineExperimentStore(tmp_path)
+    monkeypatch.setattr(web_server, "online_store", store)
+    monkeypatch.setattr(web_server, "ONLINE_EXPERIMENT_ROOT", tmp_path)
+    store.create_experiment(experiment_id="online-video", name="online video", experiment_type="online_pilot")
+
+    class FakeStretchTransport:
+        mode = "zmq"
+
+        def start_head_camera_video(self, *, experiment_id, video_id=None):
+            return {
+                "ok": True,
+                "status": "recording",
+                "video_id": video_id,
+                "video_width": 1280,
+                "video_height": 720,
+                "fps": 10,
+            }
+
+        def stop_head_camera_video(self, *, experiment_id):
+            payload = b"fake-mp4-bytes"
+            return {
+                "ok": True,
+                "status": "stopped",
+                "video_id": "fake_video",
+                "filename": "fake_video.mp4",
+                "mime_type": "video/mp4",
+                "size_bytes": len(payload),
+                "video_base64": base64.b64encode(payload).decode("ascii"),
+                "metadata": {"frame_count": 3},
+                "mode": "zmq",
+            }
+
+        def head_camera_video_status(self):
+            return {"ok": True, "running": False, "status": "idle"}
+
+    monkeypatch.setattr(web_server, "stretch_transport", FakeStretchTransport())
+    client = TestClient(web_server.app)
+
+    start = client.post("/api/online/experiments/online-video/video/start", json={})
+    assert start.status_code == 200
+    assert start.json()["video"]["video_width"] == 1280
+
+    stop = client.post("/api/online/experiments/online-video/video/stop", json={})
+    assert stop.status_code == 200
+    video = stop.json()["video"]
+    assert video["filename"] == "fake_video.mp4"
+    video_path = tmp_path / "online-video" / "videos" / "fake_video.mp4"
+    assert video_path.read_bytes() == b"fake-mp4-bytes"
+
+    download = client.get(video["video_url"])
+    assert download.status_code == 200
+    assert download.content == b"fake-mp4-bytes"
