@@ -143,6 +143,62 @@
             </div>
             <div class="meta" id="headPoseStatusText" style="margin-top:8px;">Pose changes persist for future observations.</div>
           </div>
+          <div style="margin-top:16px; border-top:1px solid #e1ebe7; padding-top:12px;">
+            <h2 style="font-size:17px; margin-bottom:8px;">Grasp Tuning</h2>
+            <div class="trial-fields">
+              <div>
+                <label>Rubber X m</label>
+                <input id="rubberCorrXInput" type="number" step="0.005" value="0.000" />
+              </div>
+              <div>
+                <label>Rubber Y m</label>
+                <input id="rubberCorrYInput" type="number" step="0.005" value="-0.045" />
+              </div>
+              <div>
+                <label>Rubber Z m</label>
+                <input id="rubberCorrZInput" type="number" step="0.005" value="0.000" />
+              </div>
+            </div>
+            <div class="trial-fields">
+              <div>
+                <label>Approx X m</label>
+                <input id="approxCorrXInput" type="number" step="0.005" value="0.045" />
+              </div>
+              <div>
+                <label>Approx Y m</label>
+                <input id="approxCorrYInput" type="number" step="0.005" value="0.000" />
+              </div>
+              <div>
+                <label>Planner Open Cmd</label>
+                <input id="plannerOpenCmdInput" type="number" step="0.01" value="0.56" />
+              </div>
+            </div>
+            <div class="trial-fields">
+              <div>
+                <label>Stretch Open Cmd</label>
+                <input id="stretchOpenCmdInput" type="number" step="1" value="100" />
+              </div>
+              <div>
+                <label>Release Cmd</label>
+                <input id="stretchReleaseCmdInput" type="number" step="1" value="100" />
+              </div>
+              <div>
+                <label>Quick Y Preset</label>
+                <select id="rubberYPresetInput">
+                  <option value="-0.045">current -0.045</option>
+                  <option value="-0.030">less -0.030</option>
+                  <option value="-0.020">less -0.020</option>
+                  <option value="0.000">none 0.000</option>
+                </select>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="secondary" id="loadGraspTuningBtn">Load Current</button>
+              <button class="ghost" id="applyRubberYPresetBtn">Apply Y Preset</button>
+              <button class="primary" id="saveGraspTuningBtn">Save Runtime Tuning</button>
+            </div>
+            <div class="meta" id="graspTuningStatusText" style="margin-top:8px;">Planner open and Stretch open should stay at full-open defaults unless testing.</div>
+          </div>
         </section>
 
         <section class="panel">
@@ -921,6 +977,55 @@
         $("headPosePresetInput").value = pan + "," + tilt;
         setBanner("ok", "Saved head pose preset: " + name);
       }
+      function renderGraspTuning(tuning) {
+        tuning = tuning || {};
+        setValue("rubberCorrXInput", fmt(tuning.rubber_local_x_correction_m, 3));
+        setValue("rubberCorrYInput", fmt(tuning.rubber_local_y_correction_m, 3));
+        setValue("rubberCorrZInput", fmt(tuning.rubber_local_z_correction_m, 3));
+        setValue("approxCorrXInput", fmt(tuning.approx_topdown_x_correction_m, 3));
+        setValue("approxCorrYInput", fmt(tuning.approx_topdown_y_correction_m, 3));
+        setValue("plannerOpenCmdInput", fmt(tuning.gripper_open_cmd_override, 2));
+        setValue("stretchOpenCmdInput", fmt(tuning.stretch_gripper_real_open_cmd, 0));
+        setValue("stretchReleaseCmdInput", fmt(tuning.stretch_release_gripper_cmd, 0));
+        text(
+          "graspTuningStatusText",
+          "rubber=(" + fmt(tuning.rubber_local_x_correction_m, 3) + ", " +
+          fmt(tuning.rubber_local_y_correction_m, 3) + ", " +
+          fmt(tuning.rubber_local_z_correction_m, 3) + ") planner_open=" +
+          fmt(tuning.gripper_open_cmd_override, 2) + " stretch_open=" +
+          fmt(tuning.stretch_gripper_real_open_cmd, 0)
+        );
+      }
+      function loadGraspTuning(showBanner) {
+        getJson("/api/online/grasp_tuning", function (data) {
+          renderGraspTuning((data || {}).tuning || {});
+          if (showBanner) setBanner("info", "Grasp tuning loaded.");
+        }, function (err) { setBanner("err", err); }, 120000);
+      }
+      function applyRubberYPreset() {
+        setValue("rubberCorrYInput", Number(value("rubberYPresetInput") || -0.045).toFixed(3));
+      }
+      function saveGraspTuning() {
+        var payload = {
+          rubber_local_x_correction_m: numericInput("rubberCorrXInput", 0.0),
+          rubber_local_y_correction_m: numericInput("rubberCorrYInput", -0.045),
+          rubber_local_z_correction_m: numericInput("rubberCorrZInput", 0.0),
+          approx_topdown_x_correction_m: numericInput("approxCorrXInput", 0.045),
+          approx_topdown_y_correction_m: numericInput("approxCorrYInput", 0.0),
+          gripper_open_cmd_override: numericInput("plannerOpenCmdInput", 0.56),
+          stretch_gripper_real_open_cmd: numericInput("stretchOpenCmdInput", 100.0),
+          stretch_release_gripper_cmd: numericInput("stretchReleaseCmdInput", 100.0)
+        };
+        setBusy("Saving grasp tuning for subsequent plans...");
+        postJson("/api/online/grasp_tuning", payload, function (data) {
+          clearBusy();
+          renderGraspTuning((data || {}).tuning || payload);
+          setBanner("ok", "Grasp tuning saved for subsequent trials.");
+        }, function (err) {
+          clearBusy();
+          setBanner("err", err);
+        }, 120000);
+      }
       function bind() {
         $("refreshExperimentsBtn").onclick = function () { refreshExperimentList(true); };
         $("loadExperimentBtn").onclick = function () { loadExperiment(); };
@@ -948,8 +1053,12 @@
         $("nudgeHeadLeftBtn").onclick = function () { nudgeHead(-0.04, 0); };
         $("nudgeHeadRightBtn").onclick = function () { nudgeHead(0.04, 0); };
         $("setHeadPoseBtn").onclick = setHeadPose;
+        $("loadGraspTuningBtn").onclick = function () { loadGraspTuning(true); };
+        $("applyRubberYPresetBtn").onclick = applyRubberYPreset;
+        $("saveGraspTuningBtn").onclick = saveGraspTuning;
         window.ask2actOnline = { loadExperiment: loadExperiment, loadTrial: loadTrial, startTrial: startTrial };
         renderHeadPresets();
+        loadGraspTuning(false);
         refreshExperimentList(false);
       }
       if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);

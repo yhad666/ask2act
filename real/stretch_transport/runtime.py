@@ -251,6 +251,34 @@ class StretchRobotRuntime:
         result["video_running"] = self.video_manager.is_running()
         return result
 
+    def set_runtime_config(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
+        allowed_env = {
+            "ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD",
+            "ASK2ACT_STRETCH_GRIPPER_REAL_CLOSE_CMD",
+            "ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD",
+            "ASK2ACT_STRETCH_GRIPPER_PLANNER_OPEN_THRESHOLD",
+            "ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_PCT",
+            "ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_POS",
+            "ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_PLANNER_POS",
+        }
+        updates = request_payload.get("env") or {}
+        if not isinstance(updates, dict):
+            raise RuntimeError("runtime config env payload must be an object")
+        applied: Dict[str, str] = {}
+        rejected: Dict[str, str] = {}
+        for key, value in updates.items():
+            key_str = str(key)
+            if key_str not in allowed_env:
+                rejected[key_str] = "not_allowed"
+                continue
+            os.environ[key_str] = str(value)
+            applied[key_str] = str(value)
+        return {
+            "ok": True,
+            "applied_env": applied,
+            "rejected_env": rejected,
+        }
+
     def execute(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
         if self.execute_mode == "ack":
             return {

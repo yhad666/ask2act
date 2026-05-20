@@ -39,6 +39,7 @@ from .schemas import (
     OfflineTrialStartRequest,
     OfflineTrialStepRequest,
     OnlineExperimentRequest,
+    OnlineGraspTuningRequest,
     OnlineHeadPoseRequest,
     OnlineSceneRequest,
     OnlineTrialConfirmRequest,
@@ -2192,6 +2193,115 @@ def set_online_head_camera_pose(request: OnlineHeadPoseRequest):
             persist=request.persist,
         )
         return {"ok": True, "head_pose": result}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+def _request_dump(request: Any, *, exclude_unset: bool = False) -> Dict[str, Any]:
+    if hasattr(request, "model_dump"):
+        return request.model_dump(exclude_unset=exclude_unset)
+    return request.dict(exclude_unset=exclude_unset)
+
+
+def _current_motion_planner_tuning() -> Dict[str, Any]:
+    try:
+        grasp_runtime._ensure_grasp_import_path()
+        from ask2act_grasp.planning import motion_planner as mp
+
+        return {
+            "rubber_local_x_correction_m": float(mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M),
+            "rubber_local_y_correction_m": float(mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M),
+            "rubber_local_z_correction_m": float(mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M),
+            "approx_topdown_x_correction_m": float(mp.APPROX_GEOMETRIC_TOP_DOWN_X_CORRECTION_M),
+            "approx_topdown_y_correction_m": float(mp.APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M),
+            "gripper_open_cmd_override": (
+                None
+                if mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE is None
+                else float(mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE)
+            ),
+            "grasp_z_mode": str(mp.GEOMETRIC_TOP_DOWN_GRASP_Z_MODE),
+        }
+    except Exception:
+        return {
+            "rubber_local_x_correction_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M", "0.0")),
+            "rubber_local_y_correction_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M", "0.0")),
+            "rubber_local_z_correction_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M", "0.0")),
+            "approx_topdown_x_correction_m": float(os.getenv("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_X_CORRECTION_M", "0.045")),
+            "approx_topdown_y_correction_m": float(os.getenv("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M", "-0.065")),
+            "gripper_open_cmd_override": (
+                float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE"))
+                if os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE") is not None
+                else None
+            ),
+            "grasp_z_mode": os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_Z_MODE", "center"),
+        }
+
+
+def _apply_motion_planner_tuning(updates: Dict[str, Any]) -> Dict[str, Any]:
+    grasp_runtime._ensure_grasp_import_path()
+    from ask2act_grasp.planning import motion_planner as mp
+
+    mapping = {
+        "rubber_local_x_correction_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M", "GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M"),
+        "rubber_local_y_correction_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M", "GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M"),
+        "rubber_local_z_correction_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M", "GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M"),
+        "approx_topdown_x_correction_m": ("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_X_CORRECTION_M", "APPROX_GEOMETRIC_TOP_DOWN_X_CORRECTION_M"),
+        "approx_topdown_y_correction_m": ("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M", "APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M"),
+    }
+    applied: Dict[str, Any] = {}
+    for field, (env_name, attr_name) in mapping.items():
+        if field not in updates or updates[field] is None:
+            continue
+        value = float(updates[field])
+        os.environ[env_name] = str(value)
+        setattr(mp, attr_name, value)
+        applied[field] = value
+    if "gripper_open_cmd_override" in updates and updates["gripper_open_cmd_override"] is not None:
+        value = float(updates["gripper_open_cmd_override"])
+        os.environ["ASK2ACT_GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE"] = str(value)
+        mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE = str(value)
+        applied["gripper_open_cmd_override"] = value
+    return applied
+
+
+@app.get("/api/online/grasp_tuning")
+def get_online_grasp_tuning():
+    stretch_env = {
+        "stretch_gripper_real_open_cmd": os.getenv("ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD", "100.0"),
+        "stretch_release_gripper_cmd": os.getenv(
+            "ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD",
+            os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "100.0"),
+        ),
+    }
+    return {"ok": True, "tuning": {**_current_motion_planner_tuning(), **{k: float(v) for k, v in stretch_env.items()}}}
+
+
+@app.post("/api/online/grasp_tuning")
+def set_online_grasp_tuning(request: OnlineGraspTuningRequest):
+    try:
+        updates = _request_dump(request, exclude_unset=True)
+        applied = _apply_motion_planner_tuning(updates)
+        stretch_env: Dict[str, Any] = {}
+        if updates.get("stretch_gripper_real_open_cmd") is not None:
+            value = float(updates["stretch_gripper_real_open_cmd"])
+            os.environ["ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD"] = str(value)
+            stretch_env["ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD"] = value
+        if updates.get("stretch_release_gripper_cmd") is not None:
+            value = float(updates["stretch_release_gripper_cmd"])
+            os.environ["ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD"] = str(value)
+            stretch_env["ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD"] = value
+        stretch_result = None
+        if stretch_env:
+            stretch_result = stretch_transport.set_runtime_config(env=stretch_env)
+        return {
+            "ok": True,
+            "applied": applied,
+            "stretch_result": stretch_result,
+            "tuning": {**_current_motion_planner_tuning(), **{
+                "stretch_gripper_real_open_cmd": float(os.getenv("ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD", "100.0")),
+                "stretch_release_gripper_cmd": float(os.getenv("ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD", os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "100.0"))),
+            }},
+        }
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 

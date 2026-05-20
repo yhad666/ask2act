@@ -333,6 +333,50 @@ def test_camera_extrinsics_follow_head_angle():
     assert left["camera_to_world"] != default["camera_to_world"]
 
 
+def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
+    web_server.grasp_runtime._ensure_grasp_import_path()
+    from ask2act_grasp.planning import motion_planner as mp
+
+    original_rubber_y = mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M
+    original_open = mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE
+    calls = []
+
+    class FakeStretchTransport:
+        def set_runtime_config(self, *, env):
+            calls.append(env)
+            return {"ok": True, "applied_env": {str(key): str(value) for key, value in env.items()}}
+
+    monkeypatch.setattr(web_server, "stretch_transport", FakeStretchTransport())
+    client = TestClient(web_server.app)
+
+    try:
+        response = client.post(
+            "/api/online/grasp_tuning",
+            json={
+                "rubber_local_y_correction_m": -0.03,
+                "gripper_open_cmd_override": 0.58,
+                "stretch_gripper_real_open_cmd": 100.0,
+                "stretch_release_gripper_cmd": 100.0,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["tuning"]["rubber_local_y_correction_m"] == -0.03
+        assert data["tuning"]["gripper_open_cmd_override"] == 0.58
+        assert mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M == -0.03
+        assert mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE == "0.58"
+        assert calls == [
+            {
+                "ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD": 100.0,
+                "ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD": 100.0,
+            }
+        ]
+    finally:
+        mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M = original_rubber_y
+        mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE = original_open
+
+
 def test_oversized_base_reach_refuses_before_robot_motion(monkeypatch):
     session = _session()
     session.observation_raw_response = {"depth_aligned_to_color": True}

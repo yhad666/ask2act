@@ -240,6 +240,24 @@ class StretchTransportClient:
         reply["mode"] = "zmq"
         return reply
 
+    def set_runtime_config(self, *, env: Dict[str, Any]) -> Dict[str, Any]:
+        clean_env = {str(key): value for key, value in (env or {}).items() if value is not None}
+        if self.mode == "mock":
+            return {"ok": True, "mode": "mock", "env": clean_env}
+        if self.mode != "zmq":
+            raise RuntimeError(f"Unsupported stretch transport mode: {self.mode}")
+        reply = self._zmq_roundtrip(
+            {
+                "op": "set_runtime_config",
+                "env": clean_env,
+            },
+            timeout_ms=self.timeout_ms,
+        )
+        if reply.get("ok") is False:
+            raise RuntimeError(reply.get("error") or "Stretch runtime config update failed")
+        reply["mode"] = "zmq"
+        return reply
+
     def dispatch_grasp(
         self,
         *,

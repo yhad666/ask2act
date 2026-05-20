@@ -217,6 +217,17 @@ class OnlineHeadPoseRequest(BaseModel):
     persist: bool = True
 
 
+class OnlineGraspTuningRequest(BaseModel):
+    rubber_local_x_correction_m: Optional[float] = None
+    rubber_local_y_correction_m: Optional[float] = None
+    rubber_local_z_correction_m: Optional[float] = None
+    approx_topdown_x_correction_m: Optional[float] = None
+    approx_topdown_y_correction_m: Optional[float] = None
+    gripper_open_cmd_override: Optional[float] = None
+    stretch_gripper_real_open_cmd: Optional[float] = None
+    stretch_release_gripper_cmd: Optional[float] = None
+
+
 @dataclass
 class SessionState:
     session_id: str
