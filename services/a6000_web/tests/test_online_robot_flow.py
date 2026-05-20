@@ -149,6 +149,24 @@ def test_online_wrong_target_is_skipped_without_robot_execution(tmp_path, monkey
     assert called["execute"] is False
 
 
+def test_online_operator_can_mark_wrong_target_without_robot_execution(tmp_path, monkeypatch):
+    client, experiment_id, trial_id = _install_online_trial(tmp_path, monkeypatch)
+
+    response = client.post(
+        f"/api/online/experiments/{experiment_id}/trials/{trial_id}/finish",
+        json={"outcome": "skipped_wrong_target", "note": "operator says target is wrong"},
+    )
+
+    assert response.status_code == 200
+    trial = web_server.online_store.read_trial(experiment_id, trial_id)
+    assert trial["status"] == "finished"
+    assert trial["outcome"] == "skipped_wrong_target"
+    assert trial["target_selection_outcome"] == "wrong"
+    assert trial["target_selection_correct"] is False
+    assert trial["wrong_target_grasp_prevented"] is True
+    assert trial["grasp_attempted"] is False
+
+
 def test_online_execution_failure_is_not_marked_executed(tmp_path, monkeypatch):
     client, experiment_id, trial_id = _install_online_trial(tmp_path, monkeypatch)
 

@@ -2602,6 +2602,16 @@ def finish_online_trial(experiment_id: str, trial_id: str, request: OnlineTrialF
         if request.outcome == "skipped_wrong_target":
             trial["wrong_target_grasp_prevented"] = True
             trial["grasp_attempted"] = False
+            trial["target_selection_outcome"] = "wrong"
+            trial["target_selection_correct"] = False
+            trial["physical_grasp_success"] = False
+            trial["correct_object_grasp_success"] = False
+            trial["wrong_object_grasp"] = False
+            trial.setdefault("resolution_latency_s", trial.get("latency_s"))
+        elif request.outcome in {"correct", "wrong", "unresolved"}:
+            trial["target_selection_outcome"] = request.outcome
+            trial["target_selection_correct"] = request.outcome == "correct"
+            trial.setdefault("resolution_latency_s", trial.get("latency_s"))
         online_store.write_trial(experiment_id, trial)
         online_store.append_event(experiment_id, {"event": "online_trial_finished", "trial_id": trial_id, "outcome": request.outcome})
         return _online_trial_view(experiment_id, trial_id)

@@ -43,6 +43,10 @@
     .item { min-width: 0; border: 1px solid #e1ebe7; border-radius: 6px; padding: 9px 10px; background: #fbfdfc; overflow-wrap: anywhere; }
     .question { font-size: 23px; line-height: 1.3; margin: 8px 0; }
     .trial-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .target-gate { border: 1px solid #dbe8e3; background: #fbfdfc; border-radius: 6px; padding: 12px; margin-top: 16px; }
+    .target-gate strong { color: #123f3b; }
+    .stage-title { font-size: 12px; color: #607a74; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+    .target-line { font-size: 18px; line-height: 1.35; margin-bottom: 4px; }
     @media (max-width: 1320px) { .grid { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); } .grid > .stack:last-child { grid-column: 1 / -1; } .kpis { grid-template-columns: repeat(3,1fr); } }
     @media (max-width: 900px) { .grid, .trial-fields { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); } }
   </style>
@@ -156,8 +160,8 @@
               </select>
             </div>
             <div>
-              <label>Expected Candidate</label>
-              <input id="expectedDisplayIdInput" placeholder="click Set Expected after observe" />
+              <label>True Target ID</label>
+              <input id="expectedDisplayIdInput" placeholder="click Set True Target after observe" />
             </div>
           </div>
           <label>Trial Notes</label>
@@ -178,13 +182,21 @@
             </div>
           </div>
 
-          <div style="margin-top:16px;">
-            <div class="meta">Robot execution</div>
+          <div class="target-gate">
+            <div class="stage-title">Target Gate</div>
+            <div class="target-line" id="targetGateText">Resolve a target first.</div>
+            <div class="meta" id="targetGateMeta"></div>
             <div class="actions">
-              <button class="secondary" id="dryRunBtn" disabled>Plan Dry Run</button>
-              <button class="primary" id="executeBtn" disabled>Execute If Correct</button>
-              <button class="ghost" id="abortBtn" disabled>Abort</button>
+              <button class="primary" id="executeBtn" disabled>Target Correct - Grasp</button>
+              <button class="secondary" id="dryRunBtn" disabled>Target Correct - Dry Run</button>
+              <button class="danger" id="targetWrongSkipBtn" disabled>Target Wrong - Skip No Grasp</button>
+              <button class="ghost" id="abortBtn" disabled>Abort Trial</button>
             </div>
+          </div>
+
+          <div class="target-gate">
+            <div class="stage-title">Grasp Evaluation</div>
+            <div class="meta" id="graspEvalText">Evaluate only after a physical grasp was attempted.</div>
             <div class="actions">
               <button class="primary" id="confirmSuccessBtn" disabled>Confirm Correct Grasp</button>
               <button class="secondary" id="confirmMissBtn" disabled>Confirm Grasp Failed</button>
@@ -221,7 +233,7 @@
 
   <script>
     (function () {
-      var state = { experiment: null, trial: null, busy: false, answerPending: false, answerRequestId: 0, awaitingAnswer: false, video: null };
+      var state = { experiment: null, trial: null, session: null, busy: false, answerPending: false, answerRequestId: 0, awaitingAnswer: false, video: null };
       var ANSWER_PROGRESS_TIMEOUT_MS = 600000;
       function $(id) { return document.getElementById(id); }
       function text(id, value) { var node = $(id); if (node) node.textContent = value; }
@@ -290,6 +302,20 @@
         if (cand.display_id !== undefined && cand.display_id !== null) return String(cand.display_id);
         match = String(cand.candidate_id || "").match(/(\d+)$/);
         return match ? String(Number(match[1])) : String(cand.candidate_id || "");
+      }
+      function resolvedTarget() {
+        return state.session && state.session.resolved_target ? state.session.resolved_target : null;
+      }
+      function resolvedDisplayId() {
+        var display = candidateDisplay(resolvedTarget());
+        var num = Number(display);
+        return isFinite(num) ? num : null;
+      }
+      function setExpectedToResolvedTarget() {
+        var display = resolvedDisplayId();
+        if (display === null) return null;
+        setValue("expectedDisplayIdInput", String(display));
+        return display;
       }
       function activeExperimentId() {
         return (state.experiment && state.experiment.experiment_id) || value("experimentIdInput").trim();
@@ -433,7 +459,7 @@
           actions.style.marginTop = "8px";
           button.type = "button";
           button.className = "ghost";
-          button.textContent = "Set Expected";
+          button.textContent = "Set True Target";
           button.onclick = function (event) {
             event.stopPropagation();
             setExpectedCandidate(cand);
@@ -451,17 +477,48 @@
           return;
         }
         setValue("expectedDisplayIdInput", display);
-        setBanner("info", "Expected candidate set to overlay #" + display + ".");
+        setBanner("info", "True target set to overlay #" + display + ".");
+      }
+      function renderTargetGate(trial, session) {
+        var target = session && session.resolved_target;
+        var expected = expectedDisplayId();
+        if (!target) {
+          text("targetGateText", "No resolved target yet.");
+          text("targetGateMeta", trial && trial.status ? ("status=" + trial.status) : "");
+          return;
+        }
+        text("targetGateText", "System selected #" + candidateDisplay(target) + " " + (target.label || ""));
+        text(
+          "targetGateMeta",
+          "true_target=" + (expected === null ? "-" : ("#" + expected)) +
+          " - target_outcome=" + ((trial && trial.target_selection_outcome) || "-") +
+          " - grasp_attempted=" + (!!(trial && trial.grasp_attempted))
+        );
+      }
+      function renderGraspEvaluation(trial) {
+        if (!trial) {
+          text("graspEvalText", "Evaluate only after a physical grasp was attempted.");
+        } else if (trial.status === "finished") {
+          text("graspEvalText", "Finished: outcome=" + (trial.outcome || "-"));
+        } else if (trial.grasp_attempted) {
+          text("graspEvalText", "Physical grasp was attempted. Save the grasp outcome.");
+        } else {
+          text("graspEvalText", "No physical grasp attempted yet.");
+        }
       }
       function renderTrialView(data) {
         var trial = data && data.trial ? data.trial : null;
         var session = data && data.session ? data.session : (trial && trial.session_snapshot ? trial.session_snapshot : null);
         var question = session && session.current_question;
         state.trial = trial;
+        state.session = session;
         state.awaitingAnswer = false;
         if (data && data.metrics) renderMetrics(data.metrics);
         setDisabled("reloadTrialBtn", !trial);
         if (!trial) return;
+        if (trial.expected_display_id !== undefined && trial.expected_display_id !== null) {
+          setValue("expectedDisplayIdInput", String(trial.expected_display_id));
+        }
         text("trialStatusText", trial.trial_id + " - " + trial.status + " - target=" + (trial.target_selection_outcome || "-") + " - outcome=" + (trial.outcome || "-"));
         if (session && session.candidate_overlay_data_url) {
           $("mainImage").src = session.candidate_overlay_data_url;
@@ -482,12 +539,16 @@
         }
         var hasResolved = !!(session && session.resolved_target);
         var finished = trial.status === "finished";
-        setDisabled("dryRunBtn", !hasResolved || finished);
-        setDisabled("executeBtn", !hasResolved || finished);
+        var graspAttempted = !!trial.grasp_attempted;
+        renderTargetGate(trial, session);
+        renderGraspEvaluation(trial);
+        setDisabled("dryRunBtn", !hasResolved || finished || graspAttempted);
+        setDisabled("executeBtn", !hasResolved || finished || graspAttempted);
+        setDisabled("targetWrongSkipBtn", !hasResolved || finished || graspAttempted);
         setDisabled("abortBtn", finished);
-        setDisabled("confirmSuccessBtn", !trial.grasp_attempted || finished);
-        setDisabled("confirmMissBtn", !trial.grasp_attempted || finished);
-        setDisabled("confirmWrongBtn", !trial.grasp_attempted || finished);
+        setDisabled("confirmSuccessBtn", !graspAttempted || finished);
+        setDisabled("confirmMissBtn", !graspAttempted || finished);
+        setDisabled("confirmWrongBtn", !graspAttempted || finished);
       }
       function syncBootstrap(data) {
         var expId = data && data.experiment ? data.experiment.experiment_id : "";
@@ -637,8 +698,9 @@
         var trialId = activeTrialId();
         var expected = expectedDisplayId();
         if (!expId || !trialId) return;
-        if (expected === null) { setBanner("err", "Set the expected candidate from the Candidates panel before execution."); return; }
-        setBusy(dryRun ? "Planning dry run..." : "Checking target and executing only if correct...");
+        if (expected === null) expected = setExpectedToResolvedTarget();
+        if (expected === null) { setBanner("err", "No resolved target is available for the target-correct gate."); return; }
+        setBusy(dryRun ? "Planning dry run for the confirmed target..." : "Operator confirmed target; dispatching grasp...");
         postJson("/api/online/experiments/" + encodeURIComponent(expId) + "/trials/" + encodeURIComponent(trialId) + "/execute", {
           expected_display_id: expected,
           dry_run: !!dryRun
@@ -650,8 +712,24 @@
           if (trial.outcome === "skipped_wrong_target") setBanner("info", "Wrong target selection detected; grasp skipped.");
           else if (trial.outcome === "execution_failed") setBanner("err", "Execution failed; no confirmation is needed for this trial.");
           else if (trial.target_selection_outcome === "unresolved") setBanner("info", "No resolved target; grasp skipped.");
-          else setBanner("ok", dryRun ? "Dry run recorded." : "Execution sent. Confirm physical outcome.");
+          else setBanner("ok", dryRun ? "Dry run recorded." : "Grasp sent. Evaluate the physical result.");
         }, function (err) { clearBusy(); setBanner("err", err); loadTrial(trialId); }, 240000);
+      }
+      function skipWrongTarget() {
+        var expId = activeExperimentId();
+        var trialId = activeTrialId();
+        if (!expId || !trialId) return;
+        setBusy("Operator marked target wrong; skipping grasp...");
+        postJson("/api/online/experiments/" + encodeURIComponent(expId) + "/trials/" + encodeURIComponent(trialId) + "/finish", {
+          outcome: "skipped_wrong_target",
+          expected_display_id: expectedDisplayId(),
+          note: "Operator marked the resolved target as wrong; no robot grasp was executed."
+        }, function (data) {
+          clearBusy();
+          syncBootstrap(data);
+          renderTrialView(data);
+          setBanner("info", "Target marked wrong; grasp skipped.");
+        }, function (err) { clearBusy(); setBanner("err", err); }, 120000);
       }
       function confirmTrial(kind) {
         var expId = activeExperimentId();
@@ -736,6 +814,7 @@
         $("answerNoBtn").onclick = function () { answerTrial("n"); };
         $("dryRunBtn").onclick = function () { executeTrial(true); };
         $("executeBtn").onclick = function () { executeTrial(false); };
+        $("targetWrongSkipBtn").onclick = skipWrongTarget;
         $("abortBtn").onclick = abortTrial;
         $("confirmSuccessBtn").onclick = function () { confirmTrial("success"); };
         $("confirmMissBtn").onclick = function () { confirmTrial("miss"); };
