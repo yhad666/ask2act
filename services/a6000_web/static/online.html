@@ -156,8 +156,8 @@
               </select>
             </div>
             <div>
-              <label>Expected Display ID</label>
-              <input id="expectedDisplayIdInput" placeholder="required before execute" />
+              <label>Expected Candidate</label>
+              <input id="expectedDisplayIdInput" placeholder="click Set Expected after observe" />
             </div>
           </div>
           <label>Trial Notes</label>
@@ -422,12 +422,36 @@
         if (!candidates || !candidates.length) { list.innerHTML = '<div class="item meta">No candidates yet.</div>'; return; }
         candidates.forEach(function (cand) {
           var bbox = asArray(cand.bbox_xyxy);
+          var display = candidateDisplay(cand);
           var div = document.createElement("div");
+          var actions = document.createElement("div");
+          var button = document.createElement("button");
           div.className = "item";
-          div.innerHTML = "<strong>" + candidateDisplay(cand) + " " + (cand.label || "") + '</strong><br><span class="meta">' +
+          div.innerHTML = "<strong>" + display + " " + (cand.label || "") + '</strong><br><span class="meta">' +
             (cand.candidate_id || "") + " - score=" + fmt(cand.score, 3) + " - bbox=" + bbox.map(function (v) { return fmt(v, 1); }).join(", ") + "</span>";
+          actions.className = "actions";
+          actions.style.marginTop = "8px";
+          button.type = "button";
+          button.className = "ghost";
+          button.textContent = "Set Expected";
+          button.onclick = function (event) {
+            event.stopPropagation();
+            setExpectedCandidate(cand);
+          };
+          actions.appendChild(button);
+          div.appendChild(actions);
+          div.onclick = function () { setExpectedCandidate(cand); };
           list.appendChild(div);
         });
+      }
+      function setExpectedCandidate(cand) {
+        var display = candidateDisplay(cand);
+        if (!display || isNaN(Number(display))) {
+          setBanner("err", "This candidate does not have a numeric overlay id.");
+          return;
+        }
+        setValue("expectedDisplayIdInput", display);
+        setBanner("info", "Expected candidate set to overlay #" + display + ".");
       }
       function renderTrialView(data) {
         var trial = data && data.trial ? data.trial : null;
@@ -613,7 +637,7 @@
         var trialId = activeTrialId();
         var expected = expectedDisplayId();
         if (!expId || !trialId) return;
-        if (expected === null) { setBanner("err", "Expected Display ID is required before any execution gate."); return; }
+        if (expected === null) { setBanner("err", "Set the expected candidate from the Candidates panel before execution."); return; }
         setBusy(dryRun ? "Planning dry run..." : "Checking target and executing only if correct...");
         postJson("/api/online/experiments/" + encodeURIComponent(expId) + "/trials/" + encodeURIComponent(trialId) + "/execute", {
           expected_display_id: expected,
