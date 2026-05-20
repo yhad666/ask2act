@@ -215,6 +215,40 @@ class StretchRobotRuntime:
     def fetch_video(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
         return self.video_manager.fetch(request_payload)
 
+    def set_head_pose(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            from .scripts import capture_observation as capture_module
+        except Exception as exc:
+            return {"ok": False, "error": f"Unable to load head pose helper: {exc}"}
+
+        head_pan = float(
+            request_payload.get(
+                "head_pan_rad",
+                os.getenv("ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD", "-1.57"),
+            )
+        )
+        head_tilt = float(
+            request_payload.get(
+                "head_tilt_rad",
+                os.getenv("ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD", "-0.68"),
+            )
+        )
+        persist = str(request_payload.get("persist", "1")).strip().lower() in {"1", "true", "yes", "on"}
+        if persist:
+            os.environ["ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD"] = str(head_pan)
+            os.environ["ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD"] = str(head_tilt)
+            os.environ["ASK2ACT_STRETCH_INIT_HEAD_POSE_MODE"] = "every_observe"
+
+        result = capture_module._command_head_pose(
+            head_pan=head_pan,
+            head_tilt=head_tilt,
+            mode="manual_ui",
+            write_stamp=False,
+        )
+        result["persisted_for_future_observations"] = persist
+        result["video_running"] = self.video_manager.is_running()
+        return result
+
     def execute(self, request_payload: Dict[str, Any]) -> Dict[str, Any]:
         if self.execute_mode == "ack":
             return {

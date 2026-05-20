@@ -211,6 +211,12 @@ class OnlineTrialFinishRequest(BaseModel):
     note: Optional[str] = None
 
 
+class OnlineHeadPoseRequest(BaseModel):
+    head_pan_rad: float
+    head_tilt_rad: float
+    persist: bool = True
+
+
 @dataclass
 class SessionState:
     session_id: str

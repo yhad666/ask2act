@@ -273,6 +273,11 @@ The robot server also supports experiment video through the same D435i stream:
 - `stop_head_camera_video` transfers the MP4 back to A6000; the temporary
   robot-side MP4 is deleted after transfer
 
+The `/online` page can manually command the head camera pan/tilt. The robot
+server persists that pose for future observations in the running process, and
+each observation includes camera extrinsics recomputed for the current head pose
+so point-cloud grasp planning stays aligned with the adjusted view.
+
 For the online experiment, keep:
 
 ```bash

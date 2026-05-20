@@ -81,6 +81,8 @@ def serve(bind_endpoint: str) -> None:
                     reply = runtime.video_status(payload)
                 elif op == "fetch_head_camera_video":
                     reply = runtime.fetch_video(payload)
+                elif op == "set_head_camera_pose":
+                    reply = runtime.set_head_pose(payload)
                 else:
                     raise ValueError(f"unsupported op: {op}")
             except Exception as exc:

@@ -62,6 +62,27 @@ def _head_pose_failure_payload(error: str, note: str, **extra: object) -> dict:
     return payload
 
 
+def _camera_extrinsics_payload(head_pan: float | None, head_tilt: float | None) -> dict | None:
+    if head_pan is None or head_tilt is None:
+        return None
+    try:
+        from .generate_head_camera_extrinsics import compute_camera_color_optical_transform
+    except Exception:
+        try:
+            from generate_head_camera_extrinsics import compute_camera_color_optical_transform
+        except Exception:
+            return None
+    transform = compute_camera_color_optical_transform(float(head_pan), float(head_tilt))
+    return {
+        "source": "stretch_se3_urdf_chain",
+        "parent_frame": "base_link",
+        "child_frame": "camera_color_optical_frame",
+        "head_pan_rad": float(head_pan),
+        "head_tilt_rad": float(head_tilt),
+        "camera_to_world": transform.tolist(),
+    }
+
+
 def _reason_key(reason: str) -> str:
     return "".join(ch if ch.isalnum() else "_" for ch in reason.upper()).strip("_")
 
@@ -280,23 +301,35 @@ def _ensure_initial_head_pose() -> dict | None:
     if mode == "once_per_server" and stamp_path.exists():
         return None
 
+    head_pan = float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD", "-1.57"))
+    head_tilt = float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD", "-0.55"))
+    return _command_head_pose(head_pan=head_pan, head_tilt=head_tilt, mode=mode, write_stamp=mode == "once_per_server")
+
+
+def _command_head_pose(
+    *,
+    head_pan: float,
+    head_tilt: float,
+    mode: str = "manual",
+    write_stamp: bool = False,
+) -> dict:
     try:
         import stretch_body.robot
     except Exception as exc:
         return _head_pose_failure_payload(
             error=str(exc),
-            note="stretch_body is unavailable, so the initial head pose could not be commanded.",
+            note="stretch_body is unavailable, so the head pose could not be commanded.",
+            mode=mode,
         )
 
-    head_pan = float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD", "-1.57"))
-    head_tilt = float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD", "-0.55"))
     settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_SETTLE_S", "2.0")))
     tolerance_rad = max(0.0, float(os.getenv("ASK2ACT_STRETCH_INIT_HEAD_TOLERANCE_RAD", "0.15")))
+    stamp_path = _head_pose_stamp_path()
 
     robot = stretch_body.robot.Robot()
     if not robot.startup():
         return _head_pose_failure_payload(
-            error="Failed to startup Stretch robot for initial head positioning",
+            error="Failed to startup Stretch robot for head positioning",
             note=(
                 "Another process may already be using Stretch. Free the robot process, "
                 "or temporarily disable ASK2ACT_STRETCH_INIT_HEAD_POSE_ON_START if you only "
@@ -330,6 +363,7 @@ def _ensure_initial_head_pose() -> dict | None:
                 actual_head_tilt_rad=actual_tilt,
                 settle_s=settle_s,
                 tolerance_rad=tolerance_rad,
+                camera_extrinsics=_camera_extrinsics_payload(actual_pan, actual_tilt),
             )
 
         pan_error = abs(actual_pan - head_pan)
@@ -350,6 +384,7 @@ def _ensure_initial_head_pose() -> dict | None:
                 tilt_error_rad=tilt_error,
                 settle_s=settle_s,
                 tolerance_rad=tolerance_rad,
+                camera_extrinsics=_camera_extrinsics_payload(actual_pan, actual_tilt),
             )
 
         payload = {
@@ -365,15 +400,16 @@ def _ensure_initial_head_pose() -> dict | None:
             "tilt_error_rad": tilt_error,
             "settle_s": settle_s,
             "tolerance_rad": tolerance_rad,
+            "camera_extrinsics": _camera_extrinsics_payload(actual_pan, actual_tilt),
         }
-        if mode == "once_per_server":
+        if write_stamp:
             stamp_path.parent.mkdir(parents=True, exist_ok=True)
             stamp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return payload
     except Exception as exc:
         return _head_pose_failure_payload(
             error=str(exc),
-            note="The initial head pose command failed, but observation capture will continue.",
+            note="The head pose command failed, but observation capture will continue.",
             mode=mode,
         )
     finally:
@@ -489,6 +525,7 @@ def _capture_with_realsense() -> dict:
             "depth_aligned_to_color": bool(depth_frame is not None),
             "camera_intrinsics_path": str(intrinsics_path),
             "camera_intrinsics": intrinsics_payload,
+            "camera_extrinsics": (head_pose_result or {}).get("camera_extrinsics"),
             "default_pose_init": default_pose_result,
             "head_pose_init": head_pose_result,
         }

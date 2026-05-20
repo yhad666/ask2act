@@ -244,6 +244,34 @@ def test_online_head_camera_video_is_saved_on_a6000(tmp_path, monkeypatch):
     assert download.content == b"fake-mp4-bytes"
 
 
+def test_online_head_pose_command_is_forwarded(monkeypatch):
+    calls = []
+
+    class FakeStretchTransport:
+        def set_head_camera_pose(self, *, head_pan_rad, head_tilt_rad, persist=True):
+            calls.append((head_pan_rad, head_tilt_rad, persist))
+            return {
+                "ok": True,
+                "commanded_head_pan_rad": head_pan_rad,
+                "commanded_head_tilt_rad": head_tilt_rad,
+                "actual_head_pan_rad": head_pan_rad,
+                "actual_head_tilt_rad": head_tilt_rad,
+                "persisted_for_future_observations": persist,
+            }
+
+    monkeypatch.setattr(web_server, "stretch_transport", FakeStretchTransport())
+    client = TestClient(web_server.app)
+
+    response = client.post(
+        "/api/online/head_pose",
+        json={"head_pan_rad": -1.5, "head_tilt_rad": -0.62, "persist": True},
+    )
+
+    assert response.status_code == 200
+    assert calls == [(-1.5, -0.62, True)]
+    assert response.json()["head_pose"]["actual_head_tilt_rad"] == -0.62
+
+
 def test_oversized_base_reach_refuses_before_robot_motion(monkeypatch):
     session = _session()
     session.observation_raw_response = {"depth_aligned_to_color": True}

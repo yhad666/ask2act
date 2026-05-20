@@ -212,6 +212,34 @@ class StretchTransportClient:
         reply["mode"] = "zmq"
         return reply
 
+    def set_head_camera_pose(self, *, head_pan_rad: float, head_tilt_rad: float, persist: bool = True) -> Dict[str, Any]:
+        if self.mode == "mock":
+            return {
+                "ok": True,
+                "mode": "mock",
+                "status": "initialized",
+                "commanded_head_pan_rad": float(head_pan_rad),
+                "commanded_head_tilt_rad": float(head_tilt_rad),
+                "actual_head_pan_rad": float(head_pan_rad),
+                "actual_head_tilt_rad": float(head_tilt_rad),
+                "persisted_for_future_observations": bool(persist),
+            }
+        if self.mode != "zmq":
+            raise RuntimeError(f"Unsupported stretch transport mode: {self.mode}")
+        reply = self._zmq_roundtrip(
+            {
+                "op": "set_head_camera_pose",
+                "head_pan_rad": float(head_pan_rad),
+                "head_tilt_rad": float(head_tilt_rad),
+                "persist": bool(persist),
+            },
+            timeout_ms=self.execute_timeout_ms,
+        )
+        if reply.get("ok") is False:
+            raise RuntimeError(reply.get("error") or "Stretch head-camera pose command failed")
+        reply["mode"] = "zmq"
+        return reply
+
     def dispatch_grasp(
         self,
         *,

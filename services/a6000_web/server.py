@@ -39,6 +39,7 @@ from .schemas import (
     OfflineTrialStartRequest,
     OfflineTrialStepRequest,
     OnlineExperimentRequest,
+    OnlineHeadPoseRequest,
     OnlineSceneRequest,
     OnlineTrialConfirmRequest,
     OnlineTrialExecuteRequest,
@@ -2178,6 +2179,19 @@ def online_head_camera_video_status(experiment_id: str):
     try:
         online_store.read_experiment(experiment_id)
         return {"ok": True, "video": stretch_transport.head_camera_video_status()}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/online/head_pose")
+def set_online_head_camera_pose(request: OnlineHeadPoseRequest):
+    try:
+        result = stretch_transport.set_head_camera_pose(
+            head_pan_rad=request.head_pan_rad,
+            head_tilt_rad=request.head_tilt_rad,
+            persist=request.persist,
+        )
+        return {"ok": True, "head_pose": result}
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 

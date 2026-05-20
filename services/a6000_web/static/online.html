@@ -108,6 +108,41 @@
             <div class="meta" id="videoStatusText" style="margin-top:8px;">Video is idle.</div>
             <div class="meta" id="videoDownloadText" style="margin-top:6px;"></div>
           </div>
+          <div style="margin-top:16px; border-top:1px solid #e1ebe7; padding-top:12px;">
+            <h2 style="font-size:17px; margin-bottom:8px;">Head Pose</h2>
+            <div class="trial-fields">
+              <div>
+                <label>Pan Rad</label>
+                <input id="headPanInput" type="number" step="0.02" value="-1.57" />
+              </div>
+              <div>
+                <label>Tilt Rad</label>
+                <input id="headTiltInput" type="number" step="0.02" value="-0.68" />
+              </div>
+              <div>
+                <label>Preset</label>
+                <select id="headPosePresetInput">
+                  <option value="-1.57,-0.68" selected>table default</option>
+                  <option value="-1.57,-0.60">slightly up</option>
+                  <option value="-1.57,-0.76">slightly down</option>
+                  <option value="-1.50,-0.68">pan right</option>
+                  <option value="-1.64,-0.68">pan left</option>
+                </select>
+              </div>
+            </div>
+            <label>Preset Name</label>
+            <input id="headPosePresetNameInput" placeholder="e.g. scene table good view" />
+            <div class="actions">
+              <button class="secondary" id="applyHeadPresetBtn">Load Preset</button>
+              <button class="secondary" id="saveHeadPresetBtn">Save Preset</button>
+              <button class="ghost" id="nudgeHeadUpBtn">Tilt Up</button>
+              <button class="ghost" id="nudgeHeadDownBtn">Tilt Down</button>
+              <button class="ghost" id="nudgeHeadLeftBtn">Pan Left</button>
+              <button class="ghost" id="nudgeHeadRightBtn">Pan Right</button>
+              <button class="primary" id="setHeadPoseBtn">Set Head Pose</button>
+            </div>
+            <div class="meta" id="headPoseStatusText" style="margin-top:8px;">Pose changes persist for future observations.</div>
+          </div>
         </section>
 
         <section class="panel">
@@ -235,6 +270,7 @@
     (function () {
       var state = { experiment: null, trial: null, session: null, busy: false, answerPending: false, answerRequestId: 0, awaitingAnswer: false, video: null };
       var ANSWER_PROGRESS_TIMEOUT_MS = 600000;
+      var HEAD_POSE_PRESET_KEY = "ask2act.online.headPosePresets";
       function $(id) { return document.getElementById(id); }
       function text(id, value) { var node = $(id); if (node) node.textContent = value; }
       function value(id) { var node = $(id); return node ? node.value : ""; }
@@ -288,6 +324,14 @@
         var count = row ? row.question_trial_count || 0 : 0;
         var value = fmt(mean, 2);
         return value === "-" ? "-" : value + " (" + count + ")";
+      }
+      function numericInput(id, fallback) {
+        var raw = value(id).trim();
+        var num = Number(raw);
+        return isFinite(num) ? num : fallback;
+      }
+      function setNumericInput(id, next) {
+        setValue(id, Number(next).toFixed(2));
       }
       function expectedDisplayId() {
         var raw = value("expectedDisplayIdInput").trim();
@@ -802,6 +846,80 @@
           setBanner("info", "Video status refreshed.");
         }, function (err) { setBanner("err", err); }, 120000);
       }
+      function setHeadPose() {
+        var pan = numericInput("headPanInput", -1.57);
+        var tilt = numericInput("headTiltInput", -0.68);
+        setBusy("Moving Stretch head camera...");
+        postJson("/api/online/head_pose", {
+          head_pan_rad: pan,
+          head_tilt_rad: tilt,
+          persist: true
+        }, function (data) {
+          var pose = data.head_pose || {};
+          clearBusy();
+          text(
+            "headPoseStatusText",
+            "commanded pan=" + fmt(pose.commanded_head_pan_rad, 3) +
+            " tilt=" + fmt(pose.commanded_head_tilt_rad, 3) +
+            " actual pan=" + fmt(pose.actual_head_pan_rad, 3) +
+            " tilt=" + fmt(pose.actual_head_tilt_rad, 3) +
+            (pose.video_running ? " - video running" : "")
+          );
+          setBanner("ok", "Head camera pose updated for future observations.");
+        }, function (err) {
+          clearBusy();
+          setBanner("err", err);
+        }, 120000);
+      }
+      function nudgeHead(deltaPan, deltaTilt) {
+        setNumericInput("headPanInput", numericInput("headPanInput", -1.57) + deltaPan);
+        setNumericInput("headTiltInput", numericInput("headTiltInput", -0.68) + deltaTilt);
+      }
+      function loadHeadPreset() {
+        var parts = String(value("headPosePresetInput") || "").split(",");
+        if (parts.length === 2) {
+          setNumericInput("headPanInput", Number(parts[0]));
+          setNumericInput("headTiltInput", Number(parts[1]));
+        }
+      }
+      function savedHeadPresets() {
+        try {
+          var data = JSON.parse(window.localStorage.getItem(HEAD_POSE_PRESET_KEY) || "[]");
+          return asArray(data).filter(function (item) {
+            return item && typeof item.name === "string" && isFinite(Number(item.pan)) && isFinite(Number(item.tilt));
+          });
+        } catch (err) {
+          return [];
+        }
+      }
+      function renderHeadPresets() {
+        var select = $("headPosePresetInput");
+        var builtins = [
+          ["table default", -1.57, -0.68],
+          ["slightly up", -1.57, -0.60],
+          ["slightly down", -1.57, -0.76],
+          ["pan right", -1.50, -0.68],
+          ["pan left", -1.64, -0.68]
+        ];
+        select.innerHTML = "";
+        builtins.forEach(function (item) {
+          select.appendChild(option(item[0], item[1] + "," + item[2]));
+        });
+        savedHeadPresets().forEach(function (item) {
+          select.appendChild(option("saved: " + item.name, Number(item.pan) + "," + Number(item.tilt)));
+        });
+      }
+      function saveHeadPreset() {
+        var name = value("headPosePresetNameInput").trim() || ("preset " + new Date().toLocaleTimeString());
+        var pan = numericInput("headPanInput", -1.57);
+        var tilt = numericInput("headTiltInput", -0.68);
+        var presets = savedHeadPresets().filter(function (item) { return item.name !== name; });
+        presets.push({ name: name, pan: pan, tilt: tilt, saved_at_epoch_s: Date.now() / 1000 });
+        window.localStorage.setItem(HEAD_POSE_PRESET_KEY, JSON.stringify(presets));
+        renderHeadPresets();
+        $("headPosePresetInput").value = pan + "," + tilt;
+        setBanner("ok", "Saved head pose preset: " + name);
+      }
       function bind() {
         $("refreshExperimentsBtn").onclick = function () { refreshExperimentList(true); };
         $("loadExperimentBtn").onclick = function () { loadExperiment(); };
@@ -822,7 +940,15 @@
         $("startVideoBtn").onclick = startVideo;
         $("stopVideoBtn").onclick = stopVideo;
         $("videoStatusBtn").onclick = refreshVideoStatus;
+        $("applyHeadPresetBtn").onclick = loadHeadPreset;
+        $("saveHeadPresetBtn").onclick = saveHeadPreset;
+        $("nudgeHeadUpBtn").onclick = function () { nudgeHead(0, 0.04); };
+        $("nudgeHeadDownBtn").onclick = function () { nudgeHead(0, -0.04); };
+        $("nudgeHeadLeftBtn").onclick = function () { nudgeHead(-0.04, 0); };
+        $("nudgeHeadRightBtn").onclick = function () { nudgeHead(0.04, 0); };
+        $("setHeadPoseBtn").onclick = setHeadPose;
         window.ask2actOnline = { loadExperiment: loadExperiment, loadTrial: loadTrial, startTrial: startTrial };
+        renderHeadPresets();
         refreshExperimentList(false);
       }
       if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
