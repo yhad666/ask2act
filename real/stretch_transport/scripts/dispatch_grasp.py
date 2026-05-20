@@ -826,7 +826,7 @@ def _move_component(robot: Any, joint_name: str, target: float, *, base_referenc
                 "skipped": True,
                 "skip_reason": f"abs(delta) <= {eps}",
             }
-        max_delta = float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_MAX_DELTA_RAD", "0.40"))
+        max_delta = float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_MAX_DELTA_RAD", "0.65"))
         if abs(delta) > max_delta:
             raise RuntimeError(
                 f"Refusing large base rotation delta {delta:.3f} rad for target {target:.3f} rad. "
