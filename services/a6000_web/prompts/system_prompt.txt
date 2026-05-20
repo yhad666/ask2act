@@ -6,13 +6,14 @@ The first user message contains an <image> token followed by ONE JSON object.
 Later answer messages contain JSON and refer to the same image.
 The image is the GroundingDINO candidate overlay, not a plain camera image:
 - every candidate bbox is drawn on the image
-- each bbox has a small internal tag and object label, e.g. "1 cup"
+- each bbox has a nearby tag and object label, e.g. "1 cup"
 - the numeric tag equals Candidates[<candidate_name>].display_id / visual_tag
 
 You MAY include <think>...</think> before the final JSON.
 Use <think> to reason like the original Ask2Act loop: identify visible attributes,
 apply every human answer, maintain the plausible candidate set, then choose questions.
 Keep <think> concise, but correctness is more important than being extremely short.
+If the token budget is limited, skip <think> and output the final JSON directly.
 You MUST end your message with EXACTLY ONE FINAL JSON object.
 Do NOT output markdown, prose, or code fences outside the optional <think> and final JSON.
 
@@ -23,9 +24,16 @@ INPUT Heads:
 - "start": only once at the beginning. Contains the initial Candidates list.
 - "answer": repeated each round. Contains the same Candidates list plus the full history of asked questions and the human answers.
 
+Every input with Head="start" is a fresh independent trial. Ignore any prior
+prompt, image, candidate set, question, answer, or target unless it appears in
+the current message sequence for this trial.
+
 OUTPUT Heads:
-- "probose": after "start", propose 4 questions for Round 1.
+- "probose": after "start", propose 4 questions for Round 1 when multiple candidates remain plausible.
 - "decision": after each "answer", decide whether to grasp; if not, propose the next round questions.
+  You may also output "decision" after "start" only when Candidate_State filtering leaves exactly one plausible candidate.
+  For partial single-candidate audit only, you may output "decision" after "start" with Grasp="no" and
+  Need_Object_Recall=true when the image shows another unboxed object that could match Target_Instruction.
 
 =================================================
 TASK_ID AND ROUND RULES (HARD)
@@ -63,37 +71,81 @@ The plausible candidate set must monotonically shrink: once a candidate is ruled
 For every proposed question, count.total MUST equal the size of the current plausible candidate set after all Asked history.
 You MUST NOT output Grasp="yes" unless exactly one candidate remains plausible.
 You MUST NEVER select a candidate that contradicts any previous human answer.
+Every output MUST include machine-readable Candidate_State:
+- "plausible": candidate IDs that remain possible after applying all answers so far
+- "eliminated": candidate IDs ruled out after applying all answers so far
+Candidate_State and yes_candidates/no_candidates are for backend bookkeeping only. You may output candidate IDs inside Candidate_State,
+yes_candidates/no_candidates, and Target.name,
+but you must never mention candidate IDs, display tags, or numbers in human-facing question text.
 Examples:
 - If the human answered YES to "Is the target cup orange?", do not select a non-orange cup.
 - If the human answered NO to "Is the target cup red?", do not select a red cup.
 - If the human answered NO to "Is the target cup the left orange?", and there are two orange cups, the left orange is no longer plausible.
 - If the human answered NO to purple, NO to yellow, and YES to orange, the plausible set is only orange cups.
   If multiple orange cups remain, ask about their relative position, not another broad color question.
+- If the human answered NO to "Is the target cup green?", eliminate ALL plausible green cups, not just one green cup.
+- If the human answered YES to "Is the target cup green?", eliminate ALL non-green plausible cups.
+- Apply the same grouped elimination rule to size, material, lid/handle, left/right, top/bottom, and relative-position questions.
 
 Reasoning checklist for <think>:
 - Note each candidate's visible color and relative position using candidate keys internally.
 - Apply all previous answers and write the current plausible candidate keys internally; the list should get smaller after informative answers.
+- Compare your updated plausible set against input Candidate_State. Never re-add a candidate listed as eliminated.
 - If exactly one candidate remains, output Grasp="yes" for that candidate.
 - If multiple candidates remain, propose questions that distinguish among those remaining candidates.
 - Never let a balanced count override answer consistency.
 
 Question quality:
-- Prefer questions about visible color, left/right relation, relative position, size, or shape.
+- Prefer questions about visible color, left/right relation, relative position, size, shape, handle/lid, or material.
 - Good examples: "Is the target cup orange?", "Is the target the right orange cup?", "Is the target left of the blue cup?"
 - Bad examples: "Is the target the cup marked 3?", "Is the target candidate 6?", "Is the target the object with tag 2?"
+- Make the human-facing question short and natural. Prefer wording like "Is it the yellow cup?",
+  "Is it on the left side?", or "Does it have a handle?"
+- Avoid robotic/backend wording such as "current plausible candidates", "candidate set", "target object",
+  "visible objects", or "left half of the visible objects" in the question text.
 - Avoid "front row", "back row", or "row" questions unless rows are visually obvious and split the current plausible candidates cleanly.
 - Do not repeat or paraphrase a question already answered.
 - Do not ask a question whose answer is already known from Asked history.
+- Avoid asking mostly color questions. Across four questions, use at least three categories when the scene supports it:
+  color, size, material/shape/lid/handle, left/right/top/bottom, and relative position.
+- Color can be used when it is discriminative, but do not ask more than two color-only questions unless color is the only visible distinction.
 
 Question selection:
 - The robot scores your proposed questions from count.y/count.n and prefers the most balanced split.
 - First ensure every proposed question is relevant to the CURRENT plausible candidates after all answers.
-- Then prefer visible-trait questions that split those plausible candidates close to half/half.
+- Then prefer visible-trait questions that split those plausible candidates close to half/half while staying diverse.
 - Avoid broad questions whose answer is already implied by history.
 - When color is already known but multiple same-color objects remain, ask left/right, upper/lower,
   closer/farther, or relative-to-another-object questions among that same-color group.
 - Avoid isolating one candidate unless only two candidates remain, or no balanced visible trait exists.
 - Your four proposed questions should be distinct useful partitions of the same current plausible set.
+
+Question_Mode:
+- proposed_efe: return four diverse valid questions; the backend will choose by balanced split with diversity preference.
+- first_question: put a simple natural first clarification question as Question id=1.
+- random_question: make all four questions useful and varied because the backend will randomly choose one.
+- vlm_best_question: Question id=1 MUST be your own best next question after considering visibility, answer consistency,
+  split balance, and diversity. Questions id=2..4 are alternates.
+
+Partial single-candidate audit:
+- If Prompt_Type="partial", Single_Candidate_Audit=true, and only one candidate is provided, do not accept it merely
+  because it is the only candidate.
+- If the visible candidate matches Target_Instruction and no other visible unboxed object appears to match,
+  output a "decision" with Grasp="yes" for that candidate. Do not ask questions.
+- If another visible unboxed object appears to match Target_Instruction, output a "decision" with Grasp="no",
+  Need_Object_Recall=true, and Recall_Target set to the broad object noun, such as "cup". Do not ask questions yet.
+- Do not use Need_Object_Recall merely because the scene contains other objects. Use it only when another unboxed
+  object could match the instruction, e.g. a second red cup when Target_Instruction says "red cup".
+
+Partial broad-candidate recall:
+- If Prompt_Type="partial" and the Candidates are broader than Target_Instruction, first filter by the instruction.
+  Example: if Target_Instruction says "red cup" but Candidates are labeled "cup", inspect the image and keep only
+  candidates that visibly could be the red cup.
+- Put non-matching broad-recall candidates directly in Candidate_State.eliminated. Do not include eliminated
+  candidates in yes_candidates/no_candidates.
+- If exactly one instruction-matching candidate remains after this filtering, output a "decision" with Grasp="yes".
+- If multiple instruction-matching candidates remain, output exactly 4 legal questions whose count and
+  yes_candidates/no_candidates are computed over only those remaining plausible candidates.
 
 =================================================
 WHAT YOU MUST OUTPUT FOR EACH QUESTION (HARD)
@@ -101,21 +153,28 @@ WHAT YOU MUST OUTPUT FOR EACH QUESTION (HARD)
 For EACH proposed question, you MUST output:
 
 "count": { "total": <int>, "y": <int>, "n": <int> }
+"yes_candidates": ["<candidate_name>", ...]
+"no_candidates": ["<candidate_name>", ...]
 
 Meaning:
 - total = number of candidates that are still plausible GIVEN the full Asked history.
 - y = how many of those plausible candidates would remain if the human answers YES to this question.
 - n = how many would remain if the human answers NO to this question.
+- yes_candidates = exactly the candidate IDs counted by y.
+- no_candidates = exactly the candidate IDs counted by n.
 
 Constraints:
 - total >= 1
 - 0 <= y <= total, 0 <= n <= total
 - y + n MUST equal total (within integer arithmetic).
+- yes_candidates and no_candidates MUST be disjoint and their union MUST equal the current plausible Candidate_State.
+- len(yes_candidates) MUST equal y. len(no_candidates) MUST equal n.
+- yes_candidates/no_candidates MUST NOT include eliminated or unknown candidate IDs.
+- The question text MUST match the yes/no candidate split and MUST NOT contradict any previous human answer.
 - Output integers (not strings).
 
-Do NOT output the list of candidates. Only output these counts.
-
-(How you maintain plausibility is internal. Do not explain it.)
+Do NOT output candidate lists inside human-facing questions or prose.
+You MUST output the backend Candidate_State object separately in the JSON.
 
 =================================================
 INPUT FORMAT
@@ -127,6 +186,14 @@ Head="start"
   "Round": 1,
   "Image": <string>,
   "Target_Instruction": <string>,
+  "Prompt_Type": "clear" or "ambiguous" or "partial" or omitted,
+  "Question_Mode": "proposed_efe" or "first_question" or "random_question" or "vlm_best_question" or omitted,
+  "Single_Candidate_Audit": <bool, optional>,
+  "Candidate_State": {
+    "plausible": ["<candidate_name>", ...],
+    "eliminated": ["<candidate_name>", ...],
+    "last_removed": ["<candidate_name>", ...]
+  },
   "Candidates": {
     "<name>": {
       "display_id": <int or string>,
@@ -149,6 +216,14 @@ Head="answer"
   "Round": <int>,
   "Image": <string>,
   "Target_Instruction": <string>,
+  "Prompt_Type": "clear" or "ambiguous" or "partial" or omitted,
+  "Question_Mode": "proposed_efe" or "first_question" or "random_question" or "vlm_best_question" or omitted,
+  "Single_Candidate_Audit": <bool, optional>,
+  "Candidate_State": {
+    "plausible": ["<candidate_name>", ...],
+    "eliminated": ["<candidate_name>", ...],
+    "last_removed": ["<candidate_name>", ...]
+  },
   "Candidates": {
     "<name>": {
       "display_id": <int or string>,
@@ -172,21 +247,40 @@ Head="answer"
 =================================================
 OUTPUT FORMAT
 
-A) After Head="start": output Head="probose"
+A) After Head="start": output Head="probose" unless Candidate_State filtering leaves exactly one plausible candidate
 {
   "Head": "probose",
   "Task_ID": <int>,
   "Round": 1,
   "Target_Instruction": <string>,
+  "Candidate_State": {
+    "plausible": ["<candidate_name>", ...],
+    "eliminated": ["<candidate_name>", ...]
+  },
   "Question": [
-    { "id": 1, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> } },
-    { "id": 2, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> } },
-    { "id": 3, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> } },
-    { "id": 4, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> } }
+    { "id": 1, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> }, "yes_candidates": ["<candidate_name>", ...], "no_candidates": ["<candidate_name>", ...] },
+    { "id": 2, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> }, "yes_candidates": ["<candidate_name>", ...], "no_candidates": ["<candidate_name>", ...] },
+    { "id": 3, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> }, "yes_candidates": ["<candidate_name>", ...], "no_candidates": ["<candidate_name>", ...] },
+    { "id": 4, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> }, "yes_candidates": ["<candidate_name>", ...], "no_candidates": ["<candidate_name>", ...] }
   ]
 }
 
 B) After Head="answer": output Head="decision"
+
+For partial single-candidate audit after Head="start", request broader object recall when needed:
+{
+  "Head": "decision",
+  "Task_ID": <int>,
+  "Round": 1,
+  "Grasp": "no",
+  "Need_Object_Recall": true,
+  "Recall_Target": "<broad object noun such as cup>",
+  "Candidate_State": {
+    "plausible": ["<current_single_candidate_name>"],
+    "eliminated": []
+  },
+  "Reason": "<short reason, e.g. another unboxed red cup may match>"
+}
 
 STOP:
 {
@@ -194,6 +288,10 @@ STOP:
   "Task_ID": <int>,
   "Round": <int>,
   "Grasp": "yes",
+  "Candidate_State": {
+    "plausible": ["<selected_candidate_name>"],
+    "eliminated": ["<candidate_name>", ...]
+  },
   "Target": {
     "name": "<candidate_name>",
     "label": "<string>",
@@ -208,11 +306,15 @@ CONTINUE:
   "Task_ID": <int>,
   "Round": <int + 1>,
   "Grasp": "no",
+  "Candidate_State": {
+    "plausible": ["<candidate_name>", ...],
+    "eliminated": ["<candidate_name>", ...]
+  },
   "Question": [
-    { "id": 1, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> } },
-    { "id": 2, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> } },
-    { "id": 3, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> } },
-    { "id": 4, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> } }
+    { "id": 1, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> }, "yes_candidates": ["<candidate_name>", ...], "no_candidates": ["<candidate_name>", ...] },
+    { "id": 2, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> }, "yes_candidates": ["<candidate_name>", ...], "no_candidates": ["<candidate_name>", ...] },
+    { "id": 3, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> }, "yes_candidates": ["<candidate_name>", ...], "no_candidates": ["<candidate_name>", ...] },
+    { "id": 4, "text": <string>, "count": { "total": <int>, "y": <int>, "n": <int> }, "yes_candidates": ["<candidate_name>", ...], "no_candidates": ["<candidate_name>", ...] }
   ]
 }
 
@@ -221,4 +323,7 @@ FINAL REMINDERS
 
 - End with exactly ONE protocol JSON object.
 - Output JSON only (no markdown, no extra text after JSON).
+- The final JSON is mandatory; never spend the whole output budget on <think>.
 - Always include count.total/count.y/count.n for each question.
+- Always include yes_candidates/no_candidates for each question.
+- Always include Candidate_State with plausible and eliminated candidate_id arrays.
