@@ -83,6 +83,49 @@ def test_online_execute_requires_expected_target(tmp_path, monkeypatch):
     assert not trial.get("grasp_attempted")
 
 
+def test_online_start_ignores_expected_target_until_execute(tmp_path, monkeypatch):
+    store = OfflineExperimentStore(tmp_path)
+    monkeypatch.setattr(web_server, "online_store", store)
+    web_server.SESSIONS.clear()
+    web_server.ONLINE_TRIAL_SESSIONS.clear()
+    web_server.ONLINE_TRIAL_LOCKS.clear()
+    store.create_experiment(experiment_id="online-no-leak", name="online no leak", experiment_type="online_pilot")
+    store.save_scene_metadata(
+        experiment_id="online-no-leak",
+        scene_id="scene_001",
+        scene_type="pilot",
+        object_categories=["cup"],
+        notes="",
+    )
+
+    def fake_create_session(*args, **kwargs):
+        return _session(session_id="session-no-leak")
+
+    def noop_method(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(web_server, "create_session", fake_create_session)
+    monkeypatch.setattr(web_server, "_apply_offline_trial_method", noop_method)
+    client = TestClient(web_server.app)
+
+    response = client.post(
+        "/api/online/experiments/online-no-leak/trials/start",
+        json={
+            "scene_id": "scene_001",
+            "prompt": "pick up my cup",
+            "prompt_type": "ambiguous",
+            "method": "proposed_efe",
+            "expected_display_id": 1,
+            "expected_candidate_id": "candidate_1",
+        },
+    )
+
+    assert response.status_code == 200
+    trial = response.json()["trial"]
+    assert trial.get("expected_display_id") is None
+    assert trial.get("expected_candidate_id") is None
+
+
 def test_online_wrong_target_is_skipped_without_robot_execution(tmp_path, monkeypatch):
     client, experiment_id, trial_id = _install_online_trial(tmp_path, monkeypatch, resolved_candidate_id="candidate_2")
     called = {"execute": False}
@@ -234,7 +277,7 @@ def test_oversized_base_reach_refuses_before_robot_motion(monkeypatch):
     monkeypatch.setattr(web_server, "REAL_BASE_REACH_REPLAN_MAX_ATTEMPTS", 2)
     monkeypatch.setattr(web_server, "REAL_BASE_REACH_FAIL_FAST_OVERSIZED", True)
     monkeypatch.setattr(web_server, "finalize_resolved_target", lambda *args, **kwargs: None)
-    monkeypatch.setenv("ASK2ACT_REAL_BASE_REACH_MAX_TOTAL_ARM_AXIS_M", "0.12")
+    monkeypatch.setenv("ASK2ACT_REAL_BASE_REACH_MAX_TOTAL_ARM_AXIS_M", "0.15")
 
     with pytest.raises(Exception) as exc_info:
         web_server.execute_resolved_session(session, dry_run=False, raise_on_error=True)

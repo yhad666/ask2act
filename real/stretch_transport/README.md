@@ -121,10 +121,11 @@ For the online experiment, keep `ASK2ACT_STRETCH_INIT_HEAD_POSE_MODE=every_obser
 That makes each trial actively point the head camera at the tabletop before
 capturing RGB-D. `HOME_POSE_ON_OBSERVE=0` avoids repeated arm/lift/wrist homing
 before every image, and the gripper flags leave the gripper unchanged during
-observe/home and execute-start/end/failure homing. The grasp trajectory still
-opens/closes the gripper when an actual grasp is executed. Wrong target
-selections should be skipped on the A6000 `/online` console before any execute
-request is sent to the robot.
+observe/home and execute-start/failure homing. After a successful grasp
+trajectory, the cleanup path rotates the base back, sends the default arm/wrist
+pose, then opens the gripper with a short fire-and-forget command so the robot
+does not keep holding the object. Wrong target selections should be skipped on
+the A6000 `/online` console before any execute request is sent to the robot.
 
 After that, a single command is enough:
 
@@ -283,7 +284,8 @@ and run the experiment normally; the non-video observation path is unchanged.
 - accepts `dry_run=true` without moving the robot
 - records every request and response under `real/stretch_transport/artifacts/executions/`
 - if `grasp_plan.trajectory` is present, it will try to execute the waypoints with `stretch_body`
-- moves the manipulator back to the configured default pose after execution; by default the gripper is not opened after execution
+- rotates the base back, moves the manipulator to the configured default pose,
+  then opens the gripper after successful execution
 - records before/after Stretch status for the default pose and each waypoint so
   failed or stalled grasps can be debugged from `execute_response_*.json`
 - exits with a clear failure once `ASK2ACT_STRETCH_EXECUTE_DEADLINE_S` is

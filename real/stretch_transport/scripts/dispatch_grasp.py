@@ -65,6 +65,20 @@ def _default_pose_targets() -> dict[str, float]:
     }
 
 
+def _home_settle_s(reason: str) -> float:
+    reason_key = "".join(ch if ch.isalnum() else "_" for ch in reason.upper()).strip("_")
+    specific = f"ASK2ACT_STRETCH_HOME_SETTLE_{reason_key}_S" if reason_key else ""
+    raw = os.getenv(specific, os.getenv("ASK2ACT_STRETCH_HOME_SETTLE_S", "2.0"))
+    return max(0.0, float(raw))
+
+
+def _base_return_wait_timeout_s(reason: str) -> float:
+    reason_key = "".join(ch if ch.isalnum() else "_" for ch in reason.upper()).strip("_")
+    specific = f"ASK2ACT_STRETCH_BASE_ROTATE_RETURN_WAIT_TIMEOUT_{reason_key}_S" if reason_key else ""
+    raw = os.getenv(specific, os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_RETURN_WAIT_TIMEOUT_S", "12.0"))
+    return max(0.0, float(raw))
+
+
 def _map_stretch_gripper_target(target: float) -> tuple[float, str]:
     """Map planner gripper commands to the real Stretch Body gripper units."""
     mode = _gripper_command_mode()
@@ -125,7 +139,7 @@ def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> 
     robot.end_of_arm.move_to("wrist_roll", targets["wrist_roll"])
     robot.lift.move_to(targets["lift"])
     robot.push_command()
-    settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_HOME_SETTLE_S", "2.0")))
+    settle_s = _home_settle_s(reason)
     if settle_s > 0.0:
         time.sleep(settle_s)
     try:
@@ -143,6 +157,76 @@ def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> 
         "settle_s": settle_s,
         "status_before": status_before,
         "status_after": status_after,
+    }
+
+
+def _command_gripper_release(robot: Any, *, reason: str) -> dict[str, Any]:
+    planner_target = float(
+        os.getenv(
+            "ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD",
+            os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "100.0"),
+        )
+    )
+    command_target, command_mode = _map_stretch_gripper_target(planner_target)
+    verify = _truthy("ASK2ACT_STRETCH_RELEASE_GRIPPER_VERIFY", "0")
+    status_before = _status_snapshot(robot) if verify else {"skipped": True, "reason": "release_verify_disabled"}
+    robot.end_of_arm.move_to("stretch_gripper", command_target)
+    robot.push_command()
+
+    settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_RELEASE_GRIPPER_SETTLE_S", "0.35")))
+    timeout_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_RELEASE_GRIPPER_WAIT_TIMEOUT_S", "2.0")))
+    open_threshold: float | None = None
+    actual: float | None = None
+    release_reached: bool | None = None
+    samples: list[dict[str, float | None]] = []
+    if settle_s > 0.0:
+        time.sleep(settle_s)
+    if verify:
+        open_threshold = float(
+            os.getenv(
+                "ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_PCT"
+                if _gripper_command_mode() == "real_pct"
+                else "ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_POS",
+                "80.0",
+            )
+        )
+        planner_open_threshold = float(os.getenv("ASK2ACT_STRETCH_GRIPPER_OPEN_ACCEPT_PLANNER_POS", "0.45"))
+        started_at = time.monotonic()
+        release_reached = False
+        while time.monotonic() - started_at <= timeout_s:
+            actual = _read_joint_position(robot, "stretch_gripper")
+            samples.append(
+                {
+                    "elapsed_s": round(time.monotonic() - started_at, 3),
+                    "actual": None if actual is None else float(actual),
+                }
+            )
+            if actual is None:
+                if time.monotonic() - started_at >= min(0.5, timeout_s):
+                    break
+            elif actual >= open_threshold or (actual <= 1.5 and actual >= planner_open_threshold):
+                release_reached = True
+                break
+            time.sleep(0.05)
+
+    return {
+        "name": f"release_gripper_{reason}",
+        "joint_targets": {"stretch_gripper": planner_target},
+        "command_targets": {"stretch_gripper": command_target},
+        "gripper_command_mode": command_mode,
+        "ok": True,
+        "release_verify": verify,
+        "release_reached": release_reached,
+        "warning": None
+        if not verify or release_reached
+        else "release command sent but open threshold was not verified before the short timeout",
+        "settle_s": settle_s,
+        "timeout_s": timeout_s,
+        "open_threshold": open_threshold,
+        "actual": None if actual is None else float(actual),
+        "samples": samples[-6:],
+        "status_before": status_before,
+        "status_after": _status_snapshot(robot) if verify else {"skipped": True, "reason": "release_verify_disabled"},
     }
 
 
@@ -186,7 +270,7 @@ def _command_return_base_rotate_to_reference(robot: Any, *, base_reference_theta
     wait_result = _wait_for_base_theta(
         robot,
         target_theta=float(base_reference_theta),
-        timeout_s=float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_RETURN_WAIT_TIMEOUT_S", "12.0")),
+        timeout_s=_base_return_wait_timeout_s(reason),
         tolerance_rad=float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_WAIT_TOLERANCE_RAD", "0.035")),
     )
     result.update(
@@ -294,6 +378,14 @@ def _joint_tolerance(joint_name: str, waypoint_name: str) -> float:
     return tolerance
 
 
+def _is_fast_cleanup_waypoint(waypoint_name: str) -> bool:
+    raw = os.getenv(
+        "ASK2ACT_STRETCH_FAST_CLEANUP_WAYPOINTS",
+        "retract_arm_after_grasp,return_base_rotate_after_grasp",
+    )
+    return waypoint_name in {item.strip() for item in raw.split(",") if item.strip()}
+
+
 def _joint_timeout_s(joint_name: str, waypoint_name: str) -> float:
     default = float(os.getenv("ASK2ACT_STRETCH_JOINT_WAIT_TIMEOUT_S", "20.0"))
     if joint_name == "lift":
@@ -306,6 +398,8 @@ def _joint_timeout_s(joint_name: str, waypoint_name: str) -> float:
         default = float(os.getenv("ASK2ACT_STRETCH_WRIST_WAIT_TIMEOUT_S", str(default)))
     if waypoint_name == "descend_to_grasp":
         default = float(os.getenv("ASK2ACT_STRETCH_DESCEND_WAIT_TIMEOUT_S", str(default)))
+    if _is_fast_cleanup_waypoint(waypoint_name):
+        default = min(default, float(os.getenv("ASK2ACT_STRETCH_CLEANUP_JOINT_WAIT_TIMEOUT_S", "2.0")))
     return max(0.0, default)
 
 
@@ -812,10 +906,16 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                         wait_target = wait_targets.get(joint_name_str, float(target))
                         if joint_name_str == "base_rotate":
                             target_theta = base_reference_theta + float(wait_target)
+                            rotate_timeout_s = float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_WAIT_TIMEOUT_S", "12.0"))
+                            if _is_fast_cleanup_waypoint(name):
+                                rotate_timeout_s = min(
+                                    rotate_timeout_s,
+                                    float(os.getenv("ASK2ACT_STRETCH_CLEANUP_BASE_ROTATE_WAIT_TIMEOUT_S", "3.0")),
+                                )
                             wait_result = _wait_for_base_theta(
                                 robot,
                                 target_theta=target_theta,
-                                timeout_s=float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_WAIT_TIMEOUT_S", "12.0")),
+                                timeout_s=rotate_timeout_s,
                                 tolerance_rad=float(os.getenv("ASK2ACT_STRETCH_BASE_ROTATE_WAIT_TOLERANCE_RAD", "0.035")),
                             )
                             wait_result["required"] = _wait_required_for_joint(joint_name_str)
@@ -845,6 +945,11 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                         else:
                             raise RuntimeError(f"{name}: failed to reach waypoint targets: {failed_waits}")
                     settle_s = max(default_settle_s, float(waypoint.get("settle_s") or 0.0))
+                    if _is_fast_cleanup_waypoint(name):
+                        settle_s = min(
+                            settle_s,
+                            max(0.0, float(os.getenv("ASK2ACT_STRETCH_CLEANUP_WAYPOINT_MAX_SETTLE_S", "0.25"))),
+                        )
                     if settle_s > 0.0:
                         time.sleep(settle_s)
                     check_deadline(f"{name} after_settle")
@@ -867,6 +972,16 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                     )
                     trace.append(waypoint_trace)
                     raise
+            return_base_on_end = _truthy("ASK2ACT_STRETCH_RETURN_BASE_ROTATE_ON_EXECUTE_END", "1")
+            return_base_before_home = _truthy("ASK2ACT_STRETCH_RETURN_BASE_ROTATE_BEFORE_HOME_ON_EXECUTE_END", "1")
+            if return_base_on_end and return_base_before_home:
+                trace.append(
+                    _command_return_base_rotate_to_reference(
+                        robot,
+                        base_reference_theta=base_reference_theta,
+                        reason="execute_end",
+                    )
+                )
             if _truthy("ASK2ACT_STRETCH_HOME_POSE_ON_EXECUTE_END", "1"):
                 trace.append(
                     _command_default_pose(
@@ -875,7 +990,9 @@ def _execute_trajectory(trajectory: list[dict[str, Any]]) -> list[dict[str, Any]
                         reason="execute_end",
                     )
                 )
-            if _truthy("ASK2ACT_STRETCH_RETURN_BASE_ROTATE_ON_EXECUTE_END", "1"):
+            if _truthy("ASK2ACT_STRETCH_RELEASE_GRIPPER_ON_EXECUTE_END", "1"):
+                trace.append(_command_gripper_release(robot, reason="execute_end"))
+            if return_base_on_end and not return_base_before_home:
                 trace.append(
                     _command_return_base_rotate_to_reference(
                         robot,
