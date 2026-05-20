@@ -159,7 +159,7 @@ def _home_verify_tolerance(joint_name: str) -> float:
 
 def _verify_default_pose_for_camera(robot: Any, targets: dict[str, float]) -> dict[str, Any]:
     joints = _csv_env("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_JOINTS", "lift,arm")
-    timeout_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_TIMEOUT_S", "6.0")))
+    timeout_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_TIMEOUT_S", "10.0")))
     started_at = time.monotonic()
     results: dict[str, dict[str, Any]] = {}
     pending = set(joints)
