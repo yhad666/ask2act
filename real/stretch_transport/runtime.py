@@ -244,6 +244,8 @@ class StretchRobotRuntime:
             head_tilt=head_tilt,
             mode="manual_ui",
             write_stamp=False,
+            persist_override=persist,
+            pose_source={"source": "manual_ui_request"},
         )
         result["persisted_for_future_observations"] = persist
         result["video_running"] = self.video_manager.is_running()

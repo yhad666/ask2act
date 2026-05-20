@@ -39,6 +39,47 @@ def _head_pose_stamp_path() -> Path:
     return Path(raw).expanduser()
 
 
+def _head_pose_override_path() -> Path:
+    raw = os.getenv(
+        "ASK2ACT_STRETCH_HEAD_POSE_OVERRIDE_PATH",
+        str(_artifact_root().parent / "head_pose_override.json"),
+    )
+    return Path(raw).expanduser()
+
+
+def _load_head_pose_override() -> dict | None:
+    if not _truthy("ASK2ACT_STRETCH_HEAD_POSE_OVERRIDE_ENABLED", "1"):
+        return None
+    path = _head_pose_override_path()
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return {
+            "head_pan": float(payload["head_pan_rad"]),
+            "head_tilt": float(payload["head_tilt_rad"]),
+            "source": "manual_override",
+            "path": str(path),
+            "saved_at_epoch_s": payload.get("saved_at_epoch_s"),
+        }
+    except Exception:
+        return None
+
+
+def _save_head_pose_override(head_pan: float, head_tilt: float, *, source: str = "manual_ui") -> dict:
+    path = _head_pose_override_path()
+    payload = {
+        "head_pan_rad": float(head_pan),
+        "head_tilt_rad": float(head_tilt),
+        "source": source,
+        "saved_at_epoch_s": time.time(),
+        "note": "Manual head pose override used by future Ask2Act observations and video starts.",
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return {"path": str(path), **payload}
+
+
 def _head_pose_mode() -> str:
     raw = os.getenv("ASK2ACT_STRETCH_INIT_HEAD_POSE_MODE", "once_per_server").strip().lower()
     if raw in {"", "once", "once_per_server"}:
@@ -297,6 +338,16 @@ def _ensure_initial_head_pose() -> dict | None:
     if mode == "disabled":
         return None
 
+    override = _load_head_pose_override()
+    if override is not None:
+        return _command_head_pose(
+            head_pan=float(override["head_pan"]),
+            head_tilt=float(override["head_tilt"]),
+            mode="manual_override",
+            write_stamp=False,
+            pose_source=override,
+        )
+
     stamp_path = _head_pose_stamp_path()
     if mode == "once_per_server" and stamp_path.exists():
         return None
@@ -312,6 +363,8 @@ def _command_head_pose(
     head_tilt: float,
     mode: str = "manual",
     write_stamp: bool = False,
+    persist_override: bool = False,
+    pose_source: dict | None = None,
 ) -> dict:
     try:
         import stretch_body.robot
@@ -400,8 +453,11 @@ def _command_head_pose(
             "tilt_error_rad": tilt_error,
             "settle_s": settle_s,
             "tolerance_rad": tolerance_rad,
+            "pose_source": pose_source or {"source": mode},
             "camera_extrinsics": _camera_extrinsics_payload(actual_pan, actual_tilt),
         }
+        if persist_override:
+            payload["manual_override"] = _save_head_pose_override(actual_pan, actual_tilt, source=mode)
         if write_stamp:
             stamp_path.parent.mkdir(parents=True, exist_ok=True)
             stamp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

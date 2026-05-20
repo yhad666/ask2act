@@ -274,9 +274,11 @@ The robot server also supports experiment video through the same D435i stream:
   robot-side MP4 is deleted after transfer
 
 The `/online` page can manually command the head camera pan/tilt. The robot
-server persists that pose for future observations in the running process, and
-each observation includes camera extrinsics recomputed for the current head pose
-so point-cloud grasp planning stays aligned with the adjusted view.
+server saves that pose to `head_pose_override.json`, and future observations
+and video starts use the override instead of silently returning to the default
+environment angle. Each observation includes camera extrinsics recomputed for
+the current head pose so point-cloud grasp planning stays aligned with the
+adjusted view.
 
 For the online experiment, keep:
 

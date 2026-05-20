@@ -863,9 +863,10 @@
             " tilt=" + fmt(pose.commanded_head_tilt_rad, 3) +
             " actual pan=" + fmt(pose.actual_head_pan_rad, 3) +
             " tilt=" + fmt(pose.actual_head_tilt_rad, 3) +
+            (pose.manual_override && pose.manual_override.path ? " - saved override" : "") +
             (pose.video_running ? " - video running" : "")
           );
-          setBanner("ok", "Head camera pose updated for future observations.");
+          setBanner("ok", "Head camera pose saved as the robot-side override for future observations.");
         }, function (err) {
           clearBusy();
           setBanner("err", err);

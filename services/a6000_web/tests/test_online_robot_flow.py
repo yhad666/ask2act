@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import time
 
 import pytest
@@ -270,6 +271,66 @@ def test_online_head_pose_command_is_forwarded(monkeypatch):
     assert response.status_code == 200
     assert calls == [(-1.5, -0.62, True)]
     assert response.json()["head_pose"]["actual_head_tilt_rad"] == -0.62
+
+
+def test_robot_head_pose_override_drives_future_observations(tmp_path, monkeypatch):
+    from real.stretch_transport.scripts import capture_observation
+
+    override_path = tmp_path / "head_pose_override.json"
+    override_path.write_text(
+        json.dumps(
+            {
+                "head_pan_rad": -1.42,
+                "head_tilt_rad": -0.51,
+                "source": "manual_ui",
+                "saved_at_epoch_s": 123.0,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ASK2ACT_STRETCH_HEAD_POSE_OVERRIDE_PATH", str(override_path))
+    monkeypatch.setenv("ASK2ACT_STRETCH_HEAD_POSE_STAMP_PATH", str(tmp_path / "stamp.json"))
+    monkeypatch.setenv("ASK2ACT_STRETCH_INIT_HEAD_POSE_MODE", "once_per_server")
+    monkeypatch.setenv("ASK2ACT_STRETCH_INIT_HEAD_PAN_RAD", "-1.57")
+    monkeypatch.setenv("ASK2ACT_STRETCH_INIT_HEAD_TILT_RAD", "-0.68")
+    calls = []
+
+    def fake_command_head_pose(**kwargs):
+        calls.append(kwargs)
+        return {
+            "ok": True,
+            "commanded_head_pan_rad": kwargs["head_pan"],
+            "commanded_head_tilt_rad": kwargs["head_tilt"],
+            "actual_head_pan_rad": kwargs["head_pan"],
+            "actual_head_tilt_rad": kwargs["head_tilt"],
+            "pose_source": kwargs.get("pose_source"),
+            "camera_extrinsics": capture_observation._camera_extrinsics_payload(
+                kwargs["head_pan"], kwargs["head_tilt"]
+            ),
+        }
+
+    monkeypatch.setattr(capture_observation, "_command_head_pose", fake_command_head_pose)
+
+    result = capture_observation._ensure_initial_head_pose()
+
+    assert calls
+    assert calls[0]["head_pan"] == -1.42
+    assert calls[0]["head_tilt"] == -0.51
+    assert calls[0]["mode"] == "manual_override"
+    assert calls[0]["pose_source"]["source"] == "manual_override"
+    assert result["camera_extrinsics"]["head_pan_rad"] == -1.42
+    assert result["camera_extrinsics"]["head_tilt_rad"] == -0.51
+
+
+def test_camera_extrinsics_follow_head_angle():
+    from real.stretch_transport.scripts import capture_observation
+
+    left = capture_observation._camera_extrinsics_payload(-1.42, -0.51)
+    default = capture_observation._camera_extrinsics_payload(-1.57, -0.68)
+
+    assert left["head_pan_rad"] == -1.42
+    assert left["head_tilt_rad"] == -0.51
+    assert left["camera_to_world"] != default["camera_to_world"]
 
 
 def test_oversized_base_reach_refuses_before_robot_motion(monkeypatch):
