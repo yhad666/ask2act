@@ -91,8 +91,11 @@ def serve(bind_endpoint: str) -> None:
                 LOG.exception("Stretch transport request failed")
                 reply = {"ok": False, "error": str(exc)}
             sock.send_json(reply)
-    except KeyboardInterrupt:
-        LOG.info("Stretch transport server stopped")
+    except BaseException as exc:
+        if isinstance(exc, KeyboardInterrupt) or exc.__class__.__name__ == "ThreadServiceExit":
+            LOG.info("Stretch transport server stopped")
+        else:
+            raise
     finally:
         sock.close()
 
