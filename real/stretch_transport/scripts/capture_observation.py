@@ -219,6 +219,19 @@ def _home_verify_tolerance(joint_name: str) -> float:
     return max(0.0, float(os.getenv(key, defaults.get(joint_name, "0.05"))))
 
 
+def _camera_safe_joint_ok(joint_name: str, actual: float | None, target: float, tolerance: float) -> tuple[bool, str]:
+    if actual is None:
+        return False, "unreadable"
+    if joint_name == "lift":
+        # For camera clearance, being higher than the requested observe-start
+        # lift is safe; only being too low can block the D435i view.
+        return actual + tolerance >= target, "min"
+    if joint_name == "arm":
+        # The arm must be retracted, but it does not need to hit exactly zero.
+        return actual <= target + tolerance, "max"
+    return abs(target - actual) <= tolerance, "exact"
+
+
 def _verify_default_pose_for_camera(robot: Any, targets: dict[str, float]) -> dict[str, Any]:
     joints = _csv_env("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_JOINTS", "lift,arm")
     timeout_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_TIMEOUT_S", "10.0")))
@@ -234,13 +247,16 @@ def _verify_default_pose_for_camera(robot: Any, targets: dict[str, float]) -> di
             tolerance = _home_verify_tolerance(joint_name)
             target = float(targets[joint_name])
             error = None if actual is None else float(target - actual)
+            ok, mode = _camera_safe_joint_ok(joint_name, actual, target, tolerance)
             results[joint_name] = {
                 "target": target,
                 "actual": None if actual is None else float(actual),
                 "error": error,
                 "tolerance": tolerance,
+                "mode": mode,
+                "ok": ok,
             }
-            if actual is not None and abs(error or 0.0) <= tolerance:
+            if ok:
                 pending.remove(joint_name)
         if pending:
             time.sleep(0.05)

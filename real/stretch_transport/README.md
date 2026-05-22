@@ -128,9 +128,11 @@ That makes each trial actively point the head camera at the tabletop before
 capturing RGB-D. `HOME_POSE_ON_OBSERVE=1` moves the arm/lift/wrist to a low
 camera-safe pose before starting a normal capture and before opening the shared
 video camera stream. The observe path verifies only `lift` and `arm` before the
-camera starts; if they are still not in the non-occluding pose, capture fails
-early instead of producing an empty target point cloud. The gripper flags leave
-the gripper unchanged during observe/home and execute-start/failure homing.
+camera starts: lift is treated as a minimum safe clearance, and arm is treated
+as a maximum safe extension. If they are still not in the non-occluding pose,
+capture fails early instead of producing an empty target point cloud. The
+gripper flags leave the gripper unchanged during observe/home and
+execute-start/failure homing.
 After a successful grasp trajectory, the cleanup path rotates the base back,
 sends the same low pose to avoid blocking the camera, then opens the gripper
 with a short fire-and-forget command so the robot does not keep holding the

@@ -333,6 +333,48 @@ def test_camera_extrinsics_follow_head_angle():
     assert left["camera_to_world"] != default["camera_to_world"]
 
 
+def test_camera_safe_observe_verify_uses_clearance_bounds(monkeypatch):
+    from real.stretch_transport.scripts import capture_observation
+
+    readings = {"lift": 0.50, "arm": 0.02}
+
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_JOINTS", "lift,arm")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_TIMEOUT_S", "0.1")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_VERIFY_TOLERANCE_LIFT", "0.035")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_VERIFY_TOLERANCE_ARM", "0.025")
+    monkeypatch.setattr(capture_observation, "_read_joint_position", lambda _robot, joint: readings[joint])
+
+    result = capture_observation._verify_default_pose_for_camera(
+        object(),
+        {"lift": 0.45, "arm": 0.0},
+    )
+
+    assert result["ok"] is True
+    assert result["pending_joints"] == []
+    assert result["joints"]["lift"]["mode"] == "min"
+    assert result["joints"]["arm"]["mode"] == "max"
+
+
+def test_camera_safe_observe_verify_rejects_low_lift(monkeypatch):
+    from real.stretch_transport.scripts import capture_observation
+
+    readings = {"lift": 0.40, "arm": 0.0}
+
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_JOINTS", "lift,arm")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_TIMEOUT_S", "0.1")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_VERIFY_TOLERANCE_LIFT", "0.035")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_VERIFY_TOLERANCE_ARM", "0.025")
+    monkeypatch.setattr(capture_observation, "_read_joint_position", lambda _robot, joint: readings[joint])
+
+    result = capture_observation._verify_default_pose_for_camera(
+        object(),
+        {"lift": 0.45, "arm": 0.0},
+    )
+
+    assert result["ok"] is False
+    assert result["pending_joints"] == ["lift"]
+
+
 def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
     web_server.grasp_runtime._ensure_grasp_import_path()
     from ask2act_grasp.planning import motion_planner as mp
