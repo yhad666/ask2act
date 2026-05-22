@@ -175,6 +175,25 @@
             </div>
             <div class="trial-fields">
               <div>
+                <label>Side X Bias m</label>
+                <input id="sideXBiasInput" type="number" step="0.005" value="0.020" />
+              </div>
+              <div>
+                <label>Side Deadband m</label>
+                <input id="sideXDeadbandInput" type="number" step="0.005" value="0.050" />
+              </div>
+              <div>
+                <label>Quick Side Bias</label>
+                <select id="sideXBiasPresetInput">
+                  <option value="0.020">outer 0.020</option>
+                  <option value="0.015">outer 0.015</option>
+                  <option value="0.010">outer 0.010</option>
+                  <option value="0.000">off 0.000</option>
+                </select>
+              </div>
+            </div>
+            <div class="trial-fields">
+              <div>
                 <label>Stretch Open Cmd</label>
                 <input id="stretchOpenCmdInput" type="number" step="1" value="100" />
               </div>
@@ -195,6 +214,7 @@
             <div class="actions">
               <button class="secondary" id="loadGraspTuningBtn">Load Current</button>
               <button class="ghost" id="applyRubberYPresetBtn">Apply Y Preset</button>
+              <button class="ghost" id="applySideXPresetBtn">Apply Side Preset</button>
               <button class="primary" id="saveGraspTuningBtn">Save Runtime Tuning</button>
             </div>
             <div class="meta" id="graspTuningStatusText" style="margin-top:8px;">Planner open and Stretch open should stay at full-open defaults unless testing.</div>
@@ -984,6 +1004,8 @@
         setValue("rubberCorrZInput", fmt(tuning.rubber_local_z_correction_m, 3));
         setValue("approxCorrXInput", fmt(tuning.approx_topdown_x_correction_m, 3));
         setValue("approxCorrYInput", fmt(tuning.approx_topdown_y_correction_m, 3));
+        setValue("sideXBiasInput", fmt(tuning.side_x_bias_m, 3));
+        setValue("sideXDeadbandInput", fmt(tuning.side_x_bias_deadband_m, 3));
         setValue("plannerOpenCmdInput", fmt(tuning.gripper_open_cmd_override, 2));
         setValue("stretchOpenCmdInput", fmt(tuning.stretch_gripper_real_open_cmd, 0));
         setValue("stretchReleaseCmdInput", fmt(tuning.stretch_release_gripper_cmd, 0));
@@ -992,7 +1014,8 @@
           "rubber=(" + fmt(tuning.rubber_local_x_correction_m, 3) + ", " +
           fmt(tuning.rubber_local_y_correction_m, 3) + ", " +
           fmt(tuning.rubber_local_z_correction_m, 3) + ") planner_open=" +
-          fmt(tuning.gripper_open_cmd_override, 2) + " stretch_open=" +
+          fmt(tuning.gripper_open_cmd_override, 2) + " side_x=" +
+          fmt(tuning.side_x_bias_m, 3) + " stretch_open=" +
           fmt(tuning.stretch_gripper_real_open_cmd, 0)
         );
       }
@@ -1005,6 +1028,9 @@
       function applyRubberYPreset() {
         setValue("rubberCorrYInput", Number(value("rubberYPresetInput") || -0.045).toFixed(3));
       }
+      function applySideXPreset() {
+        setValue("sideXBiasInput", Number(value("sideXBiasPresetInput") || 0.02).toFixed(3));
+      }
       function saveGraspTuning() {
         var payload = {
           rubber_local_x_correction_m: numericInput("rubberCorrXInput", 0.0),
@@ -1012,6 +1038,8 @@
           rubber_local_z_correction_m: numericInput("rubberCorrZInput", 0.0),
           approx_topdown_x_correction_m: numericInput("approxCorrXInput", 0.045),
           approx_topdown_y_correction_m: numericInput("approxCorrYInput", 0.0),
+          side_x_bias_m: numericInput("sideXBiasInput", 0.02),
+          side_x_bias_deadband_m: numericInput("sideXDeadbandInput", 0.05),
           gripper_open_cmd_override: numericInput("plannerOpenCmdInput", 0.56),
           stretch_gripper_real_open_cmd: numericInput("stretchOpenCmdInput", 100.0),
           stretch_release_gripper_cmd: numericInput("stretchReleaseCmdInput", 100.0)
@@ -1055,6 +1083,7 @@
         $("setHeadPoseBtn").onclick = setHeadPose;
         $("loadGraspTuningBtn").onclick = function () { loadGraspTuning(true); };
         $("applyRubberYPresetBtn").onclick = applyRubberYPreset;
+        $("applySideXPresetBtn").onclick = applySideXPreset;
         $("saveGraspTuningBtn").onclick = saveGraspTuning;
         window.ask2actOnline = { loadExperiment: loadExperiment, loadTrial: loadTrial, startTrial: startTrial };
         renderHeadPresets();

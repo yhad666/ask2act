@@ -282,9 +282,10 @@ adjusted view.
 
 The `/online` page also exposes grasp tuning for the real top-down policy:
 rubber local XYZ correction, approximate fallback XY correction, planner
-open-gripper command, and Stretch real open/release commands. Saving those
-values updates the A6000 planner process immediately; Stretch-side gripper
-commands are sent to the robot server and inherited by later execution hooks.
+open-gripper command, automatic side-X bias for left/right targets, and Stretch
+real open/release commands. Saving those values updates the A6000 planner
+process immediately; Stretch-side gripper commands are sent to the robot server
+and inherited by later execution hooks.
 
 For the online experiment, keep:
 

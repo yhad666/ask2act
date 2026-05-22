@@ -1331,6 +1331,64 @@ def test_motion_planner_uses_simple_ik_when_available():
     assert targets["fk_error_m"] < 1e-6
 
 
+def test_motion_planner_applies_side_x_bias_for_lateral_targets():
+    from ask2act_grasp.planning import motion_planner as motion_planner_module
+
+    scene_config, _ = load_scene_config(PACKAGE_ROOT / "config" / "scene_config.yaml")
+    grasp_config = load_grasp_config(PACKAGE_ROOT / "config" / "grasp_config.yaml")
+    planner = MotionPlanner(scene_config, grasp_config)
+    original_bias = motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M
+    original_deadband = motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M
+    original_fk_threshold = motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M
+
+    class FakeSimpleIK:
+        def ik_rotary_base(self, _wrist_position):
+            return {
+                "joint_mobile_base_rotation": 0.0,
+                "joint_lift": 0.91,
+                "joint_arm_l0": 0.31,
+            }
+
+        def clip_with_joint_limits(self, _robot_configuration):
+            return None
+
+        def fk_rotary_base(self, _robot_configuration):
+            return [0.0, 0.0, 0.0]
+
+    try:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M = 0.02
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M = 0.05
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = 0.0
+        planner.simple_ik = FakeSimpleIK()
+        base_grasp = {
+            "grasp_y": -0.60,
+            "grasp_z": 0.83,
+            "gripper_open_width": 0.08,
+            "grip_angle_rad": 0.0,
+            "min_cross_section_width": 0.06,
+            "object_height": 0.10,
+            "object_top_z": 0.90,
+            "object_bottom_z": 0.80,
+            "grasp_point_validated": True,
+            "width_near_limit": False,
+        }
+
+        left_targets = planner.geometric_grasp_targets({**base_grasp, "grasp_x": 0.12})
+        right_targets = planner.geometric_grasp_targets({**base_grasp, "grasp_x": -0.12})
+        center_targets = planner.geometric_grasp_targets({**base_grasp, "grasp_x": 0.02})
+
+        assert left_targets["contact_point"][0] == pytest.approx(0.14)
+        assert left_targets["side_x_bias_applied_m"] == pytest.approx(0.02)
+        assert right_targets["contact_point"][0] == pytest.approx(-0.14)
+        assert right_targets["side_x_bias_applied_m"] == pytest.approx(-0.02)
+        assert center_targets["contact_point"][0] == pytest.approx(0.02)
+        assert center_targets["side_x_bias_applied_m"] == pytest.approx(0.0)
+    finally:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M = original_bias
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M = original_deadband
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = original_fk_threshold
+
+
 def test_motion_planner_simple_ik_accounts_for_base_translation():
     scene_config, _ = load_scene_config(PACKAGE_ROOT / "config" / "scene_config.yaml")
     grasp_config = load_grasp_config(PACKAGE_ROOT / "config" / "grasp_config.yaml")

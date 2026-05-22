@@ -57,6 +57,10 @@ GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M = float(
 GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M", "0.0")
 )
+GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M", "0.02"))
+GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M", "0.05")
+)
 GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE = (
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE", "1").strip().lower()
     in {"1", "true", "yes", "on"}
@@ -341,6 +345,11 @@ class MotionPlanner:
         if current_state is not None:
             base_world_translation[0] = float(current_state.get("base_x", 0.0))
             base_world_translation[1] = float(current_state.get("base_y", 0.0))
+        lateral_x_m = float(desired_rubber_xyz[0] - base_world_translation[0])
+        side_x_bias_applied_m = 0.0
+        if abs(lateral_x_m) > GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M:
+            side_x_bias_applied_m = float(math.copysign(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M, lateral_x_m))
+            desired_rubber_xyz[0] += side_x_bias_applied_m
         gripper_open_cmd = self._topdown_gripper_open_cmd(requested_open_width)
         wrist_to_grasp_center_local = np.asarray(topdown_wrist_to_grasp_center_offset_m(), dtype=float)
         grasp_center_to_rubber_local = np.asarray(topdown_grasp_center_to_rubber_offset_m(gripper_open_cmd), dtype=float)
@@ -537,6 +546,9 @@ class MotionPlanner:
             "approach_direction": [0.0, 0.0, -1.0],
             "contact_point": desired_rubber_xyz.tolist(),
             "requested_contact_point": requested_rubber_xyz.tolist(),
+            "side_x_bias_applied_m": float(side_x_bias_applied_m),
+            "side_x_bias_config_m": float(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M),
+            "side_x_bias_deadband_m": float(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M),
             "rubber_local_correction_m": rubber_local_correction.tolist(),
             "planning_mode": planning_mode,
             "grip_angle_rad": float(grip_angle_rad),

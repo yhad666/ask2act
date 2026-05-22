@@ -339,6 +339,8 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
 
     original_rubber_y = mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M
     original_open = mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE
+    original_side_x = mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M
+    original_side_deadband = mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M
     calls = []
 
     class FakeStretchTransport:
@@ -354,6 +356,8 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
             "/api/online/grasp_tuning",
             json={
                 "rubber_local_y_correction_m": -0.03,
+                "side_x_bias_m": 0.02,
+                "side_x_bias_deadband_m": 0.05,
                 "gripper_open_cmd_override": 0.58,
                 "stretch_gripper_real_open_cmd": 100.0,
                 "stretch_release_gripper_cmd": 100.0,
@@ -363,8 +367,12 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
         assert response.status_code == 200
         data = response.json()
         assert data["tuning"]["rubber_local_y_correction_m"] == -0.03
+        assert data["tuning"]["side_x_bias_m"] == 0.02
+        assert data["tuning"]["side_x_bias_deadband_m"] == 0.05
         assert data["tuning"]["gripper_open_cmd_override"] == 0.58
         assert mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M == -0.03
+        assert mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M == 0.02
+        assert mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M == 0.05
         assert mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE == "0.58"
         assert calls == [
             {
@@ -374,6 +382,8 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
         ]
     finally:
         mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M = original_rubber_y
+        mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M = original_side_x
+        mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M = original_side_deadband
         mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE = original_open
 
 
