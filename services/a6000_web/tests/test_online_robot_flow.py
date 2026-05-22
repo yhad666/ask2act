@@ -375,6 +375,29 @@ def test_camera_safe_observe_verify_rejects_low_lift(monkeypatch):
     assert result["pending_joints"] == ["lift"]
 
 
+def test_stretch_close_gripper_wait_is_nonblocking_by_default(monkeypatch):
+    from real.stretch_transport.scripts import dispatch_grasp
+
+    def fail_read(*_args, **_kwargs):
+        raise AssertionError("close wait should not require reading final gripper closure")
+
+    monkeypatch.setenv("ASK2ACT_STRETCH_GRIPPER_COMMAND_MODE", "real_pct")
+    monkeypatch.setenv("ASK2ACT_STRETCH_GRIPPER_REAL_CLOSE_CMD", "-80.0")
+    monkeypatch.setenv("ASK2ACT_STRETCH_GRIPPER_CLOSE_VERIFY", "0")
+    monkeypatch.setenv("ASK2ACT_STRETCH_GRIPPER_CLOSE_SETTLE_S", "0.0")
+    monkeypatch.setattr(dispatch_grasp, "_read_joint_position", fail_read)
+
+    result = dispatch_grasp._wait_for_joint_target(
+        object(),
+        joint_name="stretch_gripper",
+        target=-80.0,
+        waypoint_name="close_gripper",
+    )
+
+    assert result["ok"] is True
+    assert result["close_verify"] is False
+
+
 def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
     web_server.grasp_runtime._ensure_grasp_import_path()
     from ask2act_grasp.planning import motion_planner as mp
@@ -410,6 +433,7 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
                 "max_top_grasp_delta_m": 0.07,
                 "gripper_open_cmd_override": 0.58,
                 "stretch_gripper_real_open_cmd": 100.0,
+                "stretch_gripper_real_close_cmd": -80.0,
                 "stretch_release_gripper_cmd": 100.0,
             },
         )
@@ -424,6 +448,7 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
         assert data["tuning"]["right_y_bias_m"] == -0.005
         assert data["tuning"]["max_top_grasp_delta_m"] == 0.07
         assert data["tuning"]["gripper_open_cmd_override"] == 0.58
+        assert data["tuning"]["stretch_gripper_real_close_cmd"] == -80.0
         assert mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M == -0.03
         assert mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M == 0.02
         assert mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M == 0.05
@@ -435,7 +460,9 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
         assert calls == [
             {
                 "ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD": 100.0,
+                "ASK2ACT_STRETCH_GRIPPER_REAL_CLOSE_CMD": -80.0,
                 "ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD": 100.0,
+                "ASK2ACT_STRETCH_GRIPPER_CLOSE_VERIFY": 0,
             }
         ]
     finally:

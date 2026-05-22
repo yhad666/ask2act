@@ -2286,6 +2286,7 @@ def _apply_motion_planner_tuning(updates: Dict[str, Any]) -> Dict[str, Any]:
 def get_online_grasp_tuning():
     stretch_env = {
         "stretch_gripper_real_open_cmd": os.getenv("ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD", "100.0"),
+        "stretch_gripper_real_close_cmd": os.getenv("ASK2ACT_STRETCH_GRIPPER_REAL_CLOSE_CMD", "-80.0"),
         "stretch_release_gripper_cmd": os.getenv(
             "ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD",
             os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "100.0"),
@@ -2304,10 +2305,16 @@ def set_online_grasp_tuning(request: OnlineGraspTuningRequest):
             value = float(updates["stretch_gripper_real_open_cmd"])
             os.environ["ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD"] = str(value)
             stretch_env["ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD"] = value
+        if updates.get("stretch_gripper_real_close_cmd") is not None:
+            value = float(updates["stretch_gripper_real_close_cmd"])
+            os.environ["ASK2ACT_STRETCH_GRIPPER_REAL_CLOSE_CMD"] = str(value)
+            stretch_env["ASK2ACT_STRETCH_GRIPPER_REAL_CLOSE_CMD"] = value
         if updates.get("stretch_release_gripper_cmd") is not None:
             value = float(updates["stretch_release_gripper_cmd"])
             os.environ["ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD"] = str(value)
             stretch_env["ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD"] = value
+        if stretch_env:
+            stretch_env["ASK2ACT_STRETCH_GRIPPER_CLOSE_VERIFY"] = 0
         stretch_result = None
         if stretch_env:
             stretch_result = stretch_transport.set_runtime_config(env=stretch_env)
@@ -2317,6 +2324,7 @@ def set_online_grasp_tuning(request: OnlineGraspTuningRequest):
             "stretch_result": stretch_result,
             "tuning": {**_current_motion_planner_tuning(), **{
                 "stretch_gripper_real_open_cmd": float(os.getenv("ASK2ACT_STRETCH_GRIPPER_REAL_OPEN_CMD", "100.0")),
+                "stretch_gripper_real_close_cmd": float(os.getenv("ASK2ACT_STRETCH_GRIPPER_REAL_CLOSE_CMD", "-80.0")),
                 "stretch_release_gripper_cmd": float(os.getenv("ASK2ACT_STRETCH_RELEASE_GRIPPER_CMD", os.getenv("ASK2ACT_STRETCH_HOME_GRIPPER_CMD", "100.0"))),
             }},
         }

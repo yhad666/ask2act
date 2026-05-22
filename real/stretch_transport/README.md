@@ -286,9 +286,12 @@ The `/online` page also exposes grasp tuning for the real top-down policy:
 rubber local XYZ correction, approximate fallback XY correction, planner
 open-gripper command, automatic side-X bias for left/right targets, an optional
 right-side extra X bias, side-aware Y bias, a top-distance cap for tall objects,
-and Stretch real open/release commands. Saving those values updates the A6000
-planner process immediately; Stretch-side gripper commands are sent to the
-robot server and inherited by later execution hooks.
+and Stretch real open/close/release commands. Saving those values updates the
+A6000 planner process immediately; Stretch-side gripper commands are sent to the
+robot server and inherited by later execution hooks. For thin utensils, close
+verification is disabled by default: the close command is sent with a short
+settle, but execution does not fail just because a held object prevents full
+closure.
 
 For the online experiment, keep:
 

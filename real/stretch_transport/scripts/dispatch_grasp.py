@@ -455,6 +455,27 @@ def _wait_for_joint_target(
     required = _wait_required_for_joint(joint_name)
     timeout_s = _joint_timeout_s(joint_name, waypoint_name)
     tolerance = _joint_tolerance(joint_name, waypoint_name)
+    if (
+        joint_name == "stretch_gripper"
+        and target <= float(os.getenv("ASK2ACT_STRETCH_GRIPPER_REAL_CLOSE_CMD", "-50.0")) + 1e-6
+        and not _truthy("ASK2ACT_STRETCH_GRIPPER_CLOSE_VERIFY", "0")
+    ):
+        settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_GRIPPER_CLOSE_SETTLE_S", "0.25")))
+        if settle_s > 0.0:
+            time.sleep(settle_s)
+        return {
+            "joint_name": joint_name,
+            "target": float(target),
+            "actual": None,
+            "ok": True,
+            "required": required,
+            "close_verify": False,
+            "settle_s": settle_s,
+            "warning": "close command sent; final gripper closure is not verified because an object may block full closure",
+            "timeout_s": timeout_s,
+            "tolerance": tolerance,
+            "samples": [],
+        }
     started_at = time.monotonic()
     samples: list[dict[str, float]] = []
     actual = _read_joint_position(robot, joint_name)

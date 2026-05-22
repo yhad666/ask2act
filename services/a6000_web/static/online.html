@@ -218,9 +218,15 @@
                 <input id="stretchOpenCmdInput" type="number" step="1" value="100" />
               </div>
               <div>
+                <label>Stretch Close Cmd</label>
+                <input id="stretchCloseCmdInput" type="number" step="1" value="-80" />
+              </div>
+              <div>
                 <label>Release Cmd</label>
                 <input id="stretchReleaseCmdInput" type="number" step="1" value="100" />
               </div>
+            </div>
+            <div class="trial-fields">
               <div>
                 <label>Quick Y Preset</label>
                 <select id="rubberYPresetInput">
@@ -1032,6 +1038,7 @@
         setValue("maxTopGraspDeltaInput", fmt(tuning.max_top_grasp_delta_m, 3));
         setValue("plannerOpenCmdInput", fmt(tuning.gripper_open_cmd_override, 2));
         setValue("stretchOpenCmdInput", fmt(tuning.stretch_gripper_real_open_cmd, 0));
+        setValue("stretchCloseCmdInput", fmt(tuning.stretch_gripper_real_close_cmd, 0));
         setValue("stretchReleaseCmdInput", fmt(tuning.stretch_release_gripper_cmd, 0));
         text(
           "graspTuningStatusText",
@@ -1044,7 +1051,8 @@
           fmt(tuning.left_center_y_bias_m, 3) + ", " +
           fmt(tuning.right_y_bias_m, 3) + ") top_delta=" +
           fmt(tuning.max_top_grasp_delta_m, 3) + " stretch_open=" +
-          fmt(tuning.stretch_gripper_real_open_cmd, 0)
+          fmt(tuning.stretch_gripper_real_open_cmd, 0) + " stretch_close=" +
+          fmt(tuning.stretch_gripper_real_close_cmd, 0)
         );
       }
       function loadGraspTuning(showBanner) {
@@ -1074,6 +1082,7 @@
           max_top_grasp_delta_m: numericInput("maxTopGraspDeltaInput", 0.07),
           gripper_open_cmd_override: numericInput("plannerOpenCmdInput", 0.56),
           stretch_gripper_real_open_cmd: numericInput("stretchOpenCmdInput", 100.0),
+          stretch_gripper_real_close_cmd: numericInput("stretchCloseCmdInput", -80.0),
           stretch_release_gripper_cmd: numericInput("stretchReleaseCmdInput", 100.0)
         };
         setBusy("Saving grasp tuning for subsequent plans...");
