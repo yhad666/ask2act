@@ -203,6 +203,55 @@ def test_point_cloud_generation_filters_below_table():
     assert result.filtered_point_count == 2
 
 
+def test_point_cloud_generation_can_use_target_mask():
+    generator = PointCloudGenerator()
+    depth = np.array(
+        [
+            [0.90, 0.91, 0.92],
+            [0.93, 0.94, 0.95],
+        ],
+        dtype=float,
+    )
+    mask = np.array(
+        [
+            [True, False, False],
+            [False, True, False],
+        ],
+        dtype=bool,
+    )
+    k = np.array([[100.0, 0.0, 1.0], [0.0, 100.0, 0.5], [0.0, 0.0, 1.0]])
+    result = generator.generate(
+        depth_image=depth,
+        camera_intrinsics=k,
+        camera_extrinsics=np.eye(4),
+        table_top_z_m=0.80,
+        table_margin_m=0.01,
+        z_min_m=0.2,
+        z_max_m=1.1,
+        target_bbox_2d=(0, 0, 3, 2),
+        target_mask_2d=mask,
+    )
+    assert result.filtered_point_count == 2
+    assert np.allclose(np.sort(result.camera_points_xyz[:, 2]), [0.90, 0.94])
+
+
+def test_point_cloud_generation_rejects_mismatched_target_mask_shape():
+    generator = PointCloudGenerator()
+    depth = np.ones((2, 3), dtype=float)
+    k = np.array([[100.0, 0.0, 1.0], [0.0, 100.0, 0.5], [0.0, 0.0, 1.0]])
+    with pytest.raises(ValueError, match="Depth/mask shape mismatch"):
+        generator.generate(
+            depth_image=depth,
+            camera_intrinsics=k,
+            camera_extrinsics=np.eye(4),
+            table_top_z_m=0.80,
+            table_margin_m=0.01,
+            z_min_m=0.2,
+            z_max_m=1.1,
+            target_mask_2d=np.ones((3, 2), dtype=bool),
+        )
+
+
 def test_point_cloud_crop_to_object_region_reduces_scene():
     generator = PointCloudGenerator()
     points = np.array(

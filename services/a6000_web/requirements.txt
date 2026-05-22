@@ -11,3 +11,4 @@ spacy>=3.7
 pydantic>=2.0
 pyzmq>=26.0
 urchin>=0.0.30
+segment-anything @ git+https://github.com/facebookresearch/segment-anything.git

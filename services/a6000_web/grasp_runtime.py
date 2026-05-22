@@ -29,6 +29,9 @@ class LocalGraspRuntime:
         self.run_root = run_root.strip()
         self.headless = bool(headless)
         self.show_viewer_ui = bool(show_viewer_ui)
+        self._sam_predictor: Any | None = None
+        self._sam_predictor_key: tuple[str, str, str] | None = None
+        self._sam_load_error: str | None = None
 
     def _bbox_to_int_tuple(self, bbox_xyxy: list[float]) -> tuple[int, int, int, int]:
         rounded = [int(round(float(value))) for value in bbox_xyxy]
@@ -139,6 +142,206 @@ class LocalGraspRuntime:
         image.save(path)
 
     @staticmethod
+    def _save_sam_mask_debug_image(
+        rgb_image,
+        bbox_xyxy: tuple[int, int, int, int],
+        mask_2d,
+        overlay_path: Path,
+        mask_path: Path,
+    ) -> None:
+        import numpy as np
+        from PIL import Image, ImageDraw
+
+        mask = np.asarray(mask_2d, dtype=bool)
+        Image.fromarray((mask.astype(np.uint8) * 255), mode="L").save(mask_path)
+        image = rgb_image.convert("RGBA")
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        alpha = np.zeros(mask.shape, dtype=np.uint8)
+        alpha[mask] = 105
+        color = np.zeros((*mask.shape, 4), dtype=np.uint8)
+        color[..., 0] = 0
+        color[..., 1] = 255
+        color[..., 2] = 128
+        color[..., 3] = alpha
+        overlay = Image.fromarray(color, mode="RGBA")
+        image = Image.alpha_composite(image, overlay)
+        ImageDraw.Draw(image).rectangle(list(bbox_xyxy), outline=(54, 193, 255, 255), width=5)
+        image.convert("RGB").save(overlay_path)
+
+    @staticmethod
+    def _mask_stats(mask_2d) -> Dict[str, Any]:
+        import numpy as np
+
+        mask = np.asarray(mask_2d, dtype=bool)
+        ys, xs = np.where(mask)
+        stats: Dict[str, Any] = {
+            "mask_shape_hw": [int(mask.shape[0]), int(mask.shape[1])],
+            "mask_pixels": int(np.count_nonzero(mask)),
+        }
+        if xs.size:
+            stats["mask_bbox_xyxy"] = [int(xs.min()), int(ys.min()), int(xs.max() + 1), int(ys.max() + 1)]
+        return stats
+
+    @staticmethod
+    def _env_flag(name: str, default: str = "0") -> bool:
+        return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _load_sam_predictor(self) -> tuple[Any | None, Dict[str, Any]]:
+        enabled = self._env_flag("ASK2ACT_REAL_USE_SAM_MASK", "1")
+        model_type = os.getenv("ASK2ACT_SAM_MODEL_TYPE", "vit_b").strip() or "vit_b"
+        checkpoint = os.getenv("ASK2ACT_SAM_CHECKPOINT", "").strip()
+        device = os.getenv("ASK2ACT_SAM_DEVICE", "").strip()
+        if not enabled:
+            return None, {"enabled": False, "used": False, "source": "disabled_by_env"}
+        if not checkpoint:
+            return None, {
+                "enabled": True,
+                "used": False,
+                "source": "missing_checkpoint",
+                "error": "Set ASK2ACT_SAM_CHECKPOINT to a Segment Anything checkpoint path.",
+                "model_type": model_type,
+            }
+        checkpoint_path = Path(checkpoint).expanduser()
+        if not checkpoint_path.exists():
+            return None, {
+                "enabled": True,
+                "used": False,
+                "source": "missing_checkpoint_file",
+                "error": f"SAM checkpoint does not exist: {checkpoint_path}",
+                "model_type": model_type,
+                "checkpoint": str(checkpoint_path),
+            }
+
+        key = (model_type, str(checkpoint_path), device)
+        if self._sam_predictor is not None and self._sam_predictor_key == key:
+            return self._sam_predictor, {
+                "enabled": True,
+                "used": True,
+                "source": "segment_anything",
+                "model_type": model_type,
+                "checkpoint": str(checkpoint_path),
+                "device": device or "auto",
+            }
+        if self._sam_load_error is not None and self._sam_predictor_key == key:
+            return None, {
+                "enabled": True,
+                "used": False,
+                "source": "load_error",
+                "error": self._sam_load_error,
+                "model_type": model_type,
+                "checkpoint": str(checkpoint_path),
+                "device": device or "auto",
+            }
+
+        self._sam_predictor_key = key
+        try:
+            import torch
+            from segment_anything import SamPredictor, sam_model_registry
+
+            if model_type not in sam_model_registry:
+                raise RuntimeError(f"Unsupported SAM model type {model_type!r}; choose one of {sorted(sam_model_registry)}")
+            resolved_device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+            sam_model = sam_model_registry[model_type](checkpoint=str(checkpoint_path))
+            sam_model.to(device=resolved_device)
+            predictor = SamPredictor(sam_model)
+        except Exception as exc:
+            self._sam_predictor = None
+            self._sam_load_error = str(exc)
+            return None, {
+                "enabled": True,
+                "used": False,
+                "source": "load_error",
+                "error": str(exc),
+                "model_type": model_type,
+                "checkpoint": str(checkpoint_path),
+                "device": device or "auto",
+            }
+
+        self._sam_predictor = predictor
+        self._sam_load_error = None
+        return predictor, {
+            "enabled": True,
+            "used": True,
+            "source": "segment_anything",
+            "model_type": model_type,
+            "checkpoint": str(checkpoint_path),
+            "device": device or ("cuda" if torch.cuda.is_available() else "cpu"),
+        }
+
+    def _predict_sam_mask_for_bbox(
+        self,
+        *,
+        rgb_image,
+        depth_shape_hw: tuple[int, int],
+        bbox_xyxy: tuple[int, int, int, int],
+    ) -> Dict[str, Any]:
+        import numpy as np
+
+        if rgb_image is None:
+            return {"enabled": self._env_flag("ASK2ACT_REAL_USE_SAM_MASK", "1"), "used": False, "source": "missing_rgb"}
+        predictor, info = self._load_sam_predictor()
+        if predictor is None:
+            return info
+
+        image_np = np.asarray(rgb_image.convert("RGB"))
+        depth_shape = (int(depth_shape_hw[0]), int(depth_shape_hw[1]))
+        if image_np.shape[:2] != depth_shape:
+            return {
+                **info,
+                "used": False,
+                "source": "shape_mismatch",
+                "error": f"RGB shape {image_np.shape[:2]} does not match depth shape {depth_shape}",
+            }
+
+        x0, y0, x1, y1 = self._clamp_bbox_to_shape(bbox_xyxy, depth_shape)
+        if x1 <= x0 or y1 <= y0:
+            return {**info, "used": False, "source": "empty_bbox", "bbox_xyxy": [x0, y0, x1, y1]}
+        try:
+            predictor.set_image(image_np)
+            masks, scores, _logits = predictor.predict(
+                box=np.array([x0, y0, x1, y1], dtype=np.float32),
+                multimask_output=True,
+            )
+        except Exception as exc:
+            return {**info, "used": False, "source": "predict_error", "error": str(exc), "bbox_xyxy": [x0, y0, x1, y1]}
+
+        if masks is None or len(masks) == 0:
+            return {**info, "used": False, "source": "no_masks", "bbox_xyxy": [x0, y0, x1, y1]}
+        score_values = np.asarray(scores if scores is not None else np.zeros((len(masks),), dtype=float), dtype=float).reshape(-1)
+        selected_index = int(np.argmax(score_values)) if score_values.size else 0
+        mask = np.asarray(masks[selected_index], dtype=bool)
+        if self._env_flag("ASK2ACT_SAM_CLIP_MASK_TO_BOX", "1"):
+            expand_px = int(os.getenv("ASK2ACT_SAM_BOX_CLIP_EXPAND_PX", "4"))
+            clip_bbox = self._expand_bbox((x0, y0, x1, y1), depth_shape, pixels=expand_px, ratio=0.0)
+            clip = np.zeros(mask.shape, dtype=bool)
+            cx0, cy0, cx1, cy1 = clip_bbox
+            clip[cy0:cy1, cx0:cx1] = True
+            mask &= clip
+        mask_pixels = int(np.count_nonzero(mask))
+        min_pixels = int(os.getenv("ASK2ACT_SAM_MIN_MASK_PIXELS", "25"))
+        if mask_pixels < min_pixels:
+            return {
+                **info,
+                "used": False,
+                "source": "mask_too_small",
+                "score": float(score_values[selected_index]) if score_values.size else None,
+                "selected_mask_index": selected_index,
+                "mask_pixels": mask_pixels,
+                "min_mask_pixels": min_pixels,
+                "bbox_xyxy": [x0, y0, x1, y1],
+            }
+        return {
+            **info,
+            "used": True,
+            "score": float(score_values[selected_index]) if score_values.size else None,
+            "selected_mask_index": selected_index,
+            "mask_pixels": mask_pixels,
+            "bbox_xyxy": [x0, y0, x1, y1],
+            "mask": mask,
+            **self._mask_stats(mask),
+        }
+
+    @staticmethod
     def _pointcloud_filter_stats(
         *,
         depth_m,
@@ -149,12 +352,16 @@ class LocalGraspRuntime:
         table_margin_m: float,
         z_min_m: float,
         z_max_m: float,
+        target_mask_2d=None,
     ) -> Dict[str, Any]:
         import numpy as np
-        from ask2act_grasp.utils.pcd_utils import backproject_depth, crop_depth_to_bbox
+        from ask2act_grasp.utils.pcd_utils import backproject_depth, crop_depth_to_bbox, crop_depth_to_mask
         from ask2act_grasp.utils.tf_utils import transform_points
 
-        cropped_depth = crop_depth_to_bbox(np.asarray(depth_m, dtype=np.float32), bbox_xyxy)
+        if target_mask_2d is not None:
+            cropped_depth = crop_depth_to_mask(np.asarray(depth_m, dtype=np.float32), target_mask_2d)
+        else:
+            cropped_depth = crop_depth_to_bbox(np.asarray(depth_m, dtype=np.float32), bbox_xyxy)
         camera_points = backproject_depth(cropped_depth, np.asarray(intrinsics, dtype=float))
         if camera_points.size == 0:
             return {"camera_point_count": 0, "world_point_count": 0}
@@ -846,6 +1053,15 @@ class LocalGraspRuntime:
         option_results: list[dict[str, Any]] = []
         selected_result: dict[str, Any] | None = None
         for option in options:
+            option_rgb = None
+            if rgb_image is not None:
+                option_rgb = rgb_image.rotate(-90, expand=True) if option["rotated_observation_clockwise_90"] else rgb_image
+            sam_mask_info = self._predict_sam_mask_for_bbox(
+                rgb_image=option_rgb,
+                depth_shape_hw=tuple(int(v) for v in option["depth_m"].shape),
+                bbox_xyxy=option["bbox"],
+            )
+            target_mask_2d = sam_mask_info.get("mask")
             table_estimate = (
                 self._estimate_table_top_from_bbox_world(
                     depth_m=option["depth_m"],
@@ -871,7 +1087,31 @@ class LocalGraspRuntime:
                 z_min_m=grasp_config.z_min_m,
                 z_max_m=min(grasp_config.z_max_m, option_table_top_z + object_z_max_above_table_m),
                 target_bbox_2d=option["bbox"],
+                target_mask_2d=target_mask_2d,
             )
+            mask_used_for_pointcloud = target_mask_2d is not None
+            if target_mask_2d is not None and point_cloud.filtered_point_count < min_points:
+                bbox_fallback_point_cloud = point_cloud_gen.generate(
+                    depth_image=option["depth_m"],
+                    camera_intrinsics=option["intrinsics"],
+                    camera_extrinsics=option["extrinsics"],
+                    table_top_z_m=option_table_top_z,
+                    table_margin_m=scene_config.table_clearance_margin_m,
+                    z_min_m=grasp_config.z_min_m,
+                    z_max_m=min(grasp_config.z_max_m, option_table_top_z + object_z_max_above_table_m),
+                    target_bbox_2d=option["bbox"],
+                )
+                if bbox_fallback_point_cloud.filtered_point_count >= point_cloud.filtered_point_count:
+                    sam_mask_info = {
+                        **sam_mask_info,
+                        "fallback_to_bbox": True,
+                        "fallback_reason": "mask_point_cloud_too_small",
+                        "mask_point_cloud_count": int(point_cloud.filtered_point_count),
+                        "bbox_fallback_point_cloud_count": int(bbox_fallback_point_cloud.filtered_point_count),
+                    }
+                    point_cloud = bbox_fallback_point_cloud
+                    target_mask_2d = None
+                    mask_used_for_pointcloud = False
             result = {
                 "name": option["name"],
                 "bbox": list(option["bbox"]),
@@ -881,6 +1121,8 @@ class LocalGraspRuntime:
                 "table_top_estimate": table_estimate,
                 "point_cloud_count": int(point_cloud.filtered_point_count),
                 "depth_crop_stats": self._depth_crop_stats(option["depth_m"], option["bbox"]),
+                "sam_mask": {key: self._to_jsonable(value) for key, value in sam_mask_info.items() if key != "mask"},
+                "mask_used_for_pointcloud": bool(mask_used_for_pointcloud),
                 "world_filter_stats": self._pointcloud_filter_stats(
                     depth_m=option["depth_m"],
                     intrinsics=option["intrinsics"],
@@ -890,19 +1132,28 @@ class LocalGraspRuntime:
                     table_margin_m=scene_config.table_clearance_margin_m,
                     z_min_m=grasp_config.z_min_m,
                     z_max_m=min(grasp_config.z_max_m, option_table_top_z + object_z_max_above_table_m),
+                    target_mask_2d=target_mask_2d,
                 ),
                 "point_cloud": point_cloud,
                 "depth_m": option["depth_m"],
                 "intrinsics": option["intrinsics"],
                 "extrinsics": option["extrinsics"],
+                "target_mask_2d": target_mask_2d,
             }
             option_results.append(result)
             safe_name = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in option["name"])
             try:
                 self._save_depth_debug_image(option["depth_m"], option["bbox"], run_dir / f"{safe_name}_depth_bbox.png")
-                if rgb_image is not None:
-                    option_rgb = rgb_image.rotate(-90, expand=True) if option["rotated_observation_clockwise_90"] else rgb_image
+                if option_rgb is not None:
                     self._save_rgb_debug_image(option_rgb, option["bbox"], run_dir / f"{safe_name}_rgb_bbox.png")
+                    if sam_mask_info.get("mask") is not None:
+                        self._save_sam_mask_debug_image(
+                            option_rgb,
+                            option["bbox"],
+                            sam_mask_info["mask"],
+                            run_dir / f"{safe_name}_sam_overlay.png",
+                            run_dir / f"{safe_name}_sam_mask.png",
+                        )
             except Exception:
                 pass
             if point_cloud.filtered_point_count >= min_points:
@@ -967,6 +1218,7 @@ class LocalGraspRuntime:
         intrinsics = selected_result["intrinsics"]
         extrinsics = selected_result["extrinsics"]
         applied_bbox_tuple = tuple(int(v) for v in selected_result["bbox"])
+        selected_target_mask = selected_result.get("target_mask_2d")
         selected_table_top_z = float(selected_result["table_top_estimate"]["table_top_z_m"])
         scene_config = replace(
             scene_config,
@@ -1000,11 +1252,22 @@ class LocalGraspRuntime:
             score=float(resolved_target.score),
             width_m=float(geometric_grasp["gripper_open_width"]),
             source="geometric_point_cloud",
-            metadata={"geometric_grasp": geometric_grasp, "resolved_target": resolved_target.model_dump()},
+            metadata={
+                "geometric_grasp": geometric_grasp,
+                "resolved_target": resolved_target.model_dump(),
+                "mask_used_for_pointcloud": bool(selected_target_mask is not None),
+                "sam_mask": selected_result.get("sam_mask"),
+            },
             preferred_approach="top_down",
             approach_type="top_down",
         )
         np.save(run_dir / "target_depth_m.npy", depth_m)
+        if selected_target_mask is not None:
+            from PIL import Image
+
+            Image.fromarray((np.asarray(selected_target_mask, dtype=np.uint8) * 255), mode="L").save(
+                run_dir / "target_mask.png"
+            )
         save_point_cloud(point_cloud.world_points_xyz, run_dir / "target_cloud_world.ply")
         save_point_cloud(point_cloud.camera_points_xyz, run_dir / "target_cloud_camera.ply")
 
@@ -1059,6 +1322,9 @@ class LocalGraspRuntime:
                 "simple_ik": simple_ik_status,
                 "target_bbox_2d": list(applied_bbox_tuple),
                 "raw_detection_bbox_2d": list(bbox_tuple),
+                "mask_used_for_pointcloud": bool(selected_target_mask is not None),
+                "sam_mask": selected_result.get("sam_mask"),
+                "target_mask_path": str(run_dir / "target_mask.png") if selected_target_mask is not None else None,
                 "selected_pointcloud_option": selected_result["name"],
                 "pointcloud_options": diagnostics["options"],
                 "rotated_observation_clockwise_90": bool(selected_result["rotated_observation_clockwise_90"]),
@@ -1097,6 +1363,8 @@ class LocalGraspRuntime:
             "simple_ik": simple_ik_status,
             "selected_pointcloud_option": selected_result["name"],
             "pointcloud_diagnostics_path": str(run_dir / "real_pointcloud_diagnostics.json"),
+            "mask_used_for_pointcloud": bool(selected_target_mask is not None),
+            "target_mask_path": str(run_dir / "target_mask.png") if selected_target_mask is not None else None,
         }
         return {
             "ok": True,

@@ -23,3 +23,12 @@ def crop_depth_to_bbox(depth_image: np.ndarray, bbox_xyxy: tuple[int, int, int, 
     cropped[y0:y1, x0:x1] = depth_image[y0:y1, x0:x1]
     return cropped
 
+
+def crop_depth_to_mask(depth_image: np.ndarray, mask_2d: np.ndarray) -> np.ndarray:
+    depth = np.asarray(depth_image)
+    mask = np.asarray(mask_2d, dtype=bool)
+    if depth.shape != mask.shape:
+        raise ValueError(f"Depth/mask shape mismatch: depth={depth.shape}, mask={mask.shape}")
+    cropped = np.zeros_like(depth)
+    cropped[mask] = depth[mask]
+    return cropped

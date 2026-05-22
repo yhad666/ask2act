@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from ask2act_grasp.types import PointCloudResult
-from ask2act_grasp.utils.pcd_utils import crop_depth_to_bbox
+from ask2act_grasp.utils.pcd_utils import crop_depth_to_bbox, crop_depth_to_mask
 from ask2act_grasp.utils.tf_utils import transform_points
 
 
@@ -43,10 +43,13 @@ class PointCloudGenerator:
         z_min_m: float,
         z_max_m: float,
         target_bbox_2d: tuple[int, int, int, int] | None = None,
+        target_mask_2d: np.ndarray | None = None,
     ) -> PointCloudResult:
         """Generate a world-frame point cloud from depth and camera calibration."""
         depth_for_projection = np.asarray(depth_image, dtype=np.float32)
-        if target_bbox_2d is not None:
+        if target_mask_2d is not None:
+            depth_for_projection = crop_depth_to_mask(depth_for_projection, target_mask_2d)
+        elif target_bbox_2d is not None:
             depth_for_projection = crop_depth_to_bbox(depth_for_projection, target_bbox_2d)
 
         camera_points = self._backproject_depth(depth_for_projection, np.asarray(camera_intrinsics, dtype=float))
