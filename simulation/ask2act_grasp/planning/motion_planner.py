@@ -33,6 +33,16 @@ APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M = float(
 )
 APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_OVERRIDE = os.getenv("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_WRIST_Z_OFFSET_M")
 GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE = os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE")
+GEOMETRIC_TOP_DOWN_WRIST_YAW_OPEN_WIDTH_THRESHOLD_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_WRIST_YAW_OPEN_WIDTH_THRESHOLD_M", "0.04")
+)
+GEOMETRIC_TOP_DOWN_FORCE_WRIST_YAW_FOR_SLENDER = (
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_FORCE_WRIST_YAW_FOR_SLENDER", "1").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
+GEOMETRIC_TOP_DOWN_WRIST_YAW_SLENDER_ASPECT_RATIO = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_WRIST_YAW_SLENDER_ASPECT_RATIO", "2.5")
+)
 GEOMETRIC_TOP_DOWN_GRASP_Z_MODE = os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_Z_MODE", "center").strip().lower()
 GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M", "0.0")
@@ -154,6 +164,26 @@ class MotionPlanner:
             return (abs(value - current_yaw), -margin)
 
         return min(valid_candidates, key=rank)
+
+    @staticmethod
+    def _should_use_geometric_wrist_yaw(
+        geometric_grasp: dict[str, object],
+        *,
+        requested_open_width: float,
+    ) -> tuple[bool, str]:
+        if float(requested_open_width) < GEOMETRIC_TOP_DOWN_WRIST_YAW_OPEN_WIDTH_THRESHOLD_M:
+            return True, "narrow_open_width"
+        if GEOMETRIC_TOP_DOWN_FORCE_WRIST_YAW_FOR_SLENDER:
+            method = str(geometric_grasp.get("method", ""))
+            if "slender" in method:
+                return True, "slender_method"
+            try:
+                aspect = float(geometric_grasp.get("xy_aspect_ratio", 0.0))
+            except (TypeError, ValueError):
+                aspect = 0.0
+            if aspect >= GEOMETRIC_TOP_DOWN_WRIST_YAW_SLENDER_ASPECT_RATIO:
+                return True, "slender_aspect_ratio"
+        return False, "disabled_for_wide_object"
 
     def _world_y_to_arm(self, y_world_m: float) -> float:
         desired = max(-float(y_world_m) - self.grasp_config.oracle_arm_backoff_m, 0.0)
@@ -345,6 +375,8 @@ class MotionPlanner:
         planning_mode: str,
         grip_angle_rad: float,
         current_state: dict[str, float] | None,
+        force_wrist_yaw: bool = False,
+        wrist_yaw_reason: str = "open_width_gate",
         extra_metadata: dict[str, object] | None = None,
     ) -> dict[str, float] | None:
         if self.simple_ik is None:
@@ -384,15 +416,6 @@ class MotionPlanner:
         )
         grasp_center_to_rubber_local = grasp_center_to_rubber_local + rubber_local_correction
 
-        desired_wrist_yaw = 0.0
-        if requested_open_width < 0.04:
-            current_yaw = 0.0 if current_state is None else float(current_state.get("wrist_yaw", 0.0))
-            desired_wrist_yaw = self._select_wrist_yaw(
-                grip_angle_rad,
-                current_yaw=current_yaw,
-                allow_pi_flip=True,
-            )
-
         base_rotate_guess = float(
             np.clip(
                 math.atan2(float(desired_rubber_xyz[0]), max(-float(desired_rubber_xyz[1]), 1e-3)),
@@ -400,6 +423,24 @@ class MotionPlanner:
                 self.BASE_ROTATE_LIMIT_RAD,
             )
         )
+        use_geometric_yaw = bool(force_wrist_yaw) or (
+            float(requested_open_width) < GEOMETRIC_TOP_DOWN_WRIST_YAW_OPEN_WIDTH_THRESHOLD_M
+        )
+        current_yaw = 0.0 if current_state is None else float(current_state.get("wrist_yaw", 0.0))
+
+        def wrist_yaw_for_base(base_rotate_rad: float) -> float:
+            if not use_geometric_yaw:
+                return 0.0
+            # grip_angle_rad is expressed in the world/table XY frame. Stretch's
+            # actual top-down jaw yaw is base_rotate + wrist_yaw, so command the
+            # wrist relative to the base rotation.
+            return self._select_wrist_yaw(
+                self._normalize_angle(float(grip_angle_rad) - float(base_rotate_rad)),
+                current_yaw=current_yaw,
+                allow_pi_flip=True,
+            )
+
+        desired_wrist_yaw = wrist_yaw_for_base(base_rotate_guess)
         ik_result = None
         wrist_model_error_local = np.zeros(3, dtype=float)
         desired_wrist_yaw_pos = np.zeros(3, dtype=float)
@@ -411,6 +452,7 @@ class MotionPlanner:
         lift_val = 0.0
         arm_val = 0.0
         for _ in range(5):
+            desired_wrist_yaw = wrist_yaw_for_base(base_rotate_guess)
             total_yaw = base_rotate_guess + desired_wrist_yaw
             wrist_to_grasp_center_world = rotate_topdown_offset_to_world_m(wrist_to_grasp_center_local, total_yaw)
             grasp_center_to_rubber_world = rotate_topdown_offset_to_world_m(grasp_center_to_rubber_local, total_yaw)
@@ -442,6 +484,7 @@ class MotionPlanner:
             wrist_model_error_local = next_wrist_model_error_local
             base_rotate_guess = base_rotate
 
+        desired_wrist_yaw = wrist_yaw_for_base(base_rotate)
         total_yaw = base_rotate + desired_wrist_yaw
         wrist_to_grasp_center_world = rotate_topdown_offset_to_world_m(wrist_to_grasp_center_local, total_yaw)
         grasp_center_to_rubber_world = rotate_topdown_offset_to_world_m(grasp_center_to_rubber_local, total_yaw)
@@ -535,6 +578,8 @@ class MotionPlanner:
             flush=True,
         )
         print(f"  Wrist yaw:          {desired_wrist_yaw:.4f}", flush=True)
+        print(f"  World grip yaw:     {float(grip_angle_rad):.4f}", flush=True)
+        print(f"  Total jaw yaw:      {total_yaw:.4f}", flush=True)
         print(f"  Wrist model error:  {wrist_model_error_world.tolist()}", flush=True)
         print(f"  Wrist->grasp ctr:   {wrist_to_grasp_center_world.tolist()}", flush=True)
         print(f"  Grasp->rubber cmd:  {grasp_center_to_rubber_world.tolist()}", flush=True)
@@ -578,6 +623,11 @@ class MotionPlanner:
             "rubber_local_correction_m": rubber_local_correction.tolist(),
             "planning_mode": planning_mode,
             "grip_angle_rad": float(grip_angle_rad),
+            "world_grip_angle_rad": float(grip_angle_rad),
+            "total_gripper_yaw_rad": float(total_yaw),
+            "use_geometric_wrist_yaw": bool(use_geometric_yaw),
+            "wrist_yaw_reason": str(wrist_yaw_reason if use_geometric_yaw else "not_requested"),
+            "wrist_yaw_open_width_threshold_m": float(GEOMETRIC_TOP_DOWN_WRIST_YAW_OPEN_WIDTH_THRESHOLD_M),
             "ik_base_rotate": base_rotate,
             "ik_lift": lift_val,
             "ik_arm": arm_val,
@@ -623,6 +673,10 @@ class MotionPlanner:
             float(geometric_grasp["gripper_open_width"]),
             float(self.grasp_config.max_gripper_width_m),
         )
+        use_geometric_yaw, wrist_yaw_reason = self._should_use_geometric_wrist_yaw(
+            geometric_grasp,
+            requested_open_width=requested_open_width,
+        )
         gripper_open_cmd = self._topdown_gripper_open_cmd(requested_open_width)
 
         # The approximate real fallback does not have SimpleIK, so explicitly
@@ -645,11 +699,18 @@ class MotionPlanner:
         arm_planning_grasp_y = float(grasp_y + base_translate_arm_axis_m)
         desired_arm_after_base = self._world_y_to_arm_unclipped(arm_planning_grasp_y)
 
+        base_rotate_guess = float(
+            np.clip(
+                math.atan2(grasp_x, max(-grasp_y, 1e-3)),
+                -self.BASE_ROTATE_LIMIT_RAD,
+                self.BASE_ROTATE_LIMIT_RAD,
+            )
+        )
         wrist_yaw = 0.0
-        if requested_open_width < 0.04:
+        if use_geometric_yaw:
             current_yaw = 0.0 if current_state is None else float(current_state.get("wrist_yaw", 0.0))
             wrist_yaw = self._select_wrist_yaw(
-                grip_angle,
+                self._normalize_angle(grip_angle - base_rotate_guess),
                 current_yaw=current_yaw,
                 allow_pi_flip=True,
             )
@@ -686,6 +747,12 @@ class MotionPlanner:
             "top_grasp_delta_m": float(float(geometric_grasp.get("object_top_z", contact_grasp_z)) - contact_grasp_z),
             "planning_mode": "geometric_point_cloud",
             "grip_angle_rad": grip_angle,
+            "world_grip_angle_rad": grip_angle,
+            "approx_base_rotate_guess_rad": base_rotate_guess,
+            "total_gripper_yaw_rad": float(base_rotate_guess + wrist_yaw),
+            "use_geometric_wrist_yaw": bool(use_geometric_yaw),
+            "wrist_yaw_reason": wrist_yaw_reason if use_geometric_yaw else "not_requested",
+            "wrist_yaw_open_width_threshold_m": float(GEOMETRIC_TOP_DOWN_WRIST_YAW_OPEN_WIDTH_THRESHOLD_M),
             "raw_grasp_x": raw_grasp_x,
             "raw_grasp_y": raw_grasp_y,
             "xy_execution_correction_m": [
@@ -693,6 +760,8 @@ class MotionPlanner:
                 grasp_y_correction,
             ],
             "min_cross_section_width": float(geometric_grasp.get("min_cross_section_width", requested_open_width)),
+            "geometric_grasp_method": geometric_grasp.get("method"),
+            "xy_aspect_ratio": geometric_grasp.get("xy_aspect_ratio"),
             "object_center": geometric_grasp.get("object_center"),
             "object_height": float(geometric_grasp.get("object_height", 0.0)),
             "object_top_z": float(geometric_grasp.get("object_top_z", contact_grasp_z)),
@@ -728,14 +797,22 @@ class MotionPlanner:
             float(geometric_grasp["gripper_open_width"]),
             float(self.grasp_config.max_gripper_width_m),
         )
+        use_geometric_yaw, wrist_yaw_reason = self._should_use_geometric_wrist_yaw(
+            geometric_grasp,
+            requested_open_width=requested_open_width,
+        )
         ik_targets = self._solve_topdown_simple_ik_targets(
             desired_rubber_xyz=desired_rubber_xyz,
             requested_open_width=requested_open_width,
             planning_mode="geometric_simple_ik",
             grip_angle_rad=float(geometric_grasp.get("grip_angle_rad", 0.0)),
             current_state=current_state,
+            force_wrist_yaw=use_geometric_yaw,
+            wrist_yaw_reason=wrist_yaw_reason,
             extra_metadata={
                 "min_cross_section_width": float(geometric_grasp.get("min_cross_section_width", requested_open_width)),
+                "geometric_grasp_method": geometric_grasp.get("method"),
+                "xy_aspect_ratio": geometric_grasp.get("xy_aspect_ratio"),
                 "object_center": geometric_grasp.get("object_center"),
                 "object_height": float(geometric_grasp.get("object_height", 0.0)),
                 "object_top_z": float(geometric_grasp.get("object_top_z", desired_rubber_xyz[2])),

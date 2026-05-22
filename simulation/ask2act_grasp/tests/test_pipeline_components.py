@@ -1551,31 +1551,152 @@ def test_motion_planner_disables_simple_ik_when_config_requests_fallback():
 
 
 def test_motion_planner_uses_geometric_yaw_for_narrow_objects():
+    from ask2act_grasp.planning import motion_planner as motion_planner_module
+
     scene_config, _ = load_scene_config(PACKAGE_ROOT / "config" / "scene_config.yaml")
     grasp_config = load_grasp_config(PACKAGE_ROOT / "config" / "grasp_config.yaml")
     grasp_config.allow_approximate_topdown_fallback = True
     planner = MotionPlanner(scene_config, grasp_config)
-    planner.simple_ik = None
+    original_fk_threshold = motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M
 
-    targets = planner.geometric_grasp_targets(
-        {
-            "grasp_x": 0.0,
-            "grasp_y": -0.60,
-            "grasp_z": 0.83,
-            "grip_angle_rad": np.pi / 4.0,
-            "gripper_open_width": 0.03,
-            "min_cross_section_width": 0.01,
-            "object_center": [0.0, -0.60, 0.85],
-            "object_height": 0.10,
-            "object_top_z": 0.90,
-            "object_bottom_z": 0.80,
-            "grasp_point_validated": True,
-            "width_near_limit": False,
-        },
-        current_state={"wrist_yaw": 0.7},
-    )
+    class FakeSimpleIK:
+        def ik_rotary_base(self, _wrist_position):
+            return {"joint_mobile_base_rotation": 0.0, "joint_lift": 0.91, "joint_arm_l0": 0.31}
+
+        def clip_with_joint_limits(self, _robot_configuration):
+            return None
+
+        def fk_rotary_base(self, _robot_configuration):
+            return [0.0, 0.0, 0.0]
+
+    try:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = 0.0
+        planner.simple_ik = FakeSimpleIK()
+        targets = planner.geometric_grasp_targets(
+            {
+                "grasp_x": 0.0,
+                "grasp_y": -0.60,
+                "grasp_z": 0.83,
+                "grip_angle_rad": np.pi / 4.0,
+                "gripper_open_width": 0.03,
+                "min_cross_section_width": 0.01,
+                "object_center": [0.0, -0.60, 0.85],
+                "object_height": 0.10,
+                "object_top_z": 0.90,
+                "object_bottom_z": 0.80,
+                "grasp_point_validated": True,
+                "width_near_limit": False,
+            },
+            current_state={"wrist_yaw": 0.7},
+        )
+    finally:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = original_fk_threshold
 
     assert np.isclose(targets["wrist_yaw"], np.pi / 4.0)
+
+
+def test_motion_planner_uses_geometric_yaw_for_slender_objects_even_when_open_width_is_wide():
+    from ask2act_grasp.planning import motion_planner as motion_planner_module
+
+    scene_config, _ = load_scene_config(PACKAGE_ROOT / "config" / "scene_config.yaml")
+    grasp_config = load_grasp_config(PACKAGE_ROOT / "config" / "grasp_config.yaml")
+    grasp_config.allow_approximate_topdown_fallback = True
+    planner = MotionPlanner(scene_config, grasp_config)
+    original_fk_threshold = motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M
+
+    class FakeSimpleIK:
+        def ik_rotary_base(self, _wrist_position):
+            return {"joint_mobile_base_rotation": 0.0, "joint_lift": 0.91, "joint_arm_l0": 0.31}
+
+        def clip_with_joint_limits(self, _robot_configuration):
+            return None
+
+        def fk_rotary_base(self, _robot_configuration):
+            return [0.0, 0.0, 0.0]
+
+    try:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = 0.0
+        planner.simple_ik = FakeSimpleIK()
+        targets = planner.geometric_grasp_targets(
+            {
+                "grasp_x": 0.0,
+                "grasp_y": -0.60,
+                "grasp_z": 0.83,
+                "grip_angle_rad": np.pi / 2.0,
+                "gripper_open_width": 0.045,
+                "min_cross_section_width": 0.027,
+                "object_center": [0.0, -0.60, 0.835],
+                "object_height": 0.014,
+                "object_top_z": 0.842,
+                "object_bottom_z": 0.828,
+                "grasp_point_validated": True,
+                "width_near_limit": False,
+                "method": "geometric_point_cloud_pca_slender",
+                "xy_aspect_ratio": 3.8,
+            },
+            current_state={"wrist_yaw": 0.0},
+        )
+    finally:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = original_fk_threshold
+
+    assert targets["use_geometric_wrist_yaw"] is True
+    assert targets["wrist_yaw_reason"] == "slender_method"
+    assert np.isclose(targets["wrist_yaw"], np.pi / 2.0)
+    assert np.isclose(targets["total_gripper_yaw_rad"], np.pi / 2.0)
+
+
+def test_simple_ik_geometric_yaw_is_relative_to_base_rotation():
+    from ask2act_grasp.planning import motion_planner as motion_planner_module
+
+    scene_config, _ = load_scene_config(PACKAGE_ROOT / "config" / "scene_config.yaml")
+    grasp_config = load_grasp_config(PACKAGE_ROOT / "config" / "grasp_config.yaml")
+    planner = MotionPlanner(scene_config, grasp_config)
+    original_fk_threshold = motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M
+
+    class FakeSimpleIK:
+        def ik_rotary_base(self, _wrist_position):
+            return {
+                "joint_mobile_base_rotation": 0.5,
+                "joint_lift": 0.91,
+                "joint_arm_l0": 0.31,
+            }
+
+        def clip_with_joint_limits(self, _robot_configuration):
+            return None
+
+        def fk_rotary_base(self, _robot_configuration):
+            return [0.0, 0.0, 0.0]
+
+    try:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = 0.0
+        planner.simple_ik = FakeSimpleIK()
+        targets = planner.geometric_grasp_targets(
+            {
+                "grasp_x": 0.0,
+                "grasp_y": -0.60,
+                "grasp_z": 0.83,
+                "grip_angle_rad": np.pi / 2.0,
+                "gripper_open_width": 0.045,
+                "min_cross_section_width": 0.027,
+                "object_center": [0.0, -0.60, 0.835],
+                "object_height": 0.014,
+                "object_top_z": 0.842,
+                "object_bottom_z": 0.828,
+                "grasp_point_validated": True,
+                "width_near_limit": False,
+                "method": "geometric_point_cloud_pca_slender",
+                "xy_aspect_ratio": 3.8,
+            },
+            current_state={"wrist_yaw": 0.0},
+        )
+    finally:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = original_fk_threshold
+
+    assert targets["use_geometric_wrist_yaw"] is True
+    assert targets["wrist_yaw_reason"] == "slender_method"
+    assert targets["ik_base_rotate"] == pytest.approx(0.5)
+    assert targets["wrist_yaw"] == pytest.approx(np.pi / 2.0 - 0.5)
+    assert targets["total_gripper_yaw_rad"] == pytest.approx(np.pi / 2.0)
 
 
 def test_motion_planner_routes_geometric_candidate_through_top_down_waypoints():
