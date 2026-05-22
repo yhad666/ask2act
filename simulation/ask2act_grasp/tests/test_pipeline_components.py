@@ -1339,6 +1339,7 @@ def test_motion_planner_applies_side_x_bias_for_lateral_targets():
     planner = MotionPlanner(scene_config, grasp_config)
     original_bias = motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M
     original_deadband = motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M
+    original_right_extra = motion_planner_module.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M
     original_fk_threshold = motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M
 
     class FakeSimpleIK:
@@ -1358,6 +1359,7 @@ def test_motion_planner_applies_side_x_bias_for_lateral_targets():
     try:
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M = 0.02
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M = 0.05
+        motion_planner_module.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M = 0.01
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = 0.0
         planner.simple_ik = FakeSimpleIK()
         base_grasp = {
@@ -1379,13 +1381,14 @@ def test_motion_planner_applies_side_x_bias_for_lateral_targets():
 
         assert left_targets["contact_point"][0] == pytest.approx(0.14)
         assert left_targets["side_x_bias_applied_m"] == pytest.approx(0.02)
-        assert right_targets["contact_point"][0] == pytest.approx(-0.14)
-        assert right_targets["side_x_bias_applied_m"] == pytest.approx(-0.02)
+        assert right_targets["contact_point"][0] == pytest.approx(-0.15)
+        assert right_targets["side_x_bias_applied_m"] == pytest.approx(-0.03)
         assert center_targets["contact_point"][0] == pytest.approx(0.02)
         assert center_targets["side_x_bias_applied_m"] == pytest.approx(0.0)
     finally:
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M = original_bias
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M = original_deadband
+        motion_planner_module.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M = original_right_extra
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = original_fk_threshold
 
 

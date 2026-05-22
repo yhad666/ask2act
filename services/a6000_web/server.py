@@ -2216,6 +2216,7 @@ def _current_motion_planner_tuning() -> Dict[str, Any]:
             "approx_topdown_y_correction_m": float(mp.APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M),
             "side_x_bias_m": float(mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M),
             "side_x_bias_deadband_m": float(mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M),
+            "right_extra_x_bias_m": float(mp.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M),
             "gripper_open_cmd_override": (
                 None
                 if mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE is None
@@ -2232,6 +2233,7 @@ def _current_motion_planner_tuning() -> Dict[str, Any]:
             "approx_topdown_y_correction_m": float(os.getenv("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M", "-0.065")),
             "side_x_bias_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M", "0.02")),
             "side_x_bias_deadband_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M", "0.05")),
+            "right_extra_x_bias_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M", "0.01")),
             "gripper_open_cmd_override": (
                 float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE"))
                 if os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE") is not None
@@ -2253,6 +2255,7 @@ def _apply_motion_planner_tuning(updates: Dict[str, Any]) -> Dict[str, Any]:
         "approx_topdown_y_correction_m": ("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M", "APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M"),
         "side_x_bias_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M", "GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M"),
         "side_x_bias_deadband_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M", "GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M"),
+        "right_extra_x_bias_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M", "GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M"),
     }
     applied: Dict[str, Any] = {}
     for field, (env_name, attr_name) in mapping.items():
