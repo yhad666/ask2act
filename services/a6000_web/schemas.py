@@ -226,6 +226,9 @@ class OnlineGraspTuningRequest(BaseModel):
     side_x_bias_m: Optional[float] = None
     side_x_bias_deadband_m: Optional[float] = None
     right_extra_x_bias_m: Optional[float] = None
+    left_center_y_bias_m: Optional[float] = None
+    right_y_bias_m: Optional[float] = None
+    max_top_grasp_delta_m: Optional[float] = None
     gripper_open_cmd_override: Optional[float] = None
     stretch_gripper_real_open_cmd: Optional[float] = None
     stretch_release_gripper_cmd: Optional[float] = None

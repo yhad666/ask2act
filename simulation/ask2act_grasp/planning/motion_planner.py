@@ -37,6 +37,9 @@ GEOMETRIC_TOP_DOWN_GRASP_Z_MODE = os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_Z_
 GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M", "0.0")
 )
+GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M", "0.07")
+)
 GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_PREGRASP_CLEARANCE_M", "0.12")
 )
@@ -64,6 +67,10 @@ GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M = float(
 GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M", "0.01")
 )
+GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M = float(
+    os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M", "0.005")
+)
+GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M", "-0.005"))
 GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE = (
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE", "1").strip().lower()
     in {"1", "true", "yes", "on"}
@@ -176,6 +183,8 @@ class MotionPlanner:
         if mode in {"ratio", "height_ratio"}:
             ratio = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRASP_HEIGHT_RATIO", "0.75"))
             return float(bottom_z + np.clip(ratio, 0.0, 1.2) * max(top_z - bottom_z, 0.0))
+        if GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M > 0.0:
+            return float(max(center_z, top_z - GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M))
         return center_z
 
     @staticmethod
@@ -350,11 +359,18 @@ class MotionPlanner:
             base_world_translation[1] = float(current_state.get("base_y", 0.0))
         lateral_x_m = float(desired_rubber_xyz[0] - base_world_translation[0])
         side_x_bias_applied_m = 0.0
+        side_y_bias_applied_m = GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M
+        side_bias_region = "center"
         if abs(lateral_x_m) > GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M:
             side_x_bias_applied_m = float(math.copysign(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M, lateral_x_m))
             if lateral_x_m < 0.0:
+                side_bias_region = "right"
                 side_x_bias_applied_m -= GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M
+                side_y_bias_applied_m = GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M
+            else:
+                side_bias_region = "left"
             desired_rubber_xyz[0] += side_x_bias_applied_m
+        desired_rubber_xyz[1] += side_y_bias_applied_m
         gripper_open_cmd = self._topdown_gripper_open_cmd(requested_open_width)
         wrist_to_grasp_center_local = np.asarray(topdown_wrist_to_grasp_center_offset_m(), dtype=float)
         grasp_center_to_rubber_local = np.asarray(topdown_grasp_center_to_rubber_offset_m(gripper_open_cmd), dtype=float)
@@ -555,6 +571,10 @@ class MotionPlanner:
             "side_x_bias_config_m": float(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M),
             "side_x_bias_deadband_m": float(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M),
             "right_extra_x_bias_m": float(GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M),
+            "side_y_bias_applied_m": float(side_y_bias_applied_m),
+            "left_center_y_bias_m": float(GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M),
+            "right_y_bias_m": float(GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M),
+            "side_bias_region": side_bias_region,
             "rubber_local_correction_m": rubber_local_correction.tolist(),
             "planning_mode": planning_mode,
             "grip_angle_rad": float(grip_angle_rad),
@@ -662,6 +682,8 @@ class MotionPlanner:
             "raw_grasp_z": float(geometric_grasp["grasp_z"]),
             "z_execution_mode": GEOMETRIC_TOP_DOWN_GRASP_Z_MODE,
             "top_clearance_m": GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M,
+            "max_top_grasp_delta_m": GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M,
+            "top_grasp_delta_m": float(float(geometric_grasp.get("object_top_z", contact_grasp_z)) - contact_grasp_z),
             "planning_mode": "geometric_point_cloud",
             "grip_angle_rad": grip_angle,
             "raw_grasp_x": raw_grasp_x,
@@ -721,6 +743,10 @@ class MotionPlanner:
                 "raw_grasp_z": float(geometric_grasp["grasp_z"]),
                 "z_execution_mode": GEOMETRIC_TOP_DOWN_GRASP_Z_MODE,
                 "top_clearance_m": GEOMETRIC_TOP_DOWN_GRASP_TOP_CLEARANCE_M,
+                "max_top_grasp_delta_m": GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M,
+                "top_grasp_delta_m": float(
+                    float(geometric_grasp.get("object_top_z", desired_rubber_xyz[2])) - desired_rubber_xyz[2]
+                ),
                 "grasp_point_validated": bool(geometric_grasp.get("grasp_point_validated", True)),
                 "width_near_limit": bool(geometric_grasp.get("width_near_limit", False)),
             },

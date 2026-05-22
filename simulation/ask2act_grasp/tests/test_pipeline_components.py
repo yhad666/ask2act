@@ -1340,6 +1340,8 @@ def test_motion_planner_applies_side_x_bias_for_lateral_targets():
     original_bias = motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M
     original_deadband = motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M
     original_right_extra = motion_planner_module.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M
+    original_left_center_y = motion_planner_module.GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M
+    original_right_y = motion_planner_module.GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M
     original_fk_threshold = motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M
 
     class FakeSimpleIK:
@@ -1360,6 +1362,8 @@ def test_motion_planner_applies_side_x_bias_for_lateral_targets():
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M = 0.02
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M = 0.05
         motion_planner_module.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M = 0.01
+        motion_planner_module.GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M = 0.005
+        motion_planner_module.GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M = -0.005
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = 0.0
         planner.simple_ik = FakeSimpleIK()
         base_grasp = {
@@ -1380,16 +1384,54 @@ def test_motion_planner_applies_side_x_bias_for_lateral_targets():
         center_targets = planner.geometric_grasp_targets({**base_grasp, "grasp_x": 0.02})
 
         assert left_targets["contact_point"][0] == pytest.approx(0.14)
+        assert left_targets["contact_point"][1] == pytest.approx(-0.595)
         assert left_targets["side_x_bias_applied_m"] == pytest.approx(0.02)
+        assert left_targets["side_y_bias_applied_m"] == pytest.approx(0.005)
+        assert left_targets["side_bias_region"] == "left"
         assert right_targets["contact_point"][0] == pytest.approx(-0.15)
+        assert right_targets["contact_point"][1] == pytest.approx(-0.605)
         assert right_targets["side_x_bias_applied_m"] == pytest.approx(-0.03)
+        assert right_targets["side_y_bias_applied_m"] == pytest.approx(-0.005)
+        assert right_targets["side_bias_region"] == "right"
         assert center_targets["contact_point"][0] == pytest.approx(0.02)
+        assert center_targets["contact_point"][1] == pytest.approx(-0.595)
         assert center_targets["side_x_bias_applied_m"] == pytest.approx(0.0)
+        assert center_targets["side_y_bias_applied_m"] == pytest.approx(0.005)
+        assert center_targets["side_bias_region"] == "center"
     finally:
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M = original_bias
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M = original_deadband
         motion_planner_module.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M = original_right_extra
+        motion_planner_module.GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M = original_left_center_y
+        motion_planner_module.GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M = original_right_y
         motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = original_fk_threshold
+
+
+def test_motion_planner_caps_center_grasp_depth_from_object_top():
+    from ask2act_grasp.planning import motion_planner as motion_planner_module
+
+    original_mode = motion_planner_module.GEOMETRIC_TOP_DOWN_GRASP_Z_MODE
+    original_delta = motion_planner_module.GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M
+    try:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_GRASP_Z_MODE = "center"
+        motion_planner_module.GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M = 0.07
+        assert MotionPlanner._geometric_topdown_grasp_z(
+            {
+                "grasp_z": 0.50,
+                "object_top_z": 0.62,
+                "object_bottom_z": 0.38,
+            }
+        ) == pytest.approx(0.55)
+        assert MotionPlanner._geometric_topdown_grasp_z(
+            {
+                "grasp_z": 0.57,
+                "object_top_z": 0.62,
+                "object_bottom_z": 0.52,
+            }
+        ) == pytest.approx(0.57)
+    finally:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_GRASP_Z_MODE = original_mode
+        motion_planner_module.GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M = original_delta
 
 
 def test_motion_planner_simple_ik_accounts_for_base_translation():
