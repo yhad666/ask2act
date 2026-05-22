@@ -6,8 +6,10 @@ import time
 
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from services.a6000_web import server as web_server
+from services.a6000_web.grasp_runtime import LocalGraspRuntime
 from services.a6000_web.offline_experiments import OfflineExperimentStore
 from services.a6000_web.schemas import Candidate, ResolvedTarget, SessionState
 
@@ -271,6 +273,72 @@ def test_online_head_pose_command_is_forwarded(monkeypatch):
     assert response.status_code == 200
     assert calls == [(-1.5, -0.62, True)]
     assert response.json()["head_pose"]["actual_head_tilt_rad"] == -0.62
+
+
+def test_sam_mask_predictor_uses_box_prompt_and_clips_to_bbox(monkeypatch):
+    import numpy as np
+
+    class FakePredictor:
+        def __init__(self) -> None:
+            self.image_shape = None
+            self.box = None
+
+        def set_image(self, image_np):
+            self.image_shape = image_np.shape[:2]
+
+        def predict(self, *, box, multimask_output):
+            self.box = box.tolist()
+            mask = np.zeros(self.image_shape, dtype=bool)
+            mask[1:5, 1:5] = True
+            mask[0, 0] = True
+            return np.asarray([mask]), np.asarray([0.93], dtype=float), None
+
+    fake = FakePredictor()
+    runtime = LocalGraspRuntime(mode="real_pointcloud")
+    monkeypatch.setenv("ASK2ACT_SAM_BOX_CLIP_EXPAND_PX", "0")
+    monkeypatch.setenv("ASK2ACT_SAM_MIN_MASK_PIXELS", "1")
+    monkeypatch.setattr(
+        runtime,
+        "_load_sam_predictor",
+        lambda: (
+            fake,
+            {
+                "enabled": True,
+                "used": True,
+                "source": "segment_anything",
+                "model_type": "vit_b",
+                "checkpoint": "fake.pth",
+                "device": "cpu",
+            },
+        ),
+    )
+
+    result = runtime._predict_sam_mask_for_bbox(
+        rgb_image=Image.new("RGB", (8, 8), color=(20, 20, 20)),
+        depth_shape_hw=(8, 8),
+        bbox_xyxy=(1, 1, 5, 5),
+    )
+
+    assert result["used"] is True
+    assert result["score"] == pytest.approx(0.93)
+    assert fake.box == [1.0, 1.0, 5.0, 5.0]
+    assert result["mask"][0, 0] == np.bool_(False)
+    assert result["mask_pixels"] == 16
+
+
+def test_sam_mask_predictor_falls_back_when_checkpoint_missing(monkeypatch):
+    runtime = LocalGraspRuntime(mode="real_pointcloud")
+    monkeypatch.setenv("ASK2ACT_REAL_USE_SAM_MASK", "1")
+    monkeypatch.delenv("ASK2ACT_SAM_CHECKPOINT", raising=False)
+
+    result = runtime._predict_sam_mask_for_bbox(
+        rgb_image=Image.new("RGB", (8, 8), color=(20, 20, 20)),
+        depth_shape_hw=(8, 8),
+        bbox_xyxy=(1, 1, 5, 5),
+    )
+
+    assert result["used"] is False
+    assert result["source"] == "missing_checkpoint"
 
 
 def test_robot_head_pose_override_drives_future_observations(tmp_path, monkeypatch):

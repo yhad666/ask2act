@@ -101,6 +101,34 @@ class LocalGraspRuntime:
         return stats
 
     @staticmethod
+    def _depth_mask_stats(depth_m, mask_2d) -> Dict[str, Any]:
+        import numpy as np
+
+        mask = np.asarray(mask_2d, dtype=bool)
+        depth = np.asarray(depth_m)
+        if mask.shape != depth.shape:
+            return {
+                "mask_shape_hw": [int(mask.shape[0]), int(mask.shape[1])],
+                "depth_shape_hw": [int(depth.shape[0]), int(depth.shape[1])],
+                "error": "depth_mask_shape_mismatch",
+            }
+        values = depth[mask]
+        valid = values[np.isfinite(values) & (values > 1e-6)]
+        stats: Dict[str, Any] = {
+            "mask_pixels": int(np.count_nonzero(mask)),
+            "valid_depth_pixels": int(valid.size),
+        }
+        if valid.size:
+            stats.update(
+                {
+                    "depth_min_m": float(np.min(valid)),
+                    "depth_median_m": float(np.median(valid)),
+                    "depth_max_m": float(np.max(valid)),
+                }
+            )
+        return stats
+
+    @staticmethod
     def _load_rgb_image_from_metadata(observation_metadata: Dict[str, Any] | None):
         from PIL import Image, ImageOps
 
@@ -1121,6 +1149,9 @@ class LocalGraspRuntime:
                 "table_top_estimate": table_estimate,
                 "point_cloud_count": int(point_cloud.filtered_point_count),
                 "depth_crop_stats": self._depth_crop_stats(option["depth_m"], option["bbox"]),
+                "depth_mask_stats": (
+                    self._depth_mask_stats(option["depth_m"], target_mask_2d) if target_mask_2d is not None else None
+                ),
                 "sam_mask": {key: self._to_jsonable(value) for key, value in sam_mask_info.items() if key != "mask"},
                 "mask_used_for_pointcloud": bool(mask_used_for_pointcloud),
                 "world_filter_stats": self._pointcloud_filter_stats(
@@ -1197,7 +1228,11 @@ class LocalGraspRuntime:
                 or self._metadata_detail(observation_metadata).get("depth_aligned_to_color")
             ),
             "options": [
-                {key: self._to_jsonable(value) for key, value in item.items() if key not in {"point_cloud", "depth_m", "intrinsics", "extrinsics"}}
+                {
+                    key: self._to_jsonable(value)
+                    for key, value in item.items()
+                    if key not in {"point_cloud", "depth_m", "intrinsics", "extrinsics", "target_mask_2d"}
+                }
                 for item in option_results
             ],
             "selected_option": selected_result["name"] if selected_result is not None else None,
