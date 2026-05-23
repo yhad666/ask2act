@@ -221,6 +221,9 @@ class OnlineGraspTuningRequest(BaseModel):
     rubber_local_x_correction_m: Optional[float] = None
     rubber_local_y_correction_m: Optional[float] = None
     rubber_local_z_correction_m: Optional[float] = None
+    slender_rubber_local_x_correction_m: Optional[float] = None
+    slender_rubber_local_y_correction_m: Optional[float] = None
+    slender_rubber_local_z_correction_m: Optional[float] = None
     approx_topdown_x_correction_m: Optional[float] = None
     approx_topdown_y_correction_m: Optional[float] = None
     side_x_bias_m: Optional[float] = None
@@ -228,6 +231,12 @@ class OnlineGraspTuningRequest(BaseModel):
     right_extra_x_bias_m: Optional[float] = None
     left_center_y_bias_m: Optional[float] = None
     right_y_bias_m: Optional[float] = None
+    slender_side_x_bias_m: Optional[float] = None
+    slender_side_x_bias_deadband_m: Optional[float] = None
+    slender_right_extra_x_bias_m: Optional[float] = None
+    slender_left_center_y_bias_m: Optional[float] = None
+    slender_right_y_bias_m: Optional[float] = None
+    slender_long_axis_bias: Optional[float] = None
     max_top_grasp_delta_m: Optional[float] = None
     gripper_open_cmd_override: Optional[float] = None
     stretch_gripper_real_open_cmd: Optional[float] = None

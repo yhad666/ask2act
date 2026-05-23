@@ -559,6 +559,11 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
     original_right_extra = mp.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M
     original_left_center_y = mp.GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M
     original_right_y = mp.GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M
+    original_slender_rubber_y = mp.GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M
+    original_slender_side_x = mp.GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M
+    original_slender_right_extra = mp.GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M
+    original_slender_left_center_y = mp.GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M
+    original_slender_right_y = mp.GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M
     original_max_top_delta = mp.GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M
     calls = []
 
@@ -580,6 +585,11 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
                 "right_extra_x_bias_m": 0.01,
                 "left_center_y_bias_m": 0.005,
                 "right_y_bias_m": -0.005,
+                "slender_rubber_local_y_correction_m": -0.012,
+                "slender_side_x_bias_m": 0.015,
+                "slender_right_extra_x_bias_m": 0.006,
+                "slender_left_center_y_bias_m": 0.002,
+                "slender_right_y_bias_m": -0.002,
                 "max_top_grasp_delta_m": 0.07,
                 "gripper_open_cmd_override": 0.58,
                 "stretch_gripper_real_open_cmd": 100.0,
@@ -596,6 +606,11 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
         assert data["tuning"]["right_extra_x_bias_m"] == 0.01
         assert data["tuning"]["left_center_y_bias_m"] == 0.005
         assert data["tuning"]["right_y_bias_m"] == -0.005
+        assert data["tuning"]["slender_rubber_local_y_correction_m"] == -0.012
+        assert data["tuning"]["slender_side_x_bias_m"] == 0.015
+        assert data["tuning"]["slender_right_extra_x_bias_m"] == 0.006
+        assert data["tuning"]["slender_left_center_y_bias_m"] == 0.002
+        assert data["tuning"]["slender_right_y_bias_m"] == -0.002
         assert data["tuning"]["max_top_grasp_delta_m"] == 0.07
         assert data["tuning"]["gripper_open_cmd_override"] == 0.58
         assert data["tuning"]["stretch_gripper_real_close_cmd"] == -80.0
@@ -605,6 +620,11 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
         assert mp.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M == 0.01
         assert mp.GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M == 0.005
         assert mp.GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M == -0.005
+        assert mp.GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M == "-0.012"
+        assert mp.GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M == "0.015"
+        assert mp.GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M == "0.006"
+        assert mp.GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M == "0.002"
+        assert mp.GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M == "-0.002"
         assert mp.GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M == 0.07
         assert mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE == "0.58"
         assert calls == [
@@ -622,6 +642,11 @@ def test_online_grasp_tuning_updates_planner_and_robot_runtime(monkeypatch):
         mp.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M = original_right_extra
         mp.GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M = original_left_center_y
         mp.GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M = original_right_y
+        mp.GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M = original_slender_rubber_y
+        mp.GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M = original_slender_side_x
+        mp.GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M = original_slender_right_extra
+        mp.GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M = original_slender_left_center_y
+        mp.GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M = original_slender_right_y
         mp.GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M = original_max_top_delta
         mp.GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE = original_open
 

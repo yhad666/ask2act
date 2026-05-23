@@ -203,6 +203,48 @@
             </div>
             <div class="trial-fields">
               <div>
+                <label>Fork Rubber X m</label>
+                <input id="slenderRubberCorrXInput" type="number" step="0.005" value="0.000" />
+              </div>
+              <div>
+                <label>Fork Rubber Y m</label>
+                <input id="slenderRubberCorrYInput" type="number" step="0.005" value="-0.010" />
+              </div>
+              <div>
+                <label>Fork Rubber Z m</label>
+                <input id="slenderRubberCorrZInput" type="number" step="0.005" value="0.045" />
+              </div>
+            </div>
+            <div class="trial-fields">
+              <div>
+                <label>Fork Side X m</label>
+                <input id="slenderSideXBiasInput" type="number" step="0.005" value="0.010" />
+              </div>
+              <div>
+                <label>Fork Right Extra X m</label>
+                <input id="slenderRightExtraXBiasInput" type="number" step="0.005" value="0.005" />
+              </div>
+              <div>
+                <label>Fork Long Bias</label>
+                <input id="slenderLongAxisBiasInput" type="number" step="0.05" value="0.000" />
+              </div>
+            </div>
+            <div class="trial-fields">
+              <div>
+                <label>Fork Left/Center Y m</label>
+                <input id="slenderLeftCenterYBiasInput" type="number" step="0.005" value="0.000" />
+              </div>
+              <div>
+                <label>Fork Right Y m</label>
+                <input id="slenderRightYBiasInput" type="number" step="0.005" value="0.000" />
+              </div>
+              <div>
+                <label>Fork Deadband m</label>
+                <input id="slenderSideXDeadbandInput" type="number" step="0.005" value="0.050" />
+              </div>
+            </div>
+            <div class="trial-fields">
+              <div>
                 <label>Quick Side Bias</label>
                 <select id="sideXBiasPresetInput">
                   <option value="0.020">outer 0.020</option>
@@ -1035,6 +1077,15 @@
         setValue("rightExtraXBiasInput", fmt(tuning.right_extra_x_bias_m, 3));
         setValue("leftCenterYBiasInput", fmt(tuning.left_center_y_bias_m, 3));
         setValue("rightYBiasInput", fmt(tuning.right_y_bias_m, 3));
+        setValue("slenderRubberCorrXInput", fmt(tuning.slender_rubber_local_x_correction_m, 3));
+        setValue("slenderRubberCorrYInput", fmt(tuning.slender_rubber_local_y_correction_m, 3));
+        setValue("slenderRubberCorrZInput", fmt(tuning.slender_rubber_local_z_correction_m, 3));
+        setValue("slenderSideXBiasInput", fmt(tuning.slender_side_x_bias_m, 3));
+        setValue("slenderSideXDeadbandInput", fmt(tuning.slender_side_x_bias_deadband_m, 3));
+        setValue("slenderRightExtraXBiasInput", fmt(tuning.slender_right_extra_x_bias_m, 3));
+        setValue("slenderLeftCenterYBiasInput", fmt(tuning.slender_left_center_y_bias_m, 3));
+        setValue("slenderRightYBiasInput", fmt(tuning.slender_right_y_bias_m, 3));
+        setValue("slenderLongAxisBiasInput", fmt(tuning.slender_long_axis_bias, 3));
         setValue("maxTopGraspDeltaInput", fmt(tuning.max_top_grasp_delta_m, 3));
         setValue("plannerOpenCmdInput", fmt(tuning.gripper_open_cmd_override, 2));
         setValue("stretchOpenCmdInput", fmt(tuning.stretch_gripper_real_open_cmd, 0));
@@ -1049,7 +1100,14 @@
           fmt(tuning.side_x_bias_m, 3) + " right_extra=" +
           fmt(tuning.right_extra_x_bias_m, 3) + " y=(" +
           fmt(tuning.left_center_y_bias_m, 3) + ", " +
-          fmt(tuning.right_y_bias_m, 3) + ") top_delta=" +
+          fmt(tuning.right_y_bias_m, 3) + ") fork_rubber=(" +
+          fmt(tuning.slender_rubber_local_x_correction_m, 3) + ", " +
+          fmt(tuning.slender_rubber_local_y_correction_m, 3) + ", " +
+          fmt(tuning.slender_rubber_local_z_correction_m, 3) + ") fork_side=(" +
+          fmt(tuning.slender_side_x_bias_m, 3) + ", " +
+          fmt(tuning.slender_left_center_y_bias_m, 3) + ", " +
+          fmt(tuning.slender_right_y_bias_m, 3) + ") fork_long=" +
+          fmt(tuning.slender_long_axis_bias, 3) + " top_delta=" +
           fmt(tuning.max_top_grasp_delta_m, 3) + " stretch_open=" +
           fmt(tuning.stretch_gripper_real_open_cmd, 0) + " stretch_close=" +
           fmt(tuning.stretch_gripper_real_close_cmd, 0)
@@ -1079,6 +1137,15 @@
           right_extra_x_bias_m: numericInput("rightExtraXBiasInput", 0.01),
           left_center_y_bias_m: numericInput("leftCenterYBiasInput", 0.005),
           right_y_bias_m: numericInput("rightYBiasInput", -0.005),
+          slender_rubber_local_x_correction_m: numericInput("slenderRubberCorrXInput", 0.0),
+          slender_rubber_local_y_correction_m: numericInput("slenderRubberCorrYInput", -0.01),
+          slender_rubber_local_z_correction_m: numericInput("slenderRubberCorrZInput", 0.045),
+          slender_side_x_bias_m: numericInput("slenderSideXBiasInput", 0.01),
+          slender_side_x_bias_deadband_m: numericInput("slenderSideXDeadbandInput", 0.05),
+          slender_right_extra_x_bias_m: numericInput("slenderRightExtraXBiasInput", 0.005),
+          slender_left_center_y_bias_m: numericInput("slenderLeftCenterYBiasInput", 0.0),
+          slender_right_y_bias_m: numericInput("slenderRightYBiasInput", 0.0),
+          slender_long_axis_bias: numericInput("slenderLongAxisBiasInput", 0.0),
           max_top_grasp_delta_m: numericInput("maxTopGraspDeltaInput", 0.07),
           gripper_open_cmd_override: numericInput("plannerOpenCmdInput", 0.56),
           stretch_gripper_real_open_cmd: numericInput("stretchOpenCmdInput", 100.0),

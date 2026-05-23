@@ -2208,10 +2208,30 @@ def _current_motion_planner_tuning() -> Dict[str, Any]:
         grasp_runtime._ensure_grasp_import_path()
         from ask2act_grasp.planning import motion_planner as mp
 
+        def opt_float(value: Any, env_name: str, default: str) -> float:
+            if value is None:
+                return float(os.getenv(env_name, default))
+            return float(value)
+
         return {
             "rubber_local_x_correction_m": float(mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M),
             "rubber_local_y_correction_m": float(mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M),
             "rubber_local_z_correction_m": float(mp.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M),
+            "slender_rubber_local_x_correction_m": opt_float(
+                mp.GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_X_CORRECTION_M,
+                "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_X_CORRECTION_M",
+                "0.0",
+            ),
+            "slender_rubber_local_y_correction_m": opt_float(
+                mp.GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M,
+                "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M",
+                "-0.01",
+            ),
+            "slender_rubber_local_z_correction_m": opt_float(
+                mp.GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Z_CORRECTION_M,
+                "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Z_CORRECTION_M",
+                "0.045",
+            ),
             "approx_topdown_x_correction_m": float(mp.APPROX_GEOMETRIC_TOP_DOWN_X_CORRECTION_M),
             "approx_topdown_y_correction_m": float(mp.APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M),
             "side_x_bias_m": float(mp.GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M),
@@ -2219,6 +2239,32 @@ def _current_motion_planner_tuning() -> Dict[str, Any]:
             "right_extra_x_bias_m": float(mp.GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M),
             "left_center_y_bias_m": float(mp.GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M),
             "right_y_bias_m": float(mp.GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M),
+            "slender_side_x_bias_m": opt_float(
+                mp.GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M,
+                "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M",
+                "0.01",
+            ),
+            "slender_side_x_bias_deadband_m": opt_float(
+                mp.GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_DEADBAND_M,
+                "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_DEADBAND_M",
+                "0.05",
+            ),
+            "slender_right_extra_x_bias_m": opt_float(
+                mp.GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M,
+                "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M",
+                "0.005",
+            ),
+            "slender_left_center_y_bias_m": opt_float(
+                mp.GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M,
+                "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M",
+                "0.0",
+            ),
+            "slender_right_y_bias_m": opt_float(
+                mp.GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M,
+                "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M",
+                "0.0",
+            ),
+            "slender_long_axis_bias": float(os.getenv("ASK2ACT_GEOMETRIC_SLENDER_GRASP_LONG_AXIS_BIAS", "0.0")),
             "max_top_grasp_delta_m": float(mp.GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M),
             "gripper_open_cmd_override": (
                 None
@@ -2232,6 +2278,9 @@ def _current_motion_planner_tuning() -> Dict[str, Any]:
             "rubber_local_x_correction_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M", "0.0")),
             "rubber_local_y_correction_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M", "0.0")),
             "rubber_local_z_correction_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M", "0.0")),
+            "slender_rubber_local_x_correction_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_X_CORRECTION_M", "0.0")),
+            "slender_rubber_local_y_correction_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M", "-0.01")),
+            "slender_rubber_local_z_correction_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Z_CORRECTION_M", "0.045")),
             "approx_topdown_x_correction_m": float(os.getenv("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_X_CORRECTION_M", "0.045")),
             "approx_topdown_y_correction_m": float(os.getenv("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M", "-0.065")),
             "side_x_bias_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M", "0.02")),
@@ -2239,6 +2288,12 @@ def _current_motion_planner_tuning() -> Dict[str, Any]:
             "right_extra_x_bias_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M", "0.01")),
             "left_center_y_bias_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M", "0.005")),
             "right_y_bias_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M", "-0.005")),
+            "slender_side_x_bias_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M", "0.01")),
+            "slender_side_x_bias_deadband_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_DEADBAND_M", "0.05")),
+            "slender_right_extra_x_bias_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M", "0.005")),
+            "slender_left_center_y_bias_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M", "0.0")),
+            "slender_right_y_bias_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M", "0.0")),
+            "slender_long_axis_bias": float(os.getenv("ASK2ACT_GEOMETRIC_SLENDER_GRASP_LONG_AXIS_BIAS", "0.0")),
             "max_top_grasp_delta_m": float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M", "0.07")),
             "gripper_open_cmd_override": (
                 float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE"))
@@ -2257,6 +2312,9 @@ def _apply_motion_planner_tuning(updates: Dict[str, Any]) -> Dict[str, Any]:
         "rubber_local_x_correction_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M", "GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M"),
         "rubber_local_y_correction_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M", "GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M"),
         "rubber_local_z_correction_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M", "GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M"),
+        "slender_rubber_local_x_correction_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_X_CORRECTION_M", "GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_X_CORRECTION_M"),
+        "slender_rubber_local_y_correction_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M", "GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M"),
+        "slender_rubber_local_z_correction_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Z_CORRECTION_M", "GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Z_CORRECTION_M"),
         "approx_topdown_x_correction_m": ("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_X_CORRECTION_M", "APPROX_GEOMETRIC_TOP_DOWN_X_CORRECTION_M"),
         "approx_topdown_y_correction_m": ("ASK2ACT_APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M", "APPROX_GEOMETRIC_TOP_DOWN_Y_CORRECTION_M"),
         "side_x_bias_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M", "GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M"),
@@ -2264,6 +2322,11 @@ def _apply_motion_planner_tuning(updates: Dict[str, Any]) -> Dict[str, Any]:
         "right_extra_x_bias_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M", "GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M"),
         "left_center_y_bias_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M", "GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M"),
         "right_y_bias_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M", "GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M"),
+        "slender_side_x_bias_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M", "GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M"),
+        "slender_side_x_bias_deadband_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_DEADBAND_M", "GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_DEADBAND_M"),
+        "slender_right_extra_x_bias_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M", "GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M"),
+        "slender_left_center_y_bias_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M", "GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M"),
+        "slender_right_y_bias_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M", "GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M"),
         "max_top_grasp_delta_m": ("ASK2ACT_GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M", "GEOMETRIC_TOP_DOWN_MAX_TOP_GRASP_DELTA_M"),
     }
     applied: Dict[str, Any] = {}
@@ -2272,8 +2335,12 @@ def _apply_motion_planner_tuning(updates: Dict[str, Any]) -> Dict[str, Any]:
             continue
         value = float(updates[field])
         os.environ[env_name] = str(value)
-        setattr(mp, attr_name, value)
+        setattr(mp, attr_name, str(value) if "SLENDER" in attr_name else value)
         applied[field] = value
+    if "slender_long_axis_bias" in updates and updates["slender_long_axis_bias"] is not None:
+        value = float(updates["slender_long_axis_bias"])
+        os.environ["ASK2ACT_GEOMETRIC_SLENDER_GRASP_LONG_AXIS_BIAS"] = str(value)
+        applied["slender_long_axis_bias"] = value
     if "gripper_open_cmd_override" in updates and updates["gripper_open_cmd_override"] is not None:
         value = float(updates["gripper_open_cmd_override"])
         os.environ["ASK2ACT_GEOMETRIC_TOP_DOWN_GRIPPER_OPEN_CMD_OVERRIDE"] = str(value)
