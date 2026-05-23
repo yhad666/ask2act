@@ -423,6 +423,28 @@ def test_camera_safe_observe_verify_uses_clearance_bounds(monkeypatch):
     assert result["joints"]["arm"]["mode"] == "max"
 
 
+def test_camera_safe_observe_verify_allows_soft_arm_clearance(monkeypatch):
+    from real.stretch_transport.scripts import capture_observation
+
+    readings = {"lift": 0.50, "arm": 0.055}
+
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_JOINTS", "lift,arm")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_TIMEOUT_S", "0.1")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_VERIFY_TOLERANCE_LIFT", "0.035")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_VERIFY_TOLERANCE_ARM", "0.025")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_VERIFY_ARM_SOFT_MAX_M", "0.08")
+    monkeypatch.setattr(capture_observation, "_read_joint_position", lambda _robot, joint: readings[joint])
+
+    result = capture_observation._verify_default_pose_for_camera(
+        object(),
+        {"lift": 0.45, "arm": 0.0},
+    )
+
+    assert result["ok"] is True
+    assert result["pending_joints"] == []
+    assert result["joints"]["arm"]["mode"] == "soft_max"
+
+
 def test_camera_safe_observe_verify_rejects_low_lift(monkeypatch):
     from real.stretch_transport.scripts import capture_observation
 
@@ -441,6 +463,66 @@ def test_camera_safe_observe_verify_rejects_low_lift(monkeypatch):
 
     assert result["ok"] is False
     assert result["pending_joints"] == ["lift"]
+
+
+def test_observe_default_pose_retries_arm_retract_after_soft_pass(monkeypatch):
+    from real.stretch_transport.scripts import capture_observation
+
+    class FakeJoint:
+        def __init__(self, status=None):
+            self.status = status or {}
+            self.moves = []
+
+        def move_to(self, *args):
+            self.moves.append(args)
+
+    class FakeRobot:
+        def __init__(self):
+            self.arm = FakeJoint({"pos": 0.055})
+            self.lift = FakeJoint({"pos": 0.50})
+            self.end_of_arm = FakeJoint({})
+            self.base = FakeJoint({})
+            self.head = FakeJoint({})
+            self.push_count = 0
+
+        def push_command(self):
+            self.push_count += 1
+
+        def pull_status(self):
+            return None
+
+    robot = FakeRobot()
+    arm_readings = [0.055, 0.010]
+
+    def fake_read(_robot, joint):
+        if joint == "lift":
+            return 0.50
+        if joint == "arm":
+            return arm_readings.pop(0) if arm_readings else 0.010
+        return 0.0
+
+    monkeypatch.setattr(capture_observation, "_read_joint_position", fake_read)
+    monkeypatch.setattr(capture_observation.time, "sleep", lambda _seconds: None)
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_LIFT_OBSERVE_START_M", "0.45")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_SETTLE_OBSERVE_START_S", "0")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_OBSERVE_ARM_RETRY", "1")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_OBSERVE_ARM_RETRY_SETTLE_S", "0")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_TIMEOUT_S", "0.1")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_OBSERVE_VERIFY_JOINTS", "lift,arm")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_VERIFY_TOLERANCE_ARM", "0.025")
+    monkeypatch.setenv("ASK2ACT_STRETCH_HOME_VERIFY_ARM_SOFT_MAX_M", "0.08")
+
+    result = capture_observation._command_default_pose(
+        robot,
+        include_gripper=False,
+        reason="observe_start",
+    )
+
+    assert result["ok"] is True
+    assert result["arm_retry"]["joint"] == "arm"
+    assert result["verify"]["initial_verify"]["joints"]["arm"]["mode"] == "soft_max"
+    assert result["verify"]["joints"]["arm"]["mode"] == "max"
+    assert len(robot.arm.moves) == 2
 
 
 def test_stretch_close_gripper_wait_is_nonblocking_by_default(monkeypatch):

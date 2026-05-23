@@ -219,6 +219,16 @@ def _home_verify_tolerance(joint_name: str) -> float:
     return max(0.0, float(os.getenv(key, defaults.get(joint_name, "0.05"))))
 
 
+def _home_verify_arm_soft_max_m(target: float, tolerance: float) -> float:
+    """Maximum arm extension that still keeps the head camera clear enough."""
+    raw = os.getenv("ASK2ACT_STRETCH_HOME_VERIFY_ARM_SOFT_MAX_M", "0.08")
+    try:
+        soft_max = float(raw)
+    except ValueError:
+        soft_max = 0.08
+    return max(float(target) + float(tolerance), soft_max)
+
+
 def _camera_safe_joint_ok(joint_name: str, actual: float | None, target: float, tolerance: float) -> tuple[bool, str]:
     if actual is None:
         return False, "unreadable"
@@ -227,9 +237,70 @@ def _camera_safe_joint_ok(joint_name: str, actual: float | None, target: float, 
         # lift is safe; only being too low can block the D435i view.
         return actual + tolerance >= target, "min"
     if joint_name == "arm":
-        # The arm must be retracted, but it does not need to hit exactly zero.
-        return actual <= target + tolerance, "max"
+        # The arm should retract close to zero, but in practice the last few
+        # centimeters can settle slowly or hit guarded events. For observation,
+        # accept a small camera-clearance bound so we do not reject a usable
+        # view just because the telescoping arm stopped slightly above zero.
+        if actual <= target + tolerance:
+            return True, "max"
+        return actual <= _home_verify_arm_soft_max_m(target, tolerance), "soft_max"
     return abs(target - actual) <= tolerance, "exact"
+
+
+def _verify_failure_summary(verify_result: dict[str, Any] | None) -> str:
+    if not verify_result:
+        return ""
+    joints = verify_result.get("joints")
+    if not isinstance(joints, dict):
+        return ""
+    parts = []
+    for joint_name in verify_result.get("pending_joints", []):
+        info = joints.get(joint_name)
+        if not isinstance(info, dict):
+            continue
+        actual = info.get("actual")
+        target = info.get("target")
+        tolerance = info.get("tolerance")
+        mode = info.get("mode")
+        if actual is None:
+            parts.append(f"{joint_name}: unreadable")
+        else:
+            parts.append(
+                f"{joint_name}: actual={float(actual):.3f}, target={float(target):.3f}, "
+                f"tol={float(tolerance):.3f}, mode={mode}"
+            )
+    return "; ".join(parts)
+
+
+def _verify_needs_arm_retry(verify_result: dict[str, Any] | None) -> bool:
+    if not verify_result:
+        return False
+    pending = set(verify_result.get("pending_joints") or [])
+    if "arm" in pending:
+        return True
+    joints = verify_result.get("joints")
+    if not isinstance(joints, dict):
+        return False
+    arm = joints.get("arm")
+    return isinstance(arm, dict) and arm.get("mode") == "soft_max"
+
+
+def _retry_observe_arm_retract(robot: Any, targets: dict[str, float]) -> dict[str, Any]:
+    robot.arm.move_to(float(targets["arm"]))
+    robot.push_command()
+    settle_s = max(0.0, float(os.getenv("ASK2ACT_STRETCH_HOME_OBSERVE_ARM_RETRY_SETTLE_S", "0.8")))
+    if settle_s > 0.0:
+        time.sleep(settle_s)
+    try:
+        robot.pull_status()
+    except Exception:
+        pass
+    return {
+        "joint": "arm",
+        "target": float(targets["arm"]),
+        "settle_s": settle_s,
+        "timestamp_epoch_s": time.time(),
+    }
 
 
 def _verify_default_pose_for_camera(robot: Any, targets: dict[str, float]) -> dict[str, Any]:
@@ -289,22 +360,37 @@ def _command_default_pose(robot: Any, *, include_gripper: bool, reason: str) -> 
         pass
     status_after = _status_snapshot(robot)
     verify_result = None
+    arm_retry_result = None
     if reason == "observe_start" and _truthy("ASK2ACT_STRETCH_HOME_VERIFY_ON_OBSERVE", "1"):
         verify_result = _verify_default_pose_for_camera(robot, targets)
+        if _truthy("ASK2ACT_STRETCH_HOME_OBSERVE_ARM_RETRY", "1") and _verify_needs_arm_retry(verify_result):
+            arm_retry_result = _retry_observe_arm_retract(robot, targets)
+            retry_verify_result = _verify_default_pose_for_camera(robot, targets)
+            verify_result = {
+                **retry_verify_result,
+                "initial_verify": verify_result,
+                "arm_retry": arm_retry_result,
+            }
+    verify_ok = verify_result is None or bool(verify_result.get("ok", False))
+    failure_summary = _verify_failure_summary(verify_result)
     return {
-        "ok": True if verify_result is None else bool(verify_result.get("ok", False)),
+        "ok": verify_ok,
         "status": "default_pose_commanded",
         "error": None
-        if verify_result is None or bool(verify_result.get("ok", False))
+        if verify_ok
         else "Camera-safe observe-start pose was not reached before capture",
         "note": None
-        if verify_result is None or bool(verify_result.get("ok", False))
-        else "The D435i capture was blocked before the arm/lift reached the non-occluding observe pose.",
+        if verify_ok
+        else (
+            "The D435i capture was blocked before the arm/lift reached the non-occluding observe pose."
+            + (f" Verify: {failure_summary}" if failure_summary else "")
+        ),
         "reason": reason,
         "include_gripper": include_gripper,
         "targets": targets if include_gripper else {key: value for key, value in targets.items() if key != "stretch_gripper"},
         "settle_s": settle_s,
         "verify": verify_result,
+        "arm_retry": arm_retry_result,
         "status_before": status_before,
         "status_after": status_after,
         "timestamp_epoch_s": time.time(),
