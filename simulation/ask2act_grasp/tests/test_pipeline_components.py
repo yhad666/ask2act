@@ -1265,6 +1265,28 @@ def test_compute_geometric_grasp_returns_top_down_geometry_diagnostics():
     assert np.isclose(result["grasp_z"], (result["object_top_z"] + result["object_bottom_z"]) / 2.0)
 
 
+def test_slender_geometric_grasp_uses_length_midpoint_not_density_median():
+    handle_x = np.linspace(0.0, 0.12, 70)
+    handle_y = np.linspace(-0.004, 0.004, 5)
+    head_x = np.linspace(-0.018, 0.012, 24)
+    head_y = np.linspace(-0.016, 0.016, 18)
+    z_vals = np.linspace(0.445, 0.459, 4)
+    handle = np.array([[x, y, z] for x in handle_x for y in handle_y for z in z_vals], dtype=float)
+    # Dense fork head/tines at one end would bias a point-density median toward
+    # the head; the grasp should stay near the physical midpoint of the length.
+    head = np.array([[x, y, z] for x in head_x for y in head_y for z in z_vals], dtype=float)
+    points = np.concatenate([handle, head], axis=0)
+
+    result = compute_geometric_grasp(points, table_z=0.43, max_gripper_width_m=0.09)
+
+    assert result["method"] == "geometric_point_cloud_pca_slender"
+    assert result["slender_grasp_center_mode"] == "major_axis_extent_midpoint"
+    assert result["xy_aspect_ratio"] > 2.5
+    assert 0.045 <= result["grasp_x"] <= 0.065
+    assert abs(result["grasp_y"]) < 0.006
+    assert result["pca_density_center_xy"][0] < result["grasp_x"]
+
+
 def test_save_geometric_grasp_debug_writes_single_overlay_image(tmp_path):
     x_vals = np.linspace(-0.03, 0.03, 7)
     y_vals = np.linspace(-0.02, 0.02, 5)
@@ -1643,6 +1665,69 @@ def test_motion_planner_uses_geometric_yaw_for_slender_objects_even_when_open_wi
     assert targets["wrist_yaw_reason"] == "slender_method"
     assert np.isclose(targets["wrist_yaw"], np.pi / 2.0)
     assert np.isclose(targets["total_gripper_yaw_rad"], np.pi / 2.0)
+
+
+def test_motion_planner_can_use_neutral_slender_xy_tuning():
+    from ask2act_grasp.planning import motion_planner as motion_planner_module
+
+    scene_config, _ = load_scene_config(PACKAGE_ROOT / "config" / "scene_config.yaml")
+    grasp_config = load_grasp_config(PACKAGE_ROOT / "config" / "grasp_config.yaml")
+    planner = MotionPlanner(scene_config, grasp_config)
+    original_fk_threshold = motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M
+    original_slender_rubber_y = motion_planner_module.GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M
+    original_slender_side_x = motion_planner_module.GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M
+    original_slender_left_y = motion_planner_module.GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M
+    original_general_rubber_y = motion_planner_module.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M
+
+    class FakeSimpleIK:
+        def ik_rotary_base(self, _wrist_position):
+            return {"joint_mobile_base_rotation": 0.0, "joint_lift": 0.91, "joint_arm_l0": 0.31}
+
+        def clip_with_joint_limits(self, _robot_configuration):
+            return None
+
+        def fk_rotary_base(self, _robot_configuration):
+            return [0.0, 0.0, 0.0]
+
+    try:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = 0.0
+        motion_planner_module.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M = -0.045
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M = "0.0"
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M = "0.0"
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M = "0.0"
+        planner.simple_ik = FakeSimpleIK()
+        targets = planner.geometric_grasp_targets(
+            {
+                "grasp_x": 0.10,
+                "grasp_y": -0.60,
+                "grasp_z": 0.83,
+                "grip_angle_rad": 0.0,
+                "gripper_open_width": 0.035,
+                "min_cross_section_width": 0.017,
+                "object_center": [0.10, -0.60, 0.835],
+                "object_height": 0.014,
+                "object_top_z": 0.842,
+                "object_bottom_z": 0.828,
+                "grasp_point_validated": True,
+                "width_near_limit": False,
+                "method": "geometric_point_cloud_pca_slender",
+                "xy_aspect_ratio": 5.0,
+            },
+            current_state={"wrist_yaw": 0.0},
+        )
+    finally:
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SIMPLEIK_MAX_FK_ERROR_M = original_fk_threshold
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M = original_slender_rubber_y
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M = original_slender_side_x
+        motion_planner_module.GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M = original_slender_left_y
+        motion_planner_module.GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M = original_general_rubber_y
+
+    assert targets["use_slender_tuning"] is True
+    assert targets["side_x_bias_applied_m"] == pytest.approx(0.0)
+    assert targets["side_y_bias_applied_m"] == pytest.approx(0.0)
+    assert targets["rubber_local_correction_m"][1] == pytest.approx(0.0)
+    assert targets["requested_contact_point"] == pytest.approx([0.10, -0.60, 0.83])
+    assert targets["contact_point"] == pytest.approx([0.10, -0.60, 0.83])
 
 
 def test_simple_ik_geometric_yaw_is_relative_to_base_rotation():

@@ -70,17 +70,37 @@ GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M = float(
 GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M", "0.0")
 )
+GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_X_CORRECTION_M = os.getenv(
+    "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_X_CORRECTION_M"
+)
+GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M = os.getenv(
+    "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M"
+)
+GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Z_CORRECTION_M = os.getenv(
+    "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Z_CORRECTION_M"
+)
 GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M", "0.02"))
+GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M = os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M")
 GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M", "0.05")
 )
+GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_DEADBAND_M = os.getenv(
+    "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_DEADBAND_M"
+)
 GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M", "0.01")
+)
+GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M = os.getenv(
+    "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M"
 )
 GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M = float(
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M", "0.005")
 )
 GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M = float(os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M", "-0.005"))
+GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M = os.getenv(
+    "ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M"
+)
+GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M = os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M")
 GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE = (
     os.getenv("ASK2ACT_GEOMETRIC_TOP_DOWN_ENABLE_BASE_REACH_TRANSLATE", "1").strip().lower()
     in {"1", "true", "yes", "on"}
@@ -184,6 +204,74 @@ class MotionPlanner:
             if aspect >= GEOMETRIC_TOP_DOWN_WRIST_YAW_SLENDER_ASPECT_RATIO:
                 return True, "slender_aspect_ratio"
         return False, "disabled_for_wide_object"
+
+    @staticmethod
+    def _is_slender_geometric_grasp(geometric_grasp: dict[str, object]) -> bool:
+        method = str(geometric_grasp.get("method", ""))
+        if "slender" in method:
+            return True
+        try:
+            aspect = float(geometric_grasp.get("xy_aspect_ratio", 0.0))
+        except (TypeError, ValueError):
+            aspect = 0.0
+        return aspect >= GEOMETRIC_TOP_DOWN_WRIST_YAW_SLENDER_ASPECT_RATIO
+
+    @staticmethod
+    def _env_float_or_default(raw: str | None, default: float) -> float:
+        if raw is None:
+            return float(default)
+        try:
+            return float(raw)
+        except ValueError:
+            return float(default)
+
+    @classmethod
+    def _topdown_tuning(cls, *, use_slender_tuning: bool) -> dict[str, float]:
+        if not use_slender_tuning:
+            return {
+                "rubber_x": float(GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M),
+                "rubber_y": float(GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M),
+                "rubber_z": float(GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M),
+                "side_x": float(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M),
+                "side_deadband": float(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M),
+                "right_extra_x": float(GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M),
+                "left_center_y": float(GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M),
+                "right_y": float(GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M),
+            }
+        return {
+            "rubber_x": cls._env_float_or_default(
+                GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_X_CORRECTION_M,
+                GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M,
+            ),
+            "rubber_y": cls._env_float_or_default(
+                GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Y_CORRECTION_M,
+                GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M,
+            ),
+            "rubber_z": cls._env_float_or_default(
+                GEOMETRIC_TOP_DOWN_SLENDER_RUBBER_LOCAL_Z_CORRECTION_M,
+                GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M,
+            ),
+            "side_x": cls._env_float_or_default(
+                GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_M,
+                GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M,
+            ),
+            "side_deadband": cls._env_float_or_default(
+                GEOMETRIC_TOP_DOWN_SLENDER_SIDE_X_BIAS_DEADBAND_M,
+                GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M,
+            ),
+            "right_extra_x": cls._env_float_or_default(
+                GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_EXTRA_X_BIAS_M,
+                GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M,
+            ),
+            "left_center_y": cls._env_float_or_default(
+                GEOMETRIC_TOP_DOWN_SLENDER_LEFT_CENTER_Y_BIAS_M,
+                GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M,
+            ),
+            "right_y": cls._env_float_or_default(
+                GEOMETRIC_TOP_DOWN_SLENDER_RIGHT_Y_BIAS_M,
+                GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M,
+            ),
+        }
 
     def _world_y_to_arm(self, y_world_m: float) -> float:
         desired = max(-float(y_world_m) - self.grasp_config.oracle_arm_backoff_m, 0.0)
@@ -377,6 +465,7 @@ class MotionPlanner:
         current_state: dict[str, float] | None,
         force_wrist_yaw: bool = False,
         wrist_yaw_reason: str = "open_width_gate",
+        use_slender_tuning: bool = False,
         extra_metadata: dict[str, object] | None = None,
     ) -> dict[str, float] | None:
         if self.simple_ik is None:
@@ -390,15 +479,16 @@ class MotionPlanner:
             base_world_translation[0] = float(current_state.get("base_x", 0.0))
             base_world_translation[1] = float(current_state.get("base_y", 0.0))
         lateral_x_m = float(desired_rubber_xyz[0] - base_world_translation[0])
+        tuning = self._topdown_tuning(use_slender_tuning=use_slender_tuning)
         side_x_bias_applied_m = 0.0
-        side_y_bias_applied_m = GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M
+        side_y_bias_applied_m = tuning["left_center_y"]
         side_bias_region = "center"
-        if abs(lateral_x_m) > GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M:
-            side_x_bias_applied_m = float(math.copysign(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M, lateral_x_m))
+        if abs(lateral_x_m) > tuning["side_deadband"]:
+            side_x_bias_applied_m = float(math.copysign(tuning["side_x"], lateral_x_m))
             if lateral_x_m < 0.0:
                 side_bias_region = "right"
-                side_x_bias_applied_m -= GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M
-                side_y_bias_applied_m = GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M
+                side_x_bias_applied_m -= tuning["right_extra_x"]
+                side_y_bias_applied_m = tuning["right_y"]
             else:
                 side_bias_region = "left"
             desired_rubber_xyz[0] += side_x_bias_applied_m
@@ -408,9 +498,9 @@ class MotionPlanner:
         grasp_center_to_rubber_local = np.asarray(topdown_grasp_center_to_rubber_offset_m(gripper_open_cmd), dtype=float)
         rubber_local_correction = np.array(
             [
-                GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_X_CORRECTION_M,
-                GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Y_CORRECTION_M,
-                GEOMETRIC_TOP_DOWN_RUBBER_LOCAL_Z_CORRECTION_M,
+                tuning["rubber_x"],
+                tuning["rubber_y"],
+                tuning["rubber_z"],
             ],
             dtype=float,
         )
@@ -613,13 +703,14 @@ class MotionPlanner:
             "contact_point": desired_rubber_xyz.tolist(),
             "requested_contact_point": requested_rubber_xyz.tolist(),
             "side_x_bias_applied_m": float(side_x_bias_applied_m),
-            "side_x_bias_config_m": float(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_M),
-            "side_x_bias_deadband_m": float(GEOMETRIC_TOP_DOWN_SIDE_X_BIAS_DEADBAND_M),
-            "right_extra_x_bias_m": float(GEOMETRIC_TOP_DOWN_RIGHT_EXTRA_X_BIAS_M),
+            "side_x_bias_config_m": float(tuning["side_x"]),
+            "side_x_bias_deadband_m": float(tuning["side_deadband"]),
+            "right_extra_x_bias_m": float(tuning["right_extra_x"]),
             "side_y_bias_applied_m": float(side_y_bias_applied_m),
-            "left_center_y_bias_m": float(GEOMETRIC_TOP_DOWN_LEFT_CENTER_Y_BIAS_M),
-            "right_y_bias_m": float(GEOMETRIC_TOP_DOWN_RIGHT_Y_BIAS_M),
+            "left_center_y_bias_m": float(tuning["left_center_y"]),
+            "right_y_bias_m": float(tuning["right_y"]),
             "side_bias_region": side_bias_region,
+            "use_slender_tuning": bool(use_slender_tuning),
             "rubber_local_correction_m": rubber_local_correction.tolist(),
             "planning_mode": planning_mode,
             "grip_angle_rad": float(grip_angle_rad),
@@ -801,6 +892,7 @@ class MotionPlanner:
             geometric_grasp,
             requested_open_width=requested_open_width,
         )
+        use_slender_tuning = self._is_slender_geometric_grasp(geometric_grasp)
         ik_targets = self._solve_topdown_simple_ik_targets(
             desired_rubber_xyz=desired_rubber_xyz,
             requested_open_width=requested_open_width,
@@ -809,6 +901,7 @@ class MotionPlanner:
             current_state=current_state,
             force_wrist_yaw=use_geometric_yaw,
             wrist_yaw_reason=wrist_yaw_reason,
+            use_slender_tuning=use_slender_tuning,
             extra_metadata={
                 "min_cross_section_width": float(geometric_grasp.get("min_cross_section_width", requested_open_width)),
                 "geometric_grasp_method": geometric_grasp.get("method"),

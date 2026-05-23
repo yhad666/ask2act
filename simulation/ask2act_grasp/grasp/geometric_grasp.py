@@ -135,14 +135,25 @@ def _slender_object_grasp(points: np.ndarray, table_z: float, *, slice_thickness
     center_xy, axes, spans = _pca_xy(slice_pts[:, :2])
     major_width = float(max(spans[0], 1e-4))
     minor_width = float(max(spans[1], 1e-4))
+    major_axis = axes[:, 0]
     minor_axis = axes[:, 1]
     grip_angle_rad = float(np.arctan2(minor_axis[1], minor_axis[0]))
+    centered_xy = np.asarray(slice_pts[:, :2] - center_xy[None, :], dtype=float)
+    projections = centered_xy @ axes
+    major_lo, major_hi = np.percentile(projections[:, 0], [5.0, 95.0])
+    minor_center = float(np.median(projections[:, 1]))
+    long_axis_bias = float(os.getenv("ASK2ACT_GEOMETRIC_SLENDER_GRASP_LONG_AXIS_BIAS", "0.0"))
+    long_axis_bias = float(np.clip(long_axis_bias, -0.45, 0.45))
+    grasp_major = float((major_lo + major_hi) / 2.0 + long_axis_bias * max(major_hi - major_lo, 0.0))
+    # For nonuniform tools such as forks, using the point-density median can
+    # pull the grasp toward the wider head/tines. Use the physical length
+    # midpoint along the PCA major axis instead.
+    grasp_xy = np.asarray(center_xy + major_axis * grasp_major + minor_axis * minor_center, dtype=float)
     clearance_margin = float(os.getenv("ASK2ACT_GEOMETRIC_SLENDER_GRIP_CLEARANCE_M", "0.018"))
     min_open_width = float(os.getenv("ASK2ACT_GEOMETRIC_SLENDER_MIN_OPEN_WIDTH_M", "0.032"))
     gripper_open_width = float(max(min_open_width, minor_width + clearance_margin))
     if max_gripper_width_m is not None:
         gripper_open_width = float(min(gripper_open_width, float(max_gripper_width_m)))
-    grasp_xy = np.asarray(center_xy, dtype=float)
     return {
         "grasp_x": float(grasp_xy[0]),
         "grasp_y": float(grasp_xy[1]),
@@ -178,6 +189,13 @@ def _slender_object_grasp(points: np.ndarray, table_z: float, *, slice_thickness
         "major_axis_width": major_width,
         "minor_axis_width": minor_width,
         "xy_aspect_ratio": float(major_width / max(minor_width, 1e-4)),
+        "pca_density_center_xy": [float(center_xy[0]), float(center_xy[1])],
+        "slender_grasp_center_mode": "major_axis_extent_midpoint",
+        "slender_major_axis_xy": [float(major_axis[0]), float(major_axis[1])],
+        "slender_minor_axis_xy": [float(minor_axis[0]), float(minor_axis[1])],
+        "slender_major_axis_percentile_5_95": [float(major_lo), float(major_hi)],
+        "slender_minor_axis_center_projection": minor_center,
+        "slender_long_axis_bias": long_axis_bias,
     }
 
 
