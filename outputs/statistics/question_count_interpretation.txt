@@ -1,0 +1,11 @@
+Question-count interpretation:
+
+- ambiguous: Friedman p=1.993e-05 with n_scenes=33.
+  EFE reduced questions vs first_question: mean diff=-0.64, reduction=24.37%, Holm p=0.0009042.
+  EFE reduced questions vs random_question: mean diff=-0.60, reduction=23.33%, Holm p=0.0009042.
+  EFE reduced questions vs vlm_best_question: mean diff=-0.60, reduction=23.18%, Holm p=0.0009042.
+- overall: Friedman p=0.01119 with n_scenes=36.
+  No EFE pairwise question-count comparison was significant after Holm correction.
+- partial: Friedman p=0.01982 with n_scenes=32.
+  EFE increased questions vs vlm_best_question: mean diff=0.16, reduction=-30.10%, Holm p=0.03184.
+- Main efficiency claim should emphasize ambiguous prompts if those comparisons are significant.

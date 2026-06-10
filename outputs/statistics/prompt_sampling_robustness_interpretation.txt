@@ -1,0 +1,12 @@
+Prompt-sampling robustness interpretation:
+
+- Prompt wording was sampled from scene- and prompt-type-specific pools; pool sizes and repeat rates are therefore explicitly audited.
+- Prompt-feature GEE formula: `correct ~ C(method, Treatment(reference="proposed_efe")) + C(prompt_type, Treatment(reference="clear")) + C(scene_type) + candidate_set_size + prompt_length + has_my + has_color + has_spatial + has_relation + has_size + C(prompt_object_category)`.
+- 73/108 scene_id x prompt_type pools were flagged as low-diversity or high-repeat (unique prompts < 3 or duplicate rate > 0.50).
+- Most constrained prompt pools: scene_002:ambiguous(unique=1, dup=0.95), scene_005:ambiguous(unique=1, dup=0.95), scene_004:ambiguous(unique=1, dup=0.95), scene_006:ambiguous(unique=1, dup=0.95), scene_003:ambiguous(unique=1, dup=0.95), scene_009:ambiguous(unique=1, dup=0.93), scene_014:ambiguous(unique=1, dup=0.93), scene_015:ambiguous(unique=1, dup=0.93).
+- With prompt features as covariates, 4/4 planned non-interactive accuracy contrasts remained Holm-significant.
+- With prompt features as covariates, EFE accuracy remained statistically comparable to the other interactive methods.
+- Sensitivity after removing flagged pools retained N=514 records across 35 scene-prompt pools.
+- In the low-diversity-pool sensitivity subset, 4/4 non-interactive accuracy contrasts remained Holm-significant.
+- In the same sensitivity subset, ambiguous question-count tests were not estimable because no complete paired ambiguous scenes remained.
+- These analyses support treating prompt-pool imbalance as a checked robustness issue rather than a blocker for the main conclusions.

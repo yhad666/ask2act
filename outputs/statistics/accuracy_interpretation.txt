@@ -1,0 +1,7 @@
+Accuracy interpretation:
+
+- proposed_efe had higher adjusted accuracy than top_score (OR=15.52, Holm p=1.394e-23).
+- proposed_efe had higher adjusted accuracy than random_candidate (OR=15.88, Holm p=1.394e-23).
+- proposed_efe had higher adjusted accuracy than vlm_direct (OR=15.81, Holm p=9.33e-19).
+- vlm_best_question had higher adjusted accuracy than vlm_direct (OR=15.71, Holm p=1.275e-19).
+- EFE was not significantly different in accuracy from the interactive baselines after Holm correction; describe accuracy as comparable.

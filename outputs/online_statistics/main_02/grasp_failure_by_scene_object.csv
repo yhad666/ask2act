@@ -1,0 +1,10 @@
+scene_type,object_category,attempted,physical_success,physical_fail,physical_success_rate
+bottle_only,bottle,51,42,9,0.8235294117647058
+bottle_only,cup,3,3,0,1.0
+cup_only,cup,42,40,2,0.9523809523809523
+mixed,bottle,10,10,0,1.0
+mixed,cup,14,14,0,1.0
+mixed,fork,4,2,2,0.5
+mixed,spoon,9,9,0,1.0
+utensil_only,fork,22,19,3,0.8636363636363636
+utensil_only,spoon,19,16,3,0.8421052631578947

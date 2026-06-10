@@ -1,0 +1,5 @@
+scene_id,prompt_type,method
+scene_06,ambiguous,vlm_best_question
+scene_20,clear,top_score
+scene_20,clear,vlm_best_question
+scene_20,clear,proposed_efe

@@ -1,0 +1,1871 @@
+{
+  "summary": {
+    "bad_json": [
+      {
+        "trial_file": "trial_20260517_040516_9c1ec7.json",
+        "error": "Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "trial_file": "trial_20260517_040539_9c660a.json",
+        "error": "Expecting value: line 1 column 1 (char 0)"
+      }
+    ],
+    "issue_counts": {
+      "evaluated_pick_with_zero_candidates": 4,
+      "correct_without_resolved_target": 2,
+      "duplicate_same_selection_conflicting_outcome": 23,
+      "duplicate_prompt_method_conflicting_outcome": 34
+    },
+    "total_issues": 63
+  },
+  "issues": [
+    {
+      "type": "evaluated_pick_with_zero_candidates",
+      "trial_file": "trial_20260508_165018_9937e0.json",
+      "trial_id": "trial_20260508_165018_9937e0",
+      "scene_id": "scene_001",
+      "method": "random_candidate",
+      "prompt_type": "partial",
+      "prompt": "Pick up the top cup.",
+      "outcome": "wrong",
+      "candidate_count": 0
+    },
+    {
+      "type": "evaluated_pick_with_zero_candidates",
+      "trial_file": "trial_20260508_165859_834639.json",
+      "trial_id": "trial_20260508_165859_834639",
+      "scene_id": "scene_001",
+      "method": "vlm_direct",
+      "prompt_type": "partial",
+      "prompt": "Pick up the cup on the bottom half.",
+      "outcome": "wrong",
+      "candidate_count": 0
+    },
+    {
+      "type": "evaluated_pick_with_zero_candidates",
+      "trial_file": "trial_20260508_171507_afe9a5.json",
+      "trial_id": "trial_20260508_171507_afe9a5",
+      "scene_id": "scene_001",
+      "method": "first_question",
+      "prompt_type": "clear",
+      "prompt": "Pick up left most cup.",
+      "outcome": "wrong",
+      "candidate_count": 0
+    },
+    {
+      "type": "evaluated_pick_with_zero_candidates",
+      "trial_file": "trial_20260508_184749_924a29.json",
+      "trial_id": "trial_20260508_184749_924a29",
+      "scene_id": "scene_002",
+      "method": "random_candidate",
+      "prompt_type": "partial",
+      "prompt": "Pick up the cup near the orange cup.",
+      "outcome": "wrong",
+      "candidate_count": 0
+    },
+    {
+      "type": "correct_without_resolved_target",
+      "trial_file": "trial_20260515_222821_2475ab.json",
+      "trial_id": "trial_20260515_222821_2475ab",
+      "scene_id": "scene_015",
+      "method": "first_question",
+      "prompt_type": "partial",
+      "prompt": "Pick up the right bottle.",
+      "outcome": "correct",
+      "resolved_candidate_id": null
+    },
+    {
+      "type": "correct_without_resolved_target",
+      "trial_file": "trial_20260516_024818_76aac8.json",
+      "trial_id": "trial_20260516_024818_76aac8",
+      "scene_id": "scene_017",
+      "method": "first_question",
+      "prompt_type": "partial",
+      "prompt": "Pick the right spoon.",
+      "outcome": "correct",
+      "resolved_candidate_id": null
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_001",
+        "pick up the orange cup.",
+        "top_score",
+        "partial",
+        "cand_005"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260508_162202_635b99.json",
+          "trial_id": "trial_20260508_162202_635b99",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 21.049182653427124
+        },
+        {
+          "trial_file": "trial_20260508_162226_ef0622.json",
+          "trial_id": "trial_20260508_162226_ef0622",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 5.794374704360962
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_001",
+        "pick up the orange cup.",
+        "random_candidate",
+        "partial",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260508_164940_336107.json",
+          "trial_id": "trial_20260508_164940_336107",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 9.831251382827759
+        },
+        {
+          "trial_file": "trial_20260508_164955_d88ca1.json",
+          "trial_id": "trial_20260508_164955_d88ca1",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 6.708487272262573
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_001",
+        "pick up my cup.",
+        "vlm_direct",
+        "ambiguous",
+        "cand_004"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260508_170818_2625a6.json",
+          "trial_id": "trial_20260508_170818_2625a6",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 9.462310791015625
+        },
+        {
+          "trial_file": "trial_20260508_170938_da1b4c.json",
+          "trial_id": "trial_20260508_170938_da1b4c",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 6.894267559051514
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_004",
+        "pick up my cup.",
+        "random_candidate",
+        "ambiguous",
+        "cand_005"
+      ],
+      "count": 3,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260510_222446_becbe5.json",
+          "trial_id": "trial_20260510_222446_becbe5",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 5.7402002811431885
+        },
+        {
+          "trial_file": "trial_20260510_222500_12dd57.json",
+          "trial_id": "trial_20260510_222500_12dd57",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 7.984801769256592
+        },
+        {
+          "trial_file": "trial_20260510_222511_4c3c41.json",
+          "trial_id": "trial_20260510_222511_4c3c41",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 5.205658435821533
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_004",
+        "pick up my cup.",
+        "vlm_direct",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260510_224656_a9cb35.json",
+          "trial_id": "trial_20260510_224656_a9cb35",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 66.38385105133057
+        },
+        {
+          "trial_file": "trial_20260510_224807_2e20e8.json",
+          "trial_id": "trial_20260510_224807_2e20e8",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 56.64429068565369
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_008",
+        "pick up my cup",
+        "random_candidate",
+        "ambiguous",
+        "cand_004"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260514_152219_97eb0a.json",
+          "trial_id": "trial_20260514_152219_97eb0a",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 7.905717372894287
+        },
+        {
+          "trial_file": "trial_20260514_152230_b06215.json",
+          "trial_id": "trial_20260514_152230_b06215",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 2.923079252243042
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_010",
+        "pick up my cup.",
+        "vlm_direct",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260515_001446_67581e.json",
+          "trial_id": "trial_20260515_001446_67581e",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 90.78603076934814
+        },
+        {
+          "trial_file": "trial_20260515_001619_471fc9.json",
+          "trial_id": "trial_20260515_001619_471fc9",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 117.48401832580566
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_011",
+        "pick up my bottle.",
+        "top_score",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260515_013956_eaacac.json",
+          "trial_id": "trial_20260515_013956_eaacac",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 5.893683433532715
+        },
+        {
+          "trial_file": "trial_20260515_014004_c5ded5.json",
+          "trial_id": "trial_20260515_014004_c5ded5",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 2.812250852584839
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_013",
+        "pick up my bottle.",
+        "vlm_direct",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260515_030354_c940c6.json",
+          "trial_id": "trial_20260515_030354_c940c6",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 75.44907593727112
+        },
+        {
+          "trial_file": "trial_20260515_030511_a0da19.json",
+          "trial_id": "trial_20260515_030511_a0da19",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 85.24695706367493
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_014",
+        "pick up my bottle.",
+        "top_score",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260515_214257_6ca6ee.json",
+          "trial_id": "trial_20260515_214257_6ca6ee",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 1.9884438514709473
+        },
+        {
+          "trial_file": "trial_20260515_214300_f3be80.json",
+          "trial_id": "trial_20260515_214300_f3be80",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 2.2766199111938477
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_017",
+        "pick up my spoon.",
+        "top_score",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260516_022329_cc45d2.json",
+          "trial_id": "trial_20260516_022329_cc45d2",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 6.589204788208008
+        },
+        {
+          "trial_file": "trial_20260516_022339_e953fd.json",
+          "trial_id": "trial_20260516_022339_e953fd",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 2.235227346420288
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_017",
+        "pick up the left fork.",
+        "top_score",
+        "partial",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260516_023102_3b75d2.json",
+          "trial_id": "trial_20260516_023102_3b75d2",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 4.70222806930542
+        },
+        {
+          "trial_file": "trial_20260516_023108_86b634.json",
+          "trial_id": "trial_20260516_023108_86b634",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 3.5350117683410645
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_017",
+        "pick up the my fork.",
+        "vlm_direct",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260516_023549_a4b164.json",
+          "trial_id": "trial_20260516_023549_a4b164",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 4.21075439453125
+        },
+        {
+          "trial_file": "trial_20260516_023556_cb7cf4.json",
+          "trial_id": "trial_20260516_023556_cb7cf4",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 10.335840225219727
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_021",
+        "pick up my fork.",
+        "top_score",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "unresolved",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260516_175932_30386a.json",
+          "trial_id": "trial_20260516_175932_30386a",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 4.3040244579315186
+        },
+        {
+          "trial_file": "trial_20260516_181209_ef6833.json",
+          "trial_id": "trial_20260516_181209_ef6833",
+          "outcome": "unresolved",
+          "question_count": 0,
+          "latency_s": 5.646761894226074
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_024",
+        "pick up my fork.",
+        "top_score",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260516_225725_2cf46e.json",
+          "trial_id": "trial_20260516_225725_2cf46e",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 11.838340997695923
+        },
+        {
+          "trial_file": "trial_20260516_225738_d3bb7a.json",
+          "trial_id": "trial_20260516_225738_d3bb7a",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 3.7627949714660645
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_025",
+        "pick up my fork.",
+        "top_score",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260517_025717_2d0ed4.json",
+          "trial_id": "trial_20260517_025717_2d0ed4",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 3.920773506164551
+        },
+        {
+          "trial_file": "trial_20260517_025724_e828c5.json",
+          "trial_id": "trial_20260517_025724_e828c5",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 2.2157318592071533
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_025",
+        "pick up my fork.",
+        "vlm_direct",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260517_030159_550771.json",
+          "trial_id": "trial_20260517_030159_550771",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 62.45061492919922
+        },
+        {
+          "trial_file": "trial_20260517_030304_f54e97.json",
+          "trial_id": "trial_20260517_030304_f54e97",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 70.09608817100525
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_028",
+        "pick up my cup.",
+        "top_score",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260517_170949_fdd324.json",
+          "trial_id": "trial_20260517_170949_fdd324",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 8.091400623321533
+        },
+        {
+          "trial_file": "trial_20260517_171005_3e1678.json",
+          "trial_id": "trial_20260517_171005_3e1678",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 3.487208366394043
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_034",
+        "pick up my cup.",
+        "top_score",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260518_001219_9c1b33.json",
+          "trial_id": "trial_20260518_001219_9c1b33",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 4.300993204116821
+        },
+        {
+          "trial_file": "trial_20260518_001231_0a492e.json",
+          "trial_id": "trial_20260518_001231_0a492e",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 2.996140718460083
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_034",
+        "pick up my cup.",
+        "random_candidate",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260518_001239_9da0e5.json",
+          "trial_id": "trial_20260518_001239_9da0e5",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 4.892764568328857
+        },
+        {
+          "trial_file": "trial_20260518_001246_01ef28.json",
+          "trial_id": "trial_20260518_001246_01ef28",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 3.6311237812042236
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_034",
+        "pick up my cup.",
+        "vlm_direct",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260518_001847_6c2696.json",
+          "trial_id": "trial_20260518_001847_6c2696",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 597.6555984020233
+        },
+        {
+          "trial_file": "trial_20260518_002847_d1dc30.json",
+          "trial_id": "trial_20260518_002847_d1dc30",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 79.08507513999939
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_036",
+        "pick up my cup.",
+        "top_score",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260518_014642_b587d7.json",
+          "trial_id": "trial_20260518_014642_b587d7",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 5.7004218101501465
+        },
+        {
+          "trial_file": "trial_20260518_014650_2e6c2c.json",
+          "trial_id": "trial_20260518_014650_2e6c2c",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 2.0826656818389893
+        }
+      ]
+    },
+    {
+      "type": "duplicate_same_selection_conflicting_outcome",
+      "key": [
+        "scene_036",
+        "pick up my cup.",
+        "vlm_direct",
+        "ambiguous",
+        "cand_001"
+      ],
+      "count": 2,
+      "outcomes": [
+        "correct",
+        "wrong"
+      ],
+      "trials": [
+        {
+          "trial_file": "trial_20260518_015140_595a46.json",
+          "trial_id": "trial_20260518_015140_595a46",
+          "outcome": "correct",
+          "question_count": 0,
+          "latency_s": 53.75675082206726
+        },
+        {
+          "trial_file": "trial_20260518_015235_eb9b96.json",
+          "trial_id": "trial_20260518_015235_eb9b96",
+          "outcome": "wrong",
+          "question_count": 0,
+          "latency_s": 55.57913827896118
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_001",
+        "pick up the orange cup.",
+        "top_score",
+        "partial"
+      ],
+      "count": 3,
+      "outcomes": {
+        "wrong": 2,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260508_162202_635b99.json",
+          "trial_id": "trial_20260508_162202_635b99",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_005",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260508_162226_ef0622.json",
+          "trial_id": "trial_20260508_162226_ef0622",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_005",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260508_163950_1f0b87.json",
+          "trial_id": "trial_20260508_163950_1f0b87",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_001",
+        "pick up the cup.",
+        "random_candidate",
+        "partial"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260508_164750_4a676b.json",
+          "trial_id": "trial_20260508_164750_4a676b",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_002",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260508_164849_47bc34.json",
+          "trial_id": "trial_20260508_164849_47bc34",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_003",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_001",
+        "pick up the orange cup.",
+        "random_candidate",
+        "partial"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260508_164940_336107.json",
+          "trial_id": "trial_20260508_164940_336107",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260508_164955_d88ca1.json",
+          "trial_id": "trial_20260508_164955_d88ca1",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_001",
+        "pick up my cup.",
+        "vlm_direct",
+        "ambiguous"
+      ],
+      "count": 3,
+      "outcomes": {
+        "wrong": 2,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260508_170408_a736a3.json",
+          "trial_id": "trial_20260508_170408_a736a3",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260508_170818_2625a6.json",
+          "trial_id": "trial_20260508_170818_2625a6",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_004",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260508_170938_da1b4c.json",
+          "trial_id": "trial_20260508_170938_da1b4c",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_004",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_002",
+        "pick up my cup.",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 3,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 2
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260508_184445_d39cf0.json",
+          "trial_id": "trial_20260508_184445_d39cf0",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_004",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260508_184452_bc691e.json",
+          "trial_id": "trial_20260508_184452_bc691e",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_003",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260508_184501_f2f9b5.json",
+          "trial_id": "trial_20260508_184501_f2f9b5",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_006",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_004",
+        "pick up my cup.",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 3,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 2
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260510_222446_becbe5.json",
+          "trial_id": "trial_20260510_222446_becbe5",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_005",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260510_222500_12dd57.json",
+          "trial_id": "trial_20260510_222500_12dd57",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_005",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260510_222511_4c3c41.json",
+          "trial_id": "trial_20260510_222511_4c3c41",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_005",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_004",
+        "pick up the left blue cup.",
+        "random_candidate",
+        "clear"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260510_222622_8a494a.json",
+          "trial_id": "trial_20260510_222622_8a494a",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_003",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260510_224343_e612df.json",
+          "trial_id": "trial_20260510_224343_e612df",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_004",
+        "pick up my cup.",
+        "vlm_direct",
+        "ambiguous"
+      ],
+      "count": 3,
+      "outcomes": {
+        "wrong": 2,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260510_224558_b1c462.json",
+          "trial_id": "trial_20260510_224558_b1c462",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_002",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260510_224656_a9cb35.json",
+          "trial_id": "trial_20260510_224656_a9cb35",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260510_224807_2e20e8.json",
+          "trial_id": "trial_20260510_224807_2e20e8",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_005",
+        "pick up my cup.",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 3,
+      "outcomes": {
+        "wrong": 2,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260511_000036_e8b2f0.json",
+          "trial_id": "trial_20260511_000036_e8b2f0",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_003",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260511_000044_945aef.json",
+          "trial_id": "trial_20260511_000044_945aef",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260511_000051_acde57.json",
+          "trial_id": "trial_20260511_000051_acde57",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_005",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_008",
+        "pick up my cup",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260514_152219_97eb0a.json",
+          "trial_id": "trial_20260514_152219_97eb0a",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_004",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260514_152230_b06215.json",
+          "trial_id": "trial_20260514_152230_b06215",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_004",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_010",
+        "pick up my cup.",
+        "vlm_direct",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260515_001446_67581e.json",
+          "trial_id": "trial_20260515_001446_67581e",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260515_001619_471fc9.json",
+          "trial_id": "trial_20260515_001619_471fc9",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_011",
+        "pick up my bottle.",
+        "top_score",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260515_013956_eaacac.json",
+          "trial_id": "trial_20260515_013956_eaacac",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260515_014004_c5ded5.json",
+          "trial_id": "trial_20260515_014004_c5ded5",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_011",
+        "pick up my bottle.",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260515_014018_6289c6.json",
+          "trial_id": "trial_20260515_014018_6289c6",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_004",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260515_014053_2f5f45.json",
+          "trial_id": "trial_20260515_014053_2f5f45",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_002",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_013",
+        "pick up my bottle.",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260515_030141_c490e8.json",
+          "trial_id": "trial_20260515_030141_c490e8",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_004",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260515_030146_446031.json",
+          "trial_id": "trial_20260515_030146_446031",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_002",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_013",
+        "pick up my bottle.",
+        "vlm_direct",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260515_030354_c940c6.json",
+          "trial_id": "trial_20260515_030354_c940c6",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260515_030511_a0da19.json",
+          "trial_id": "trial_20260515_030511_a0da19",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_014",
+        "pick up my bottle.",
+        "top_score",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260515_214257_6ca6ee.json",
+          "trial_id": "trial_20260515_214257_6ca6ee",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260515_214300_f3be80.json",
+          "trial_id": "trial_20260515_214300_f3be80",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_015",
+        "pick up my bottle.",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260515_222357_8caadc.json",
+          "trial_id": "trial_20260515_222357_8caadc",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_003",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260515_222408_336b22.json",
+          "trial_id": "trial_20260515_222408_336b22",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_004",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_016",
+        "pick up my fork.",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260516_013124_dcee5c.json",
+          "trial_id": "trial_20260516_013124_dcee5c",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_004",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260516_013134_ce8a4f.json",
+          "trial_id": "trial_20260516_013134_ce8a4f",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_002",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_017",
+        "pick up my spoon.",
+        "top_score",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260516_022329_cc45d2.json",
+          "trial_id": "trial_20260516_022329_cc45d2",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260516_022339_e953fd.json",
+          "trial_id": "trial_20260516_022339_e953fd",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_017",
+        "pick up the left fork.",
+        "top_score",
+        "partial"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260516_023102_3b75d2.json",
+          "trial_id": "trial_20260516_023102_3b75d2",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260516_023108_86b634.json",
+          "trial_id": "trial_20260516_023108_86b634",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_017",
+        "pick up the my fork.",
+        "vlm_direct",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260516_023549_a4b164.json",
+          "trial_id": "trial_20260516_023549_a4b164",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260516_023556_cb7cf4.json",
+          "trial_id": "trial_20260516_023556_cb7cf4",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_018",
+        "pick up my spoon.",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260516_034139_df547d.json",
+          "trial_id": "trial_20260516_034139_df547d",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260516_034152_9c9b12.json",
+          "trial_id": "trial_20260516_034152_9c9b12",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_002",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_021",
+        "pick up my fork.",
+        "top_score",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "unresolved": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260516_175932_30386a.json",
+          "trial_id": "trial_20260516_175932_30386a",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260516_181209_ef6833.json",
+          "trial_id": "trial_20260516_181209_ef6833",
+          "outcome": "unresolved",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_024",
+        "pick up my fork.",
+        "top_score",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260516_225725_2cf46e.json",
+          "trial_id": "trial_20260516_225725_2cf46e",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260516_225738_d3bb7a.json",
+          "trial_id": "trial_20260516_225738_d3bb7a",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_025",
+        "pick up my fork.",
+        "top_score",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260517_025717_2d0ed4.json",
+          "trial_id": "trial_20260517_025717_2d0ed4",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260517_025724_e828c5.json",
+          "trial_id": "trial_20260517_025724_e828c5",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_025",
+        "pick up my fork.",
+        "vlm_direct",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260517_030159_550771.json",
+          "trial_id": "trial_20260517_030159_550771",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260517_030304_f54e97.json",
+          "trial_id": "trial_20260517_030304_f54e97",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_026",
+        "pick up my bottle.",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260517_033609_878e87.json",
+          "trial_id": "trial_20260517_033609_878e87",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_003",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260517_033617_30c455.json",
+          "trial_id": "trial_20260517_033617_30c455",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_028",
+        "pick up my cup.",
+        "top_score",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260517_170949_fdd324.json",
+          "trial_id": "trial_20260517_170949_fdd324",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260517_171005_3e1678.json",
+          "trial_id": "trial_20260517_171005_3e1678",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_028",
+        "pick up my cup.",
+        "random_question",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260517_172349_c833f3.json",
+          "trial_id": "trial_20260517_172349_c833f3",
+          "outcome": "wrong",
+          "resolved_candidate_id": null,
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260517_172703_b2fe44.json",
+          "trial_id": "trial_20260517_172703_b2fe44",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 4
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_034",
+        "pick up my cup.",
+        "top_score",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260518_001219_9c1b33.json",
+          "trial_id": "trial_20260518_001219_9c1b33",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260518_001231_0a492e.json",
+          "trial_id": "trial_20260518_001231_0a492e",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_034",
+        "pick up my cup.",
+        "random_candidate",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260518_001239_9da0e5.json",
+          "trial_id": "trial_20260518_001239_9da0e5",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260518_001246_01ef28.json",
+          "trial_id": "trial_20260518_001246_01ef28",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_034",
+        "pick up my cup.",
+        "vlm_direct",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260518_001847_6c2696.json",
+          "trial_id": "trial_20260518_001847_6c2696",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260518_002847_d1dc30.json",
+          "trial_id": "trial_20260518_002847_d1dc30",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_036",
+        "pick up my cup.",
+        "top_score",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "wrong": 1,
+        "correct": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260518_014642_b587d7.json",
+          "trial_id": "trial_20260518_014642_b587d7",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260518_014650_2e6c2c.json",
+          "trial_id": "trial_20260518_014650_2e6c2c",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    },
+    {
+      "type": "duplicate_prompt_method_conflicting_outcome",
+      "key": [
+        "scene_036",
+        "pick up my cup.",
+        "vlm_direct",
+        "ambiguous"
+      ],
+      "count": 2,
+      "outcomes": {
+        "correct": 1,
+        "wrong": 1
+      },
+      "trials": [
+        {
+          "trial_file": "trial_20260518_015140_595a46.json",
+          "trial_id": "trial_20260518_015140_595a46",
+          "outcome": "correct",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        },
+        {
+          "trial_file": "trial_20260518_015235_eb9b96.json",
+          "trial_id": "trial_20260518_015235_eb9b96",
+          "outcome": "wrong",
+          "resolved_candidate_id": "cand_001",
+          "question_count": 0
+        }
+      ]
+    }
+  ]
+}

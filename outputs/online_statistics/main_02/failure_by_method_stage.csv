@@ -1,0 +1,13 @@
+method,failure_stage,count,share_all
+proposed_efe,grasp_execution_failure,3,0.013157894736842105
+proposed_efe,none,50,0.21929824561403508
+proposed_efe,target_resolution_failure,4,0.017543859649122806
+random_candidate,grasp_execution_failure,6,0.02631578947368421
+random_candidate,none,29,0.12719298245614036
+random_candidate,target_resolution_failure,22,0.09649122807017543
+top_score,grasp_execution_failure,4,0.017543859649122806
+top_score,none,30,0.13157894736842105
+top_score,target_resolution_failure,23,0.10087719298245613
+vlm_best_question,grasp_execution_failure,6,0.02631578947368421
+vlm_best_question,none,46,0.20175438596491227
+vlm_best_question,target_resolution_failure,5,0.021929824561403508

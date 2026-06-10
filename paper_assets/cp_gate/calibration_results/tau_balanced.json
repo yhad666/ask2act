@@ -1,0 +1,9 @@
+{
+  "tau_final": 0.4589100778102875,
+  "tau_fp": 0.4589100778102875,
+  "tau_tp": 0.32712268829345703,
+  "eps_fp": 0.02,
+  "eps_tp": 0.02,
+  "note": "every is_fp=None seen as TP；tau_final = max(tau_fp, tau_tp)",
+  "date": "2025-11-17T03:28:34"
+}

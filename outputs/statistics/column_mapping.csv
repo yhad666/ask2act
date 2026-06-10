@@ -1,0 +1,14 @@
+canonical,source
+scene_id,scene_id
+method,method
+prompt_type,prompt_type
+correct,outcome
+num_questions,question_count
+latency_sec,latency_s
+scene_type,scene_type
+candidate_set_size,candidate_set_size
+prompt_text,prompt_text
+target_category,
+attribute_type,
+trial_id,trial_id
+prompt_id,prompt_text inferred from prompt text

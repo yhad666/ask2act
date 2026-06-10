@@ -1,0 +1,11 @@
+Prompt-type interpretation:
+
+- Clear prompts are high accuracy and rarely trigger questions.
+- Ambiguous prompts are harder and require more clarification.
+- Partial prompts are intermediate but remain challenging.
+- This is supporting analysis, not the main contribution.
+
+GEE prompt-type contrasts:
+- ambiguous_vs_clear: OR=0.04, Holm p=1.405e-23.
+- partial_vs_clear: OR=0.06, Holm p=8.415e-14.
+- ambiguous_vs_partial: OR=0.57, Holm p=0.0705.

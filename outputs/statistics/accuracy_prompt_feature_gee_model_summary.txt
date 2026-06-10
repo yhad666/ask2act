@@ -1,0 +1,40 @@
+                               GEE Regression Results                              
+===================================================================================
+Dep. Variable:                     correct   No. Observations:                 1512
+Model:                                 GEE   No. clusters:                       36
+Method:                        Generalized   Min. cluster size:                  35
+                      Estimating Equations   Max. cluster size:                  62
+Family:                           Binomial   Mean cluster size:                42.0
+Dependence structure:         Independence   Num. iterations:                     2
+Date:                     Fri, 05 Jun 2026   Scale:                           1.000
+Covariance type:                    robust   Time:                         03:32:08
+=======================================================================================================================================
+                                                                          coef    std err          z      P>|z|      [0.025      0.975]
+---------------------------------------------------------------------------------------------------------------------------------------
+Intercept                                                               6.1270      1.397      4.386      0.000       3.389       8.865
+C(method, Treatment(reference="proposed_efe"))[T.first_question]       -0.1111      0.178     -0.624      0.533      -0.460       0.238
+C(method, Treatment(reference="proposed_efe"))[T.random_candidate]     -2.8306      0.309     -9.154      0.000      -3.437      -2.225
+C(method, Treatment(reference="proposed_efe"))[T.random_question]      -0.1938      0.181     -1.074      0.283      -0.548       0.160
+C(method, Treatment(reference="proposed_efe"))[T.top_score]            -2.7483      0.271    -10.130      0.000      -3.280      -2.217
+C(method, Treatment(reference="proposed_efe"))[T.vlm_best_question]    -0.0392      0.189     -0.207      0.836      -0.409       0.331
+C(method, Treatment(reference="proposed_efe"))[T.vlm_direct]           -2.9268      0.345     -8.482      0.000      -3.603      -2.251
+C(prompt_type, Treatment(reference="clear"))[T.ambiguous]             -27.9915        nan        nan        nan         nan         nan
+C(prompt_type, Treatment(reference="clear"))[T.partial]                -3.5362      0.533     -6.636      0.000      -4.581      -2.492
+C(scene_type)[T.cup_only]                                               0.6187      0.717      0.863      0.388      -0.786       2.024
+C(scene_type)[T.mixed]                                                  0.7207      0.595      1.211      0.226      -0.446       1.887
+C(scene_type)[T.utensil_only]                                          -1.3966      0.787     -1.774      0.076      -2.939       0.146
+C(prompt_object_category)[T.cup]                                       -0.7621      0.470     -1.621      0.105      -1.684       0.159
+C(prompt_object_category)[T.fork]                                       0.9730      0.534      1.821      0.069      -0.074       2.020
+C(prompt_object_category)[T.spoon]                                      1.4381      0.597      2.408      0.016       0.268       2.609
+C(prompt_object_category)[T.unknown]                                    1.9408      1.310      1.482      0.138      -0.627       4.508
+candidate_set_size                                                      0.1176      0.092      1.272      0.203      -0.064       0.299
+prompt_length                                                          -0.0575      0.052     -1.102      0.271      -0.160       0.045
+has_my                                                                 24.1040        nan        nan        nan         nan         nan
+has_color                                                              -0.0155      0.364     -0.042      0.966      -0.729       0.698
+has_spatial                                                             1.3010      0.420      3.098      0.002       0.478       2.124
+has_relation                                                          -23.1385      1.365    -16.947      0.000     -25.815     -20.462
+has_size                                                               23.0455      0.629     36.656      0.000      21.813      24.278
+==============================================================================
+Skew:                         -0.6284   Kurtosis:                       1.8011
+Centered skew:                -0.5798   Centered kurtosis:              1.5792
+==============================================================================

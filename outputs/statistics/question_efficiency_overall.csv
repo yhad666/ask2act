@@ -1,0 +1,2 @@
+group,trials,asked_trials,asked_rate_pct,avg_candidate_count_asked,median_candidate_count_asked,actual_total_questions_asked_trials,actual_mean_q_asked_trials,ideal_half_total_q_asked_trials,ideal_half_mean_q_asked_trials,split04_total_q_asked_trials,split04_mean_q_asked_trials,mixed_expected_total_q_asked_trials,mixed_expected_mean_q_asked_trials,actual_minus_split04_total,actual_over_split04,actual_minus_mixed_expected_total,actual_over_mixed_expected
+all_methods,1512,408,26.9841,4.1667,4.0,914,2.2402,842,2.0637,856,2.098,884.916,2.1689,58,1.0678,29.084,1.0329

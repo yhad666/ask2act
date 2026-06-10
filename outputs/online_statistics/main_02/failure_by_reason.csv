@@ -1,0 +1,4 @@
+failure_reason_coarse,count,share_all
+none,155,0.6798245614035088
+selected_correct_target_but_physical_grasp_failed,19,0.08333333333333333
+target_selection_wrong_or_unresolved_grasp_skipped,54,0.23684210526315788

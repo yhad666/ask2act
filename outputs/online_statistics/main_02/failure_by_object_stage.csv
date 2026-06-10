@@ -1,0 +1,13 @@
+object_category,failure_stage,count,share_all
+bottle,grasp_execution_failure,9,0.039473684210526314
+bottle,none,52,0.22807017543859648
+bottle,target_resolution_failure,7,0.03070175438596491
+cup,grasp_execution_failure,2,0.008771929824561403
+cup,none,57,0.25
+cup,target_resolution_failure,21,0.09210526315789473
+fork,grasp_execution_failure,5,0.021929824561403508
+fork,none,21,0.09210526315789473
+fork,target_resolution_failure,17,0.07456140350877193
+spoon,grasp_execution_failure,3,0.013157894736842105
+spoon,none,25,0.10964912280701754
+spoon,target_resolution_failure,9,0.039473684210526314

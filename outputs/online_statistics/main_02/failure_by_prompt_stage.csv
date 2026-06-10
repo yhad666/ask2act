@@ -1,0 +1,10 @@
+prompt_type,failure_stage,count,share_all
+ambiguous,grasp_execution_failure,3,0.013157894736842105
+ambiguous,none,44,0.19298245614035087
+ambiguous,target_resolution_failure,29,0.12719298245614036
+clear,grasp_execution_failure,7,0.03070175438596491
+clear,none,68,0.2982456140350877
+clear,target_resolution_failure,1,0.0043859649122807015
+partial,grasp_execution_failure,9,0.039473684210526314
+partial,none,43,0.18859649122807018
+partial,target_resolution_failure,24,0.10526315789473684

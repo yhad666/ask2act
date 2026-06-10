@@ -1,0 +1,4 @@
+prompt_type,N,Correct,Acc,Wrong,Unresolved,Asked_N,Avg_Q_Asked,Acc_pct
+ambiguous,506,306,0.6047430830039525,170,30,265,2.75,60.47
+clear,503,483,0.9602385685884692,19,1,9,1.22,96.02
+partial,503,349,0.6938369781312127,103,51,134,1.3,69.38

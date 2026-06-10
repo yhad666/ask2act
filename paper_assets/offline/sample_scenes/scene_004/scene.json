@@ -1,0 +1,833 @@
+{
+  "experiment_id": "top_cups_01",
+  "scene_id": "scene_004",
+  "scene_type": "cup_only",
+  "object_categories": [],
+  "notes": "",
+  "observation_id": "d435i-20260509_044420",
+  "observation_source": "stretch_zmq",
+  "observation_mime_type": "image/jpeg",
+  "observation_path": "/home/haoandong/ask2act/services/a6000_web/artifacts/offline_experiments/top_cups_01/scenes/scene_004/observation.jpg",
+  "observation_metadata": {
+    "ok": true,
+    "observation_id": "d435i-20260509_044420",
+    "mime_type": "image/jpeg",
+    "source": "realsense_d435i",
+    "detail": {
+      "ok": true,
+      "observation_id": "d435i-20260509_044420",
+      "mime_type": "image/jpeg",
+      "image_path": "/home/hello-robot/work/ask2act/real/stretch_transport/artifacts/observations/head_d435i_20260509_044420.jpg",
+      "source": "realsense_d435i",
+      "camera_serial": "239122073910",
+      "width": 1280,
+      "height": 720,
+      "rgb_shape_hw": [
+        720,
+        1280
+      ],
+      "depth_shape_hw": [
+        720,
+        1280
+      ],
+      "depth_npy_path": "/home/hello-robot/work/ask2act/real/stretch_transport/artifacts/observations/head_d435i_depth_20260509_044420.npy",
+      "depth_scale_m_per_unit": 0.0010000000474974513,
+      "depth_aligned_to_color": true,
+      "camera_intrinsics_path": "/home/hello-robot/work/ask2act/real/stretch_transport/artifacts/observations/head_d435i_intrinsics_20260509_044420.json",
+      "camera_intrinsics": {
+        "width": 1280,
+        "height": 720,
+        "fx": 907.1934814453125,
+        "fy": 906.4671020507812,
+        "cx": 639.869140625,
+        "cy": 379.8711242675781,
+        "coeffs": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "model": "distortion.inverse_brown_conrady"
+      },
+      "default_pose_init": {
+        "ok": true,
+        "status": "default_pose_commanded",
+        "reason": "observe_start",
+        "include_gripper": true,
+        "targets": {
+          "lift": 0.5,
+          "arm": 0.0,
+          "wrist_yaw": 0.0,
+          "wrist_pitch": -1.57,
+          "wrist_roll": 0.0,
+          "stretch_gripper": 100.0
+        },
+        "settle_s": 2.0,
+        "status_before": {
+          "ok": true,
+          "timestamp_epoch_s": 1778327052.0968535,
+          "base": {
+            "timestamp_pc": 1778327054.1120992,
+            "x": 8.1849348931039e-06,
+            "y": -3.9456454770103733e-10,
+            "theta": 5.1356290935444804e-05,
+            "x_vel": -0.00011601710090312171,
+            "y_vel": 0.0,
+            "theta_vel": 0.0018318694455352535,
+            "pose_time_s": 2.743999481201172,
+            "effort": [
+              2.1981152381565757e-44,
+              -2.1981152381565757e-44
+            ],
+            "left_wheel": {
+              "mode": 0,
+              "effort_ticks": 5.605193857299268e-44,
+              "effort_pct": 2.1981152381565757e-44,
+              "current": 9.671707047888933e-46,
+              "pos": -31.225509643554688,
+              "vel": -0.05657041072845459,
+              "err": 0.0,
+              "diag": 16640,
+              "timestamp": 1778327054.093242,
+              "debug": 0.0,
+              "guarded_event": 0,
+              "transport": {
+                "async": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 51
+                },
+                "sync": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 6
+                }
+              },
+              "pos_calibrated": false,
+              "runstop_on": false,
+              "near_pos_setpoint": false,
+              "near_vel_setpoint": false,
+              "is_moving": false,
+              "is_moving_filtered": false,
+              "at_current_limit": false,
+              "is_mg_accelerating": false,
+              "is_mg_moving": false,
+              "calibration_rcvd": true,
+              "in_guarded_event": false,
+              "in_safety_event": false,
+              "waiting_on_sync": false,
+              "in_sync_mode": true,
+              "trace_on": false,
+              "ctrl_cycle_cnt": 24457,
+              "waypoint_traj": {
+                "state": "idle",
+                "setpoint": 0.0,
+                "segment_id": 0
+              },
+              "voltage": 12.49296875
+            },
+            "right_wheel": {
+              "mode": 0,
+              "effort_ticks": -5.605193857299268e-44,
+              "effort_pct": -2.1981152381565757e-44,
+              "current": -9.671707047888933e-46,
+              "pos": 48.114540100097656,
+              "vel": 0.03746339678764343,
+              "err": 0.0,
+              "diag": 16640,
+              "timestamp": 1778327054.0812833,
+              "debug": 0.0,
+              "guarded_event": 0,
+              "transport": {
+                "async": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 51
+                },
+                "sync": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 6
+                }
+              },
+              "pos_calibrated": false,
+              "runstop_on": false,
+              "near_pos_setpoint": false,
+              "near_vel_setpoint": false,
+              "is_moving": false,
+              "is_moving_filtered": false,
+              "at_current_limit": false,
+              "is_mg_accelerating": false,
+              "is_mg_moving": false,
+              "calibration_rcvd": true,
+              "in_guarded_event": false,
+              "in_safety_event": false,
+              "waiting_on_sync": false,
+              "in_sync_mode": true,
+              "trace_on": false,
+              "ctrl_cycle_cnt": 23833,
+              "waypoint_traj": {
+                "state": "idle",
+                "setpoint": 0.0,
+                "segment_id": 0
+              },
+              "voltage": 12.18046875
+            },
+            "translation_force": 0,
+            "rotation_torque": 0
+          },
+          "lift": {
+            "timestamp_pc": 1778327054.1089482,
+            "pos": 0.49984668527381965,
+            "vel": -0.000536584854985883,
+            "force": 0,
+            "motor": {
+              "mode": 5,
+              "effort_ticks": 87.27874755859375,
+              "effort_pct": 34.2269598268995,
+              "current": 1.5059862323835784,
+              "pos": 52.34382247924805,
+              "vel": -0.056191034615039825,
+              "err": 0.016055665910243988,
+              "diag": 16645,
+              "timestamp": 1778327054.0693386,
+              "debug": 0.0,
+              "guarded_event": 24190,
+              "transport": {
+                "async": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 52
+                },
+                "sync": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 7
+                }
+              },
+              "pos_calibrated": true,
+              "runstop_on": false,
+              "near_pos_setpoint": true,
+              "near_vel_setpoint": false,
+              "is_moving": false,
+              "is_moving_filtered": false,
+              "at_current_limit": false,
+              "is_mg_accelerating": false,
+              "is_mg_moving": false,
+              "calibration_rcvd": true,
+              "in_guarded_event": false,
+              "in_safety_event": false,
+              "waiting_on_sync": false,
+              "in_sync_mode": true,
+              "trace_on": false,
+              "ctrl_cycle_cnt": 26440,
+              "waypoint_traj": {
+                "state": "idle",
+                "setpoint": 0.0,
+                "segment_id": 0
+              },
+              "voltage": 12.35625
+            }
+          },
+          "arm": {
+            "timestamp_pc": 1778327054.1098845,
+            "pos": -5.267412728789705e-05,
+            "vel": -0.0012317270350742139,
+            "force": 0,
+            "motor": {
+              "mode": 5,
+              "effort_ticks": -69.34839630126953,
+              "effort_pct": -27.195449529909617,
+              "current": -1.1965997793160232,
+              "pos": -0.007679491303861141,
+              "vel": -0.17957653105258942,
+              "err": 0.007679491303861141,
+              "diag": 16645,
+              "timestamp": 1778327054.04639,
+              "debug": 0.0,
+              "guarded_event": 9,
+              "transport": {
+                "async": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 52
+                },
+                "sync": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 7
+                }
+              },
+              "pos_calibrated": true,
+              "runstop_on": false,
+              "near_pos_setpoint": true,
+              "near_vel_setpoint": false,
+              "is_moving": false,
+              "is_moving_filtered": true,
+              "at_current_limit": false,
+              "is_mg_accelerating": false,
+              "is_mg_moving": false,
+              "calibration_rcvd": true,
+              "in_guarded_event": false,
+              "in_safety_event": false,
+              "waiting_on_sync": false,
+              "in_sync_mode": true,
+              "trace_on": false,
+              "ctrl_cycle_cnt": 25410,
+              "waypoint_traj": {
+                "state": "idle",
+                "setpoint": 0.0,
+                "segment_id": 0
+              },
+              "voltage": 12.33671875
+            }
+          },
+          "head": {
+            "head_pan": {
+              "timestamp_pc": 1778327054.1347353,
+              "comm_errors": 0,
+              "pos": -0.0,
+              "vel": -0.0,
+              "effort": -0.09765625,
+              "temp": 37.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 1250,
+              "vel_ticks": 0,
+              "effort_ticks": -1,
+              "watchdog_errors": 0
+            },
+            "head_tilt": {
+              "timestamp_pc": 1778327054.1347468,
+              "comm_errors": 0,
+              "pos": -0.006135923151542565,
+              "vel": -0.0,
+              "effort": -2.34375,
+              "temp": 40.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 2052,
+              "vel_ticks": 0,
+              "effort_ticks": -24,
+              "watchdog_errors": 0
+            }
+          },
+          "end_of_arm": {
+            "wrist_pitch": {
+              "timestamp_pc": 1778327054.2048092,
+              "comm_errors": 0,
+              "pos": -1.5631264228554682,
+              "vel": -0.0,
+              "effort": 1.1724474841231072,
+              "temp": 30.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 2043,
+              "vel_ticks": 0,
+              "effort_ticks": 24,
+              "watchdog_errors": 0
+            },
+            "wrist_roll": {
+              "timestamp_pc": 1778327054.2048192,
+              "comm_errors": 0,
+              "pos": -0.0015339807878856412,
+              "vel": 0.0,
+              "effort": 0.0,
+              "temp": 30.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 2047,
+              "vel_ticks": 0,
+              "effort_ticks": 0,
+              "watchdog_errors": 0
+            },
+            "wrist_yaw": {
+              "timestamp_pc": 1778327054.2048237,
+              "comm_errors": 0,
+              "pos": 0.003834951969714103,
+              "vel": -0.0,
+              "effort": 3.22265625,
+              "temp": 34.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 7130,
+              "vel_ticks": 0,
+              "effort_ticks": 33,
+              "watchdog_errors": 0
+            },
+            "stretch_gripper": {
+              "timestamp_pc": 1778327054.2048273,
+              "comm_errors": 0,
+              "pos": 4.568194786323439,
+              "vel": 0.0,
+              "effort": -1.171875,
+              "temp": 42.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 5955,
+              "vel_ticks": 0,
+              "effort_ticks": -12,
+              "watchdog_errors": 0,
+              "pos_pct": 100.03359086328518,
+              "gripper_conversion": {
+                "aperture_m": 0.12861461682422382,
+                "finger_rad": 0.3760661310649819,
+                "finger_effort": -1.171875,
+                "finger_vel": 0.0
+              }
+            }
+          }
+        },
+        "status_after": {
+          "ok": true,
+          "timestamp_epoch_s": 1778327054.1207726,
+          "base": {
+            "timestamp_pc": 1778327054.1120992,
+            "x": 8.1849348931039e-06,
+            "y": -3.9456454770103733e-10,
+            "theta": 5.1356290935444804e-05,
+            "x_vel": -0.00011601710090312171,
+            "y_vel": 0.0,
+            "theta_vel": 0.0018318694455352535,
+            "pose_time_s": 2.743999481201172,
+            "effort": [
+              2.1981152381565757e-44,
+              -2.1981152381565757e-44
+            ],
+            "left_wheel": {
+              "mode": 0,
+              "effort_ticks": 5.605193857299268e-44,
+              "effort_pct": 2.1981152381565757e-44,
+              "current": 9.671707047888933e-46,
+              "pos": -31.225509643554688,
+              "vel": -0.05657041072845459,
+              "err": 0.0,
+              "diag": 16640,
+              "timestamp": 1778327054.093242,
+              "debug": 0.0,
+              "guarded_event": 0,
+              "transport": {
+                "async": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 51
+                },
+                "sync": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 6
+                }
+              },
+              "pos_calibrated": false,
+              "runstop_on": false,
+              "near_pos_setpoint": false,
+              "near_vel_setpoint": false,
+              "is_moving": false,
+              "is_moving_filtered": false,
+              "at_current_limit": false,
+              "is_mg_accelerating": false,
+              "is_mg_moving": false,
+              "calibration_rcvd": true,
+              "in_guarded_event": false,
+              "in_safety_event": false,
+              "waiting_on_sync": false,
+              "in_sync_mode": true,
+              "trace_on": false,
+              "ctrl_cycle_cnt": 24457,
+              "waypoint_traj": {
+                "state": "idle",
+                "setpoint": 0.0,
+                "segment_id": 0
+              },
+              "voltage": 12.49296875
+            },
+            "right_wheel": {
+              "mode": 0,
+              "effort_ticks": -5.605193857299268e-44,
+              "effort_pct": -2.1981152381565757e-44,
+              "current": -9.671707047888933e-46,
+              "pos": 48.114540100097656,
+              "vel": 0.03746339678764343,
+              "err": 0.0,
+              "diag": 16640,
+              "timestamp": 1778327054.0812833,
+              "debug": 0.0,
+              "guarded_event": 0,
+              "transport": {
+                "async": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 51
+                },
+                "sync": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 6
+                }
+              },
+              "pos_calibrated": false,
+              "runstop_on": false,
+              "near_pos_setpoint": false,
+              "near_vel_setpoint": false,
+              "is_moving": false,
+              "is_moving_filtered": false,
+              "at_current_limit": false,
+              "is_mg_accelerating": false,
+              "is_mg_moving": false,
+              "calibration_rcvd": true,
+              "in_guarded_event": false,
+              "in_safety_event": false,
+              "waiting_on_sync": false,
+              "in_sync_mode": true,
+              "trace_on": false,
+              "ctrl_cycle_cnt": 23833,
+              "waypoint_traj": {
+                "state": "idle",
+                "setpoint": 0.0,
+                "segment_id": 0
+              },
+              "voltage": 12.18046875
+            },
+            "translation_force": 0,
+            "rotation_torque": 0
+          },
+          "lift": {
+            "timestamp_pc": 1778327054.1089482,
+            "pos": 0.49984668527381965,
+            "vel": -0.000536584854985883,
+            "force": 0,
+            "motor": {
+              "mode": 5,
+              "effort_ticks": 87.27874755859375,
+              "effort_pct": 34.2269598268995,
+              "current": 1.5059862323835784,
+              "pos": 52.34382247924805,
+              "vel": -0.056191034615039825,
+              "err": 0.016055665910243988,
+              "diag": 16645,
+              "timestamp": 1778327054.0693386,
+              "debug": 0.0,
+              "guarded_event": 24190,
+              "transport": {
+                "async": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 52
+                },
+                "sync": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 7
+                }
+              },
+              "pos_calibrated": true,
+              "runstop_on": false,
+              "near_pos_setpoint": true,
+              "near_vel_setpoint": false,
+              "is_moving": false,
+              "is_moving_filtered": false,
+              "at_current_limit": false,
+              "is_mg_accelerating": false,
+              "is_mg_moving": false,
+              "calibration_rcvd": true,
+              "in_guarded_event": false,
+              "in_safety_event": false,
+              "waiting_on_sync": false,
+              "in_sync_mode": true,
+              "trace_on": false,
+              "ctrl_cycle_cnt": 26440,
+              "waypoint_traj": {
+                "state": "idle",
+                "setpoint": 0.0,
+                "segment_id": 0
+              },
+              "voltage": 12.35625
+            }
+          },
+          "arm": {
+            "timestamp_pc": 1778327054.1098845,
+            "pos": -5.267412728789705e-05,
+            "vel": -0.0012317270350742139,
+            "force": 0,
+            "motor": {
+              "mode": 5,
+              "effort_ticks": -69.34839630126953,
+              "effort_pct": -27.195449529909617,
+              "current": -1.1965997793160232,
+              "pos": -0.007679491303861141,
+              "vel": -0.17957653105258942,
+              "err": 0.007679491303861141,
+              "diag": 16645,
+              "timestamp": 1778327054.04639,
+              "debug": 0.0,
+              "guarded_event": 9,
+              "transport": {
+                "async": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 52
+                },
+                "sync": {
+                  "read_error": 0,
+                  "write_error": 0,
+                  "transactions": 7
+                }
+              },
+              "pos_calibrated": true,
+              "runstop_on": false,
+              "near_pos_setpoint": true,
+              "near_vel_setpoint": false,
+              "is_moving": false,
+              "is_moving_filtered": true,
+              "at_current_limit": false,
+              "is_mg_accelerating": false,
+              "is_mg_moving": false,
+              "calibration_rcvd": true,
+              "in_guarded_event": false,
+              "in_safety_event": false,
+              "waiting_on_sync": false,
+              "in_sync_mode": true,
+              "trace_on": false,
+              "ctrl_cycle_cnt": 25410,
+              "waypoint_traj": {
+                "state": "idle",
+                "setpoint": 0.0,
+                "segment_id": 0
+              },
+              "voltage": 12.33671875
+            }
+          },
+          "head": {
+            "head_pan": {
+              "timestamp_pc": 1778327054.1347353,
+              "comm_errors": 0,
+              "pos": -0.0,
+              "vel": -0.0,
+              "effort": -0.09765625,
+              "temp": 37.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 1250,
+              "vel_ticks": 0,
+              "effort_ticks": -1,
+              "watchdog_errors": 0
+            },
+            "head_tilt": {
+              "timestamp_pc": 1778327054.1347468,
+              "comm_errors": 0,
+              "pos": -0.006135923151542565,
+              "vel": -0.0,
+              "effort": -2.34375,
+              "temp": 40.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 2052,
+              "vel_ticks": 0,
+              "effort_ticks": -24,
+              "watchdog_errors": 0
+            }
+          },
+          "end_of_arm": {
+            "wrist_pitch": {
+              "timestamp_pc": 1778327054.2048092,
+              "comm_errors": 0,
+              "pos": -1.5631264228554682,
+              "vel": -0.0,
+              "effort": 1.1724474841231072,
+              "temp": 30.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 2043,
+              "vel_ticks": 0,
+              "effort_ticks": 24,
+              "watchdog_errors": 0
+            },
+            "wrist_roll": {
+              "timestamp_pc": 1778327054.2048192,
+              "comm_errors": 0,
+              "pos": -0.0015339807878856412,
+              "vel": 0.0,
+              "effort": 0.0,
+              "temp": 30.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 2047,
+              "vel_ticks": 0,
+              "effort_ticks": 0,
+              "watchdog_errors": 0
+            },
+            "wrist_yaw": {
+              "timestamp_pc": 1778327054.2048237,
+              "comm_errors": 0,
+              "pos": 0.003834951969714103,
+              "vel": -0.0,
+              "effort": 3.22265625,
+              "temp": 34.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 7130,
+              "vel_ticks": 0,
+              "effort_ticks": 33,
+              "watchdog_errors": 0
+            },
+            "stretch_gripper": {
+              "timestamp_pc": 1778327054.2048273,
+              "comm_errors": 0,
+              "pos": 4.568194786323439,
+              "vel": 0.0,
+              "effort": -1.171875,
+              "temp": 42.0,
+              "shutdown": 0,
+              "hardware_error": 0,
+              "input_voltage_error": false,
+              "overheating_error": false,
+              "motor_encoder_error": false,
+              "electrical_shock_error": false,
+              "overload_error": false,
+              "stalled": true,
+              "stall_overload": false,
+              "pos_ticks": 5955,
+              "vel_ticks": 0,
+              "effort_ticks": -12,
+              "watchdog_errors": 0,
+              "pos_pct": 100.03359086328518,
+              "gripper_conversion": {
+                "aperture_m": 0.12861461682422382,
+                "finger_rad": 0.3760661310649819,
+                "finger_effort": -1.171875,
+                "finger_vel": 0.0
+              }
+            }
+          }
+        },
+        "timestamp_epoch_s": 1778327054.1207826
+      },
+      "head_pose_init": {
+        "ok": true,
+        "status": "initialized",
+        "initialized_at_epoch_s": 1778327057.648414,
+        "mode": "every_observe",
+        "commanded_head_pan_rad": -1.57,
+        "commanded_head_tilt_rad": -0.68,
+        "actual_head_pan_rad": -1.586136134673753,
+        "actual_head_tilt_rad": -0.6856894121848817,
+        "pan_error_rad": 0.016136134673752967,
+        "tilt_error_rad": 0.005689412184881615,
+        "settle_s": 2.0,
+        "tolerance_rad": 0.15
+      }
+    },
+    "depth_npy_mime_type": "application/octet-stream",
+    "depth_npy_path": "/home/hello-robot/work/ask2act/real/stretch_transport/artifacts/observations/head_d435i_depth_20260509_044420.npy",
+    "depth_scale_m_per_unit": 0.0010000000474974513,
+    "camera_intrinsics": {
+      "width": 1280,
+      "height": 720,
+      "fx": 907.1934814453125,
+      "fy": 906.4671020507812,
+      "cx": 639.869140625,
+      "cy": 379.8711242675781,
+      "coeffs": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "model": "distortion.inverse_brown_conrady"
+    },
+    "camera_intrinsics_path": "/home/hello-robot/work/ask2act/real/stretch_transport/artifacts/observations/head_d435i_intrinsics_20260509_044420.json",
+    "camera_serial": "239122073910",
+    "width": 1280,
+    "height": 720,
+    "rgb_shape_hw": [
+      720,
+      1280
+    ],
+    "depth_shape_hw": [
+      720,
+      1280
+    ],
+    "depth_aligned_to_color": true
+  },
+  "updated_at_epoch_s": 1778327062.440477,
+  "created_at_epoch_s": 1778327062.440477
+}

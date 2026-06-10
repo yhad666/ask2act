@@ -1,0 +1,16 @@
+Prompt balance interpretation:
+
+- Total records: 1512.
+- Scenes: 36. Methods: 7.
+- Method x prompt_type counts:
+  - top_score: ambiguous=73, clear=72, partial=71
+  - random_candidate: ambiguous=73, clear=71, partial=72
+  - vlm_direct: ambiguous=72, clear=72, partial=72
+  - first_question: ambiguous=72, clear=72, partial=72
+  - random_question: ambiguous=72, clear=73, partial=71
+  - vlm_best_question: ambiguous=72, clear=72, partial=72
+  - proposed_efe: ambiguous=72, clear=71, partial=73
+- Method x scene_id counts range from 1 to 10.
+- Balance notes:
+  - Method x scene counts are not exactly 6 for every cell (min=1, max=10); scene-clustered GEE and scene-level aggregation are used.
+- GEE includes scene clustering; imbalanced available covariates are included as fixed covariates where available.

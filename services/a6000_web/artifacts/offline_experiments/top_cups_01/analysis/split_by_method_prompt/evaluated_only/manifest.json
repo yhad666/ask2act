@@ -1,0 +1,161 @@
+{
+  "experiment_id": "top_cups_01",
+  "dataset": "evaluated_only",
+  "source_trial_dir": "services/a6000_web/artifacts/offline_experiments/top_cups_01/trials",
+  "output_dir": "services/a6000_web/artifacts/offline_experiments/top_cups_01/analysis/split_by_method_prompt/evaluated_only",
+  "valid_json_count": 1766,
+  "included_count": 1624,
+  "skipped_count": 142,
+  "bad_json_files": [
+    {
+      "trial_file": "trial_20260517_040516_9c1ec7.json",
+      "error": "Expecting value: line 1 column 1 (char 0)"
+    },
+    {
+      "trial_file": "trial_20260517_040539_9c660a.json",
+      "error": "Expecting value: line 1 column 1 (char 0)"
+    }
+  ],
+  "counts_by_method": {
+    "top_score": 243,
+    "proposed_efe": 232,
+    "random_candidate": 230,
+    "vlm_direct": 232,
+    "first_question": 234,
+    "random_question": 227,
+    "vlm_best_question": 226
+  },
+  "counts_by_prompt_type": {
+    "ambiguous": 535,
+    "partial": 545,
+    "clear": 544
+  },
+  "files": [
+    {
+      "method": "top_score",
+      "prompt_type": "clear",
+      "count": 80,
+      "file": "analysis/split_by_method_prompt/evaluated_only/top_score__clear.json"
+    },
+    {
+      "method": "top_score",
+      "prompt_type": "ambiguous",
+      "count": 80,
+      "file": "analysis/split_by_method_prompt/evaluated_only/top_score__ambiguous.json"
+    },
+    {
+      "method": "top_score",
+      "prompt_type": "partial",
+      "count": 83,
+      "file": "analysis/split_by_method_prompt/evaluated_only/top_score__partial.json"
+    },
+    {
+      "method": "random_candidate",
+      "prompt_type": "clear",
+      "count": 75,
+      "file": "analysis/split_by_method_prompt/evaluated_only/random_candidate__clear.json"
+    },
+    {
+      "method": "random_candidate",
+      "prompt_type": "ambiguous",
+      "count": 75,
+      "file": "analysis/split_by_method_prompt/evaluated_only/random_candidate__ambiguous.json"
+    },
+    {
+      "method": "random_candidate",
+      "prompt_type": "partial",
+      "count": 80,
+      "file": "analysis/split_by_method_prompt/evaluated_only/random_candidate__partial.json"
+    },
+    {
+      "method": "vlm_direct",
+      "prompt_type": "clear",
+      "count": 77,
+      "file": "analysis/split_by_method_prompt/evaluated_only/vlm_direct__clear.json"
+    },
+    {
+      "method": "vlm_direct",
+      "prompt_type": "ambiguous",
+      "count": 80,
+      "file": "analysis/split_by_method_prompt/evaluated_only/vlm_direct__ambiguous.json"
+    },
+    {
+      "method": "vlm_direct",
+      "prompt_type": "partial",
+      "count": 75,
+      "file": "analysis/split_by_method_prompt/evaluated_only/vlm_direct__partial.json"
+    },
+    {
+      "method": "first_question",
+      "prompt_type": "clear",
+      "count": 83,
+      "file": "analysis/split_by_method_prompt/evaluated_only/first_question__clear.json"
+    },
+    {
+      "method": "first_question",
+      "prompt_type": "ambiguous",
+      "count": 76,
+      "file": "analysis/split_by_method_prompt/evaluated_only/first_question__ambiguous.json"
+    },
+    {
+      "method": "first_question",
+      "prompt_type": "partial",
+      "count": 75,
+      "file": "analysis/split_by_method_prompt/evaluated_only/first_question__partial.json"
+    },
+    {
+      "method": "random_question",
+      "prompt_type": "clear",
+      "count": 77,
+      "file": "analysis/split_by_method_prompt/evaluated_only/random_question__clear.json"
+    },
+    {
+      "method": "random_question",
+      "prompt_type": "ambiguous",
+      "count": 72,
+      "file": "analysis/split_by_method_prompt/evaluated_only/random_question__ambiguous.json"
+    },
+    {
+      "method": "random_question",
+      "prompt_type": "partial",
+      "count": 78,
+      "file": "analysis/split_by_method_prompt/evaluated_only/random_question__partial.json"
+    },
+    {
+      "method": "vlm_best_question",
+      "prompt_type": "clear",
+      "count": 74,
+      "file": "analysis/split_by_method_prompt/evaluated_only/vlm_best_question__clear.json"
+    },
+    {
+      "method": "vlm_best_question",
+      "prompt_type": "ambiguous",
+      "count": 72,
+      "file": "analysis/split_by_method_prompt/evaluated_only/vlm_best_question__ambiguous.json"
+    },
+    {
+      "method": "vlm_best_question",
+      "prompt_type": "partial",
+      "count": 80,
+      "file": "analysis/split_by_method_prompt/evaluated_only/vlm_best_question__partial.json"
+    },
+    {
+      "method": "proposed_efe",
+      "prompt_type": "clear",
+      "count": 78,
+      "file": "analysis/split_by_method_prompt/evaluated_only/proposed_efe__clear.json"
+    },
+    {
+      "method": "proposed_efe",
+      "prompt_type": "ambiguous",
+      "count": 80,
+      "file": "analysis/split_by_method_prompt/evaluated_only/proposed_efe__ambiguous.json"
+    },
+    {
+      "method": "proposed_efe",
+      "prompt_type": "partial",
+      "count": 74,
+      "file": "analysis/split_by_method_prompt/evaluated_only/proposed_efe__partial.json"
+    }
+  ]
+}

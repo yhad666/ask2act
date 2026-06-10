@@ -1,0 +1,1270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ask2Act Offline Audit</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --line: #d8dee8;
+      --text: #172033;
+      --muted: #657186;
+      --soft: #eef2f6;
+      --blue: #2563eb;
+      --green: #15803d;
+      --red: #b91c1c;
+      --amber: #b45309;
+      --shadow: 0 8px 30px rgba(17, 24, 39, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px 11px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #101827;
+      color: white;
+    }
+
+    .title {
+      font-weight: 700;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .topbar label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #d9e2ef;
+    }
+
+    .topbar input {
+      width: 290px;
+      color: var(--text);
+      border: 1px solid #42506a;
+      border-radius: 6px;
+      padding: 7px 9px;
+      background: white;
+    }
+
+    .status {
+      margin-left: auto;
+      font-size: 13px;
+      color: #cbd5e1;
+      min-width: 180px;
+      text-align: right;
+    }
+
+    .metrics {
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: repeat(8, minmax(110px, 1fr));
+      gap: 10px;
+    }
+
+    .metric-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 11px;
+      box-shadow: 0 1px 0 rgba(17, 24, 39, 0.03);
+      min-height: 72px;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.05;
+    }
+
+    .metric-sub {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 360px minmax(440px, 1fr) 390px;
+      gap: 12px;
+      padding: 0 16px 16px;
+    }
+
+    .panel {
+      min-height: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfe;
+      font-weight: 700;
+    }
+
+    .panel-body {
+      padding: 12px;
+      overflow: auto;
+      max-height: calc(100vh - 180px);
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .filters input,
+    .filters select,
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 9px;
+      background: white;
+      color: var(--text);
+    }
+
+    .filters .wide,
+    .field.wide {
+      grid-column: 1 / -1;
+    }
+
+    .trial-count {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .jump-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .jump-row input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 9px;
+      background: white;
+      color: var(--text);
+    }
+
+    .trial-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .trial-row {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      background: white;
+    }
+
+    .trial-row.active {
+      border-color: var(--blue);
+      box-shadow: inset 3px 0 0 var(--blue);
+    }
+
+    .trial-row.excluded {
+      opacity: 0.62;
+    }
+
+    .trial-row-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .trial-prompt {
+      font-size: 13px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 7px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 11px;
+      background: var(--soft);
+      color: #334155;
+      line-height: 1.5;
+    }
+
+    .badge.correct {
+      background: #dcfce7;
+      color: var(--green);
+    }
+
+    .badge.wrong,
+    .badge.unresolved {
+      background: #fee2e2;
+      color: var(--red);
+    }
+
+    .badge.reviewed {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .viewer {
+      display: grid;
+      grid-template-rows: auto minmax(320px, 1fr) auto;
+      min-height: 0;
+    }
+
+    .image-wrap {
+      position: relative;
+      min-height: 360px;
+      background: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #sceneImage {
+      max-width: 100%;
+      max-height: calc(100vh - 360px);
+      display: block;
+    }
+
+    #overlayCanvas {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .detail-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfe;
+      font-size: 12px;
+    }
+
+    .kv-label {
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .kv-value {
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .subsection {
+      margin-top: 12px;
+    }
+
+    .dino-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+      padding: 10px;
+    }
+
+    .dino-line {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 8px;
+      font-size: 12px;
+      margin: 5px 0;
+    }
+
+    .dino-line span:first-child {
+      color: var(--muted);
+    }
+
+    .subsection h3 {
+      font-size: 14px;
+      margin: 0 0 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 6px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 650;
+      background: #fbfcfe;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    td.num,
+    th.num {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .candidate-hit {
+      background: #ecfdf5;
+    }
+
+    .candidate-expected {
+      background: #fffbeb;
+    }
+
+    .candidate-both {
+      background: #dbeafe;
+    }
+
+    .field {
+      margin-bottom: 10px;
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .checkbox-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0 12px;
+      font-size: 13px;
+    }
+
+    .checkbox-line input {
+      width: auto;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .analysis {
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    .small-muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .question-item,
+    .analysis-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      margin-bottom: 7px;
+      background: #fbfcfe;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .history-box {
+      max-height: 190px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fbfcfe;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 1180px) {
+      .metrics {
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
+      }
+
+      .workspace {
+        grid-template-columns: 330px 1fr;
+      }
+
+      .audit-panel {
+        grid-column: 1 / -1;
+      }
+
+      .panel-body {
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 780px) {
+      .topbar {
+        flex-wrap: wrap;
+      }
+
+      .topbar input {
+        width: min(100%, 260px);
+      }
+
+      .metrics,
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="title">Offline Trial Audit</div>
+      <label>Experiment <input id="experimentInput" value="top_cups_01"></label>
+      <label>Filter <input id="filterInput" value="balanced_method_prompt_cell_filter_seed20260519"></label>
+      <button id="loadBtn" class="primary">Load</button>
+      <div id="status" class="status">Ready</div>
+    </header>
+
+    <section id="metrics" class="metrics"></section>
+
+    <main class="workspace">
+      <aside class="panel">
+        <div class="panel-header">
+          <span>Trials</span>
+          <button id="refreshBtn">Refresh</button>
+        </div>
+        <div class="panel-body">
+          <div class="filters">
+            <select id="methodFilter"></select>
+            <select id="promptFilter"></select>
+            <select id="outcomeFilter"></select>
+            <select id="reviewFilter"></select>
+            <select id="reasonFilter" class="wide"></select>
+            <input id="searchInput" class="wide" placeholder="Search prompt, scene, trial id">
+          </div>
+          <div class="jump-row">
+            <input id="jumpInput" placeholder="Trial ID, scene ID, or visible #">
+            <button id="jumpBtn">Go</button>
+          </div>
+          <div id="trialCount" class="trial-count"></div>
+          <div id="trialList" class="trial-list"></div>
+        </div>
+      </aside>
+
+      <section class="panel viewer">
+        <div class="detail-strip">
+          <div><div class="kv-label">Trial</div><div id="kvTrial" class="kv-value">-</div></div>
+          <div><div class="kv-label">Scene</div><div id="kvScene" class="kv-value">-</div></div>
+          <div><div class="kv-label">Method</div><div id="kvMethod" class="kv-value">-</div></div>
+          <div><div class="kv-label">Prompt Type</div><div id="kvPromptType" class="kv-value">-</div></div>
+          <div><div class="kv-label">Index</div><div id="kvIndex" class="kv-value">-</div></div>
+          <div><div class="kv-label">GD Candidates</div><div id="kvCandidateCount" class="kv-value">-</div></div>
+        </div>
+        <div class="image-wrap" id="imageWrap">
+          <img id="sceneImage" alt="">
+          <canvas id="overlayCanvas"></canvas>
+        </div>
+        <div class="panel-body">
+          <div class="subsection dino-box">
+            <h3>GroundingDINO Result For This Prompt</h3>
+            <div id="dinoInfo" class="small-muted">Select a trial.</div>
+          </div>
+          <div class="subsection">
+            <h3>Prompt</h3>
+            <div id="promptText" class="question-item">Select a trial.</div>
+          </div>
+          <div class="subsection">
+            <h3>Candidates</h3>
+            <div id="candidateTable"></div>
+          </div>
+          <div class="subsection">
+            <h3>Questions</h3>
+            <div id="questionHistory" class="small-muted">No trial selected.</div>
+          </div>
+          <div class="subsection">
+            <h3>Method x Prompt Metrics</h3>
+            <div id="methodPromptTable"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel audit-panel">
+        <div class="panel-header">
+          <span>Audit</span>
+          <div>
+            <span id="selectionLabel" class="small-muted" style="margin-right:8px;">-</span>
+            <button id="prevBtn">Prev</button>
+            <button id="nextBtn">Next</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="field">
+              <label for="outcomeInput">Outcome</label>
+              <select id="outcomeInput">
+                <option value="correct">correct</option>
+                <option value="wrong">wrong</option>
+                <option value="unresolved">unresolved</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="promptTypeInput">Prompt type</label>
+              <select id="promptTypeInput">
+                <option value="clear">clear</option>
+                <option value="ambiguous">ambiguous</option>
+                <option value="partial">partial</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="sceneTypeInput">Scene type</label>
+            <input id="sceneTypeInput">
+          </div>
+          <label class="checkbox-line">
+            <input id="includeInput" type="checkbox" checked>
+            Include this trial in audit metrics
+          </label>
+          <div class="field">
+            <label for="reasonInput">Failure reason</label>
+            <select id="reasonInput"></select>
+          </div>
+          <div class="field">
+            <label for="reasonDetailInput">Failure reason detail</label>
+            <textarea id="reasonDetailInput" placeholder="What exactly failed here?"></textarea>
+          </div>
+          <div class="field">
+            <label for="auditNoteInput">Audit note</label>
+            <textarea id="auditNoteInput" placeholder="Human correction, label issue, or extra note"></textarea>
+          </div>
+          <div class="field">
+            <label for="reviewerInput">Reviewer</label>
+            <input id="reviewerInput" placeholder="name">
+          </div>
+          <div class="actions">
+            <button id="saveBtn" class="primary">Save audit</button>
+            <span id="saveHint" class="small-muted"></span>
+          </div>
+
+          <div class="analysis">
+            <div class="subsection">
+              <h3>Outcome Summary</h3>
+              <div id="summaryTables"></div>
+            </div>
+            <div class="subsection">
+              <h3>Failure Reasons</h3>
+              <div id="reasonSummary"></div>
+            </div>
+            <div class="subsection">
+              <h3>Deep Failure Groups</h3>
+              <div id="deepAnalysis"></div>
+            </div>
+            <div class="subsection">
+              <h3>Audit History</h3>
+              <div id="auditHistory" class="history-box">No trial selected.</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const METHODS = [
+      "top_score",
+      "random_candidate",
+      "vlm_direct",
+      "first_question",
+      "random_question",
+      "vlm_best_question",
+      "proposed_efe"
+    ];
+    const PROMPT_TYPES = ["clear", "ambiguous", "partial"];
+    const OUTCOMES = ["correct", "wrong", "unresolved"];
+    const CANONICAL_FAILURE_REASONS = [
+      {id: "", label: "none"},
+      {id: "ambiguity_not_solved", label: "没有solve ambiguity"},
+      {id: "wrong_object_selected", label: "错误选择了物体"},
+      {id: "gd_missing_target_candidate", label: "GroundingDINO没有包含目标candidate"},
+      {id: "gd_label_error", label: "GroundingDINO label错误"},
+      {id: "user_error", label: "用户失误"},
+      {id: "vlm_error", label: "VLM问题错误"},
+      {id: "other", label: "其他"}
+    ];
+    const REASON_ALIASES = {
+      uncategorized: "",
+      detection_missed_target: "gd_missing_target_candidate",
+      detection_wrong_candidate: "wrong_object_selected",
+      false_positive_candidate: "gd_label_error",
+      vlm_bad_question: "vlm_error",
+      vlm_state_error: "vlm_error",
+      vlm_wrong_selection: "vlm_error",
+      human_answer_error: "user_error",
+      human_outcome_label_error: "user_error",
+      prompt_type_label_error: "user_error",
+      scene_label_error: "user_error",
+      ambiguous_or_under_specified: "ambiguity_not_solved",
+      backend_or_timeout: "vlm_error",
+      invalid_trial: "other"
+    };
+
+    const state = {
+      experimentId: "top_cups_01",
+      filterId: "balanced_method_prompt_cell_filter_seed20260519",
+      trials: [],
+      metrics: null,
+      failureReasons: CANONICAL_FAILURE_REASONS,
+      deepFailureAnalysis: [],
+      selectedTrialId: null,
+      detail: null
+    };
+
+    const el = (id) => document.getElementById(id);
+    const fmt = (value, suffix = "") => value === null || value === undefined ? "-" : `${value}${suffix}`;
+    const pct = (value) => value === null || value === undefined ? "-" : `${Number(value).toFixed(2)}%`;
+    const seconds = (value) => value === null || value === undefined ? "-" : `${Number(value).toFixed(2)}s`;
+
+    function setStatus(text) {
+      el("status").textContent = text;
+    }
+
+    function api(path) {
+      return path;
+    }
+
+    async function fetchJson(path, options) {
+      const res = await fetch(api(path), options);
+      if (!res.ok) {
+        let detail = res.statusText;
+        try {
+          const payload = await res.json();
+          detail = payload.detail || detail;
+        } catch (_err) {}
+        throw new Error(detail);
+      }
+      return res.json();
+    }
+
+    function optionList(values, allLabel = "All") {
+      return [`<option value="">${allLabel}</option>`].concat(values.map((value) => {
+        return `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`;
+      })).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function setupFilters() {
+      el("methodFilter").innerHTML = optionList(METHODS, "All methods");
+      el("promptFilter").innerHTML = optionList(PROMPT_TYPES, "All prompt types");
+      el("outcomeFilter").innerHTML = optionList(OUTCOMES, "All outcomes");
+      el("reviewFilter").innerHTML = [
+        '<option value="">All review states</option>',
+        '<option value="reviewed">reviewed</option>',
+        '<option value="unreviewed">unreviewed</option>',
+        '<option value="excluded">excluded</option>'
+      ].join("");
+      renderReasonOptions();
+    }
+
+    function renderReasonOptions() {
+      const reasonOptions = ['<option value="">All failure reasons</option>']
+        .concat(state.failureReasons.filter((reason) => reason.id !== "").map((reason) => `<option value="${escapeHtml(reason.id)}">${escapeHtml(reason.label)}</option>`))
+        .join("");
+      el("reasonFilter").innerHTML = reasonOptions;
+      const editOptions = []
+        .concat(state.failureReasons.map((reason) => `<option value="${escapeHtml(reason.id)}">${escapeHtml(reason.label)}</option>`))
+        .join("");
+      el("reasonInput").innerHTML = editOptions;
+    }
+
+    function normalizeReason(reason) {
+      const value = String(reason || "");
+      return Object.prototype.hasOwnProperty.call(REASON_ALIASES, value) ? REASON_ALIASES[value] : value;
+    }
+
+    function filteredTrials() {
+      const method = el("methodFilter").value;
+      const prompt = el("promptFilter").value;
+      const outcome = el("outcomeFilter").value;
+      const review = el("reviewFilter").value;
+      const reason = el("reasonFilter").value;
+      const search = el("searchInput").value.trim().toLowerCase();
+      return state.trials.filter((trial) => {
+        if (method && trial.method !== method) return false;
+        if (prompt && trial.prompt_type !== prompt) return false;
+        if (outcome && trial.outcome !== outcome) return false;
+        if (review === "reviewed" && !trial.audit_reviewed) return false;
+        if (review === "unreviewed" && trial.audit_reviewed) return false;
+        if (review === "excluded" && trial.include_in_audit !== false) return false;
+        if (reason && normalizeReason(trial.failure_reason) !== reason) return false;
+        if (search) {
+          const hay = [trial.trial_id, trial.scene_id, trial.prompt, trial.method, trial.prompt_type, trial.scene_type]
+            .join(" ")
+            .toLowerCase();
+          if (!hay.includes(search)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderTrialList() {
+      const items = filteredTrials();
+      el("trialCount").textContent = `${items.length} shown / ${state.trials.length} balanced trials`;
+      updateSelectionLabel();
+      el("trialList").innerHTML = items.map((trial) => {
+        const classes = ["trial-row"];
+        if (trial.trial_id === state.selectedTrialId) classes.push("active");
+        if (trial.include_in_audit === false) classes.push("excluded");
+        const latency = trial.latency_s === null || trial.latency_s === undefined ? "-" : `${Number(trial.latency_s).toFixed(2)}s`;
+        return `
+          <div class="${classes.join(" ")}" data-trial-id="${escapeHtml(trial.trial_id)}">
+            <div class="trial-row-head">
+              <span>${escapeHtml(trial.trial_id)}</span>
+              <span>${escapeHtml(trial.scene_id)}</span>
+            </div>
+            <div class="trial-prompt">${escapeHtml(trial.prompt)}</div>
+            <div class="badge-row">
+              <span class="badge ${escapeHtml(trial.outcome)}">${escapeHtml(trial.outcome)}</span>
+              <span class="badge">${escapeHtml(trial.method)}</span>
+              <span class="badge">${escapeHtml(trial.prompt_type)}</span>
+              <span class="badge">q ${fmt(trial.question_count)}</span>
+              <span class="badge">${latency}</span>
+              ${trial.audit_reviewed ? '<span class="badge reviewed">reviewed</span>' : ''}
+              ${trial.failure_reason ? `<span class="badge">${escapeHtml(normalizeReason(trial.failure_reason) || "none")}</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join("");
+      document.querySelectorAll(".trial-row").forEach((row) => {
+        row.addEventListener("click", () => selectTrial(row.dataset.trialId));
+      });
+    }
+
+    function updateSelectionLabel() {
+      const allIndex = state.trials.findIndex((trial) => trial.trial_id === state.selectedTrialId);
+      const visible = filteredTrials();
+      const visibleIndex = visible.findIndex((trial) => trial.trial_id === state.selectedTrialId);
+      const text = allIndex >= 0
+        ? `all ${allIndex + 1}/${state.trials.length}${visibleIndex >= 0 ? `, shown ${visibleIndex + 1}/${visible.length}` : ""}`
+        : "-";
+      el("selectionLabel").textContent = text;
+      el("kvIndex").textContent = text;
+    }
+
+    function renderMetrics() {
+      const overall = state.metrics?.overall || {};
+      const cards = [
+        ["Trials", overall.n, `${overall.reviewed || 0} reviewed`],
+        ["Accuracy", pct(overall.accuracy_pct), `${overall.correct || 0} correct`],
+        ["Fail Rate", pct(overall.fail_pct), `${overall.fail || 0} fail`],
+        ["Wrong", overall.wrong || 0, "wrong"],
+        ["Unresolved", overall.unresolved || 0, "unresolved"],
+        ["Asked", pct(overall.asked_pct), `${overall.asked_n || 0} trials`],
+        ["Avg Q", fmt(overall.avg_questions_when_asked), "when asked"],
+        ["Avg Latency", seconds(overall.avg_latency_s), `med ${seconds(overall.median_latency_s)}`]
+      ];
+      el("metrics").innerHTML = cards.map(([label, value, sub]) => `
+        <div class="metric-card">
+          <div class="metric-label">${escapeHtml(label)}</div>
+          <div class="metric-value">${escapeHtml(value)}</div>
+          <div class="metric-sub">${escapeHtml(sub)}</div>
+        </div>
+      `).join("");
+      renderSummaryTables();
+      renderMethodPromptTable();
+      renderReasonSummary();
+      renderDeepAnalysis();
+    }
+
+    function metricRow(label, summary) {
+      summary = summary || {};
+      return `
+        <tr>
+          <td>${escapeHtml(label)}</td>
+          <td class="num">${fmt(summary.n)}</td>
+          <td class="num">${pct(summary.accuracy_pct)}</td>
+          <td class="num">${fmt(summary.correct)}</td>
+          <td class="num">${fmt(summary.wrong)}</td>
+          <td class="num">${fmt(summary.unresolved)}</td>
+          <td class="num">${fmt(summary.avg_questions_when_asked)}</td>
+          <td class="num">${seconds(summary.avg_latency_s)}</td>
+        </tr>
+      `;
+    }
+
+    function renderSummaryTables() {
+      if (!state.metrics) {
+        el("summaryTables").innerHTML = "";
+        return;
+      }
+      const methodRows = METHODS.map((method) => metricRow(method, state.metrics.by_method?.[method])).join("");
+      const promptRows = PROMPT_TYPES.map((prompt) => metricRow(prompt, state.metrics.by_prompt_type?.[prompt])).join("");
+      el("summaryTables").innerHTML = `
+        <table>
+          <thead><tr><th>Group</th><th class="num">N</th><th class="num">Acc</th><th class="num">Correct</th><th class="num">Wrong</th><th class="num">Unres</th><th class="num">Avg Q</th><th class="num">Avg Lat</th></tr></thead>
+          <tbody>${methodRows}<tr><td colspan="8"></td></tr>${promptRows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderMethodPromptTable() {
+      if (!state.metrics) {
+        el("methodPromptTable").innerHTML = "";
+        return;
+      }
+      const by = state.metrics.by_method_prompt_type || {};
+      const rows = METHODS.map((method) => {
+        const clear = by[method]?.clear || {};
+        const ambiguous = by[method]?.ambiguous || {};
+        const partial = by[method]?.partial || {};
+        return `
+          <tr>
+            <td>${escapeHtml(method)}</td>
+            <td class="num">${pct(clear.accuracy_pct)}</td>
+            <td class="num">${pct(ambiguous.accuracy_pct)}</td>
+            <td class="num">${pct(partial.accuracy_pct)}</td>
+            <td class="num">${method.includes("question") || method === "proposed_efe" ? fmt(ambiguous.avg_questions_when_asked) : "-"}</td>
+            <td class="num">${method.includes("question") || method === "proposed_efe" ? fmt(partial.avg_questions_when_asked) : "-"}</td>
+          </tr>
+        `;
+      }).join("");
+      el("methodPromptTable").innerHTML = `
+        <table>
+          <thead>
+            <tr><th>Method</th><th class="num">Clear Acc</th><th class="num">Ambiguous Acc</th><th class="num">Partial Acc</th><th class="num">Ambig Avg Q</th><th class="num">Partial Avg Q</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderReasonSummary() {
+      const counts = state.metrics?.reason_counts || {};
+      const rows = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([reason, count]) => `<tr><td>${escapeHtml(reason)}</td><td class="num">${count}</td></tr>`)
+        .join("");
+      el("reasonSummary").innerHTML = rows
+        ? `<table><thead><tr><th>Reason</th><th class="num">Count</th></tr></thead><tbody>${rows}</tbody></table>`
+        : '<div class="small-muted">No categorized failures yet.</div>';
+    }
+
+    function renderDeepAnalysis() {
+      const groups = state.deepFailureAnalysis || [];
+      el("deepAnalysis").innerHTML = groups.length ? groups.slice(0, 14).map((group) => {
+        const promptCounts = Object.entries(group.prompt_type_counts || {}).map(([k, v]) => `${k}:${v}`).join(" ");
+        const sceneCounts = Object.entries(group.scene_type_counts || {}).map(([k, v]) => `${k}:${v}`).join(" ");
+        const examples = (group.examples || []).slice(0, 3).map((item) => {
+          return `<div class="small-muted">${escapeHtml(item.trial_id)} ${escapeHtml(item.prompt)} ${item.detail ? `- ${escapeHtml(item.detail)}` : ""}</div>`;
+        }).join("");
+        return `
+          <div class="analysis-item">
+            <strong>${escapeHtml(group.reason)}</strong> / ${escapeHtml(group.method)} (${group.count})
+            <div class="small-muted">${escapeHtml(promptCounts)} | ${escapeHtml(sceneCounts)}</div>
+            ${examples}
+          </div>
+        `;
+      }).join("") : '<div class="small-muted">Categorize failures to build deeper groups.</div>';
+    }
+
+    async function loadAudit(keepSelection = false) {
+      state.experimentId = el("experimentInput").value.trim() || "top_cups_01";
+      state.filterId = el("filterInput").value.trim() || "balanced_method_prompt_cell_filter_seed20260519";
+      setStatus("Loading audit data...");
+      const path = `/api/offline/experiments/${encodeURIComponent(state.experimentId)}/audit?filter_id=${encodeURIComponent(state.filterId)}`;
+      const payload = await fetchJson(path);
+      state.trials = payload.trials || [];
+      state.metrics = payload.metrics || null;
+      state.failureReasons = CANONICAL_FAILURE_REASONS;
+      state.deepFailureAnalysis = payload.deep_failure_analysis || [];
+      renderReasonOptions();
+      renderMetrics();
+      if (!keepSelection || !state.trials.some((trial) => trial.trial_id === state.selectedTrialId)) {
+        state.selectedTrialId = state.trials[0]?.trial_id || null;
+      }
+      renderTrialList();
+      if (state.selectedTrialId) {
+        await selectTrial(state.selectedTrialId, true);
+      }
+      setStatus(`Loaded ${state.trials.length} trials`);
+    }
+
+    async function selectTrial(trialId, skipListRender = false) {
+      if (!trialId) return;
+      state.selectedTrialId = trialId;
+      if (!skipListRender) renderTrialList();
+      setStatus("Loading trial...");
+      const path = `/api/offline/experiments/${encodeURIComponent(state.experimentId)}/audit/trials/${encodeURIComponent(trialId)}?filter_id=${encodeURIComponent(state.filterId)}`;
+      const payload = await fetchJson(path);
+      state.detail = payload;
+      fillDetail(payload.trial, payload.scene_image_url);
+      setStatus("Trial loaded");
+    }
+
+    function fillDetail(trial, sceneImageUrl) {
+      const snapshot = trial.session_snapshot || {};
+      const audit = trial.audit || {};
+      const candidates = snapshot.candidates || [];
+      el("kvTrial").textContent = trial.trial_id || "-";
+      el("kvScene").textContent = `${trial.scene_id || "-"} / ${trial.scene_type || "-"}`;
+      el("kvMethod").textContent = trial.method || "-";
+      el("kvPromptType").textContent = trial.prompt_type || "-";
+      el("kvCandidateCount").textContent = String(candidates.length || trial.candidate_count || 0);
+      updateSelectionLabel();
+      el("promptText").textContent = trial.prompt || "";
+      el("outcomeInput").value = OUTCOMES.includes(trial.outcome) ? trial.outcome : "unresolved";
+      el("promptTypeInput").value = PROMPT_TYPES.includes(trial.prompt_type) ? trial.prompt_type : "partial";
+      el("sceneTypeInput").value = trial.scene_type || "";
+      el("includeInput").checked = audit.include_in_audit !== false;
+      el("reasonInput").value = normalizeReason(audit.failure_reason);
+      el("reasonDetailInput").value = audit.failure_reason_detail || "";
+      el("auditNoteInput").value = audit.audit_note || "";
+      el("reviewerInput").value = audit.reviewer || localStorage.getItem("offlineAuditReviewer") || "";
+      renderDinoInfo(trial, snapshot, candidates);
+      renderCandidates(trial, candidates);
+      renderQuestionHistory(snapshot.question_history || []);
+      renderAuditHistory(audit.history || []);
+      const img = el("sceneImage");
+      img.onload = () => drawOverlay();
+      img.src = sceneImageUrl ? `${sceneImageUrl}?audit=${Date.now()}` : "";
+      if (!sceneImageUrl) drawOverlay();
+    }
+
+    function renderDinoInfo(trial, snapshot, candidates) {
+      const phrases = snapshot.instruction_phrases || [];
+      const prompt = snapshot.detection_prompt || trial.detection_prompt || "";
+      const candidateLabels = candidates.map((candidate) => {
+        const id = candidate.display_id ?? candidate.candidate_id;
+        const score = candidate.score === undefined || candidate.score === null ? "" : ` (${Number(candidate.score).toFixed(2)})`;
+        return `${id}: ${candidate.label || "candidate"}${score}`;
+      });
+      el("dinoInfo").innerHTML = `
+        <div class="dino-line"><span>User prompt</span><strong>${escapeHtml(trial.prompt || "-")}</strong></div>
+        <div class="dino-line"><span>GD prompt</span><strong>${escapeHtml(prompt || "-")}</strong></div>
+        <div class="dino-line"><span>Extracted phrases</span><div>${phrases.length ? phrases.map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join(" ") : "-"}</div></div>
+        <div class="dino-line"><span>Candidates</span><div>${candidateLabels.length ? candidateLabels.map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join(" ") : "none"}</div></div>
+        <div class="dino-line"><span>Expected / resolved</span><div>${escapeHtml(trial.expected_candidate_id || "-")} / ${escapeHtml(trial.resolved_candidate_id || "-")}</div></div>
+      `;
+    }
+
+    function renderCandidates(trial, candidates) {
+      if (!candidates.length) {
+        el("candidateTable").innerHTML = '<div class="small-muted">No candidates stored in trial snapshot.</div>';
+        return;
+      }
+      const expected = trial.expected_candidate_id;
+      const resolved = trial.resolved_candidate_id;
+      const rows = candidates.map((candidate) => {
+        const isExpected = candidate.candidate_id === expected;
+        const isResolved = candidate.candidate_id === resolved;
+        const rowClass = isExpected && isResolved ? "candidate-both" : isExpected ? "candidate-expected" : isResolved ? "candidate-hit" : "";
+        const score = candidate.score === undefined || candidate.score === null ? "-" : Number(candidate.score).toFixed(2);
+        return `
+          <tr class="${rowClass}">
+            <td>${escapeHtml(candidate.display_id ?? "")}</td>
+            <td>${escapeHtml(candidate.label)}</td>
+            <td class="num">${score}</td>
+            <td>${escapeHtml(candidate.candidate_id)}</td>
+          </tr>
+        `;
+      }).join("");
+      el("candidateTable").innerHTML = `
+        <table><thead><tr><th>#</th><th>Label</th><th class="num">Score</th><th>ID</th></tr></thead><tbody>${rows}</tbody></table>
+      `;
+    }
+
+    function renderQuestionHistory(history) {
+      if (!history.length) {
+        el("questionHistory").innerHTML = '<div class="small-muted">No clarification questions asked.</div>';
+        return;
+      }
+      el("questionHistory").innerHTML = history.map((turn) => `
+        <div class="question-item">
+          <strong>Q${escapeHtml(turn.round_index ?? "")}</strong> ${escapeHtml(turn.text || "")}
+          <div class="small-muted">answer: ${escapeHtml(turn.answer || "")}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderAuditHistory(history) {
+      if (!history.length) {
+        el("auditHistory").textContent = "No audit history for this trial yet.";
+        return;
+      }
+      el("auditHistory").textContent = JSON.stringify(history.slice().reverse(), null, 2);
+    }
+
+    function drawOverlay() {
+      const detail = state.detail;
+      const trial = detail?.trial || {};
+      const candidates = trial.session_snapshot?.candidates || [];
+      const img = el("sceneImage");
+      const canvas = el("overlayCanvas");
+      const wrap = el("imageWrap");
+      const rect = img.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(rect.width));
+      canvas.height = Math.max(1, Math.round(rect.height));
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      canvas.style.left = `${rect.left - wrapRect.left}px`;
+      canvas.style.top = `${rect.top - wrapRect.top}px`;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!img.naturalWidth || !img.naturalHeight || !candidates.length) return;
+      const sx = canvas.width / img.naturalWidth;
+      const sy = canvas.height / img.naturalHeight;
+      const expected = trial.expected_candidate_id;
+      const resolved = trial.resolved_candidate_id;
+      candidates.forEach((candidate, index) => {
+        const box = candidate.bbox_xyxy || [];
+        if (box.length !== 4) return;
+        const x0 = Math.min(box[0], box[2]) * sx;
+        const y0 = Math.min(box[1], box[3]) * sy;
+        const x1 = Math.max(box[0], box[2]) * sx;
+        const y1 = Math.max(box[1], box[3]) * sy;
+        const w = Math.max(1, x1 - x0);
+        const h = Math.max(1, y1 - y0);
+        let color = "#38bdf8";
+        if (candidate.candidate_id === expected && candidate.candidate_id === resolved) color = "#2563eb";
+        else if (candidate.candidate_id === resolved) color = "#16a34a";
+        else if (candidate.candidate_id === expected) color = "#f59e0b";
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = color;
+        ctx.strokeRect(x0, y0, w, h);
+        const label = `${candidate.display_id ?? index + 1} ${candidate.label || ""}`.trim();
+        ctx.font = "13px ui-sans-serif, system-ui, sans-serif";
+        const textWidth = Math.min(ctx.measureText(label).width + 8, canvas.width - 4);
+        const labelX = Math.max(2, Math.min(x0, canvas.width - textWidth - 2));
+        const labelY = y0 > 24 ? y0 - 6 : Math.min(canvas.height - 4, y1 + 20);
+        ctx.fillStyle = color;
+        ctx.fillRect(labelX, labelY - 17, textWidth, 18);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(label, labelX + 4, labelY - 4, textWidth - 8);
+      });
+    }
+
+    async function saveAudit() {
+      if (!state.detail?.trial?.trial_id) return;
+      const reviewer = el("reviewerInput").value.trim();
+      if (reviewer) localStorage.setItem("offlineAuditReviewer", reviewer);
+      const payload = {
+        outcome: el("outcomeInput").value,
+        include_in_audit: el("includeInput").checked,
+        failure_reason: el("reasonInput").value,
+        failure_reason_detail: el("reasonDetailInput").value,
+        audit_note: el("auditNoteInput").value,
+        prompt_type: el("promptTypeInput").value,
+        scene_type: el("sceneTypeInput").value.trim(),
+        reviewer
+      };
+      el("saveBtn").disabled = true;
+      el("saveHint").textContent = "Saving...";
+      try {
+        const trialId = state.detail.trial.trial_id;
+        const path = `/api/offline/experiments/${encodeURIComponent(state.experimentId)}/audit/trials/${encodeURIComponent(trialId)}?filter_id=${encodeURIComponent(state.filterId)}`;
+        const result = await fetchJson(path, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(payload)
+        });
+        const idx = state.trials.findIndex((trial) => trial.trial_id === trialId);
+        if (idx >= 0) state.trials[idx] = result.trial_list_item;
+        state.metrics = result.metrics;
+        state.deepFailureAnalysis = result.deep_failure_analysis || [];
+        state.detail.trial = result.trial;
+        renderTrialList();
+        renderMetrics();
+        fillDetail(result.trial, state.detail.scene_image_url);
+        el("saveHint").textContent = "Saved";
+        setStatus("Audit saved and metrics updated");
+      } catch (err) {
+        el("saveHint").textContent = err.message;
+        setStatus("Save failed");
+      } finally {
+        el("saveBtn").disabled = false;
+      }
+    }
+
+    function moveSelection(delta) {
+      const items = filteredTrials();
+      if (!items.length) return;
+      const index = Math.max(0, items.findIndex((trial) => trial.trial_id === state.selectedTrialId));
+      const next = items[Math.min(items.length - 1, Math.max(0, index + delta))];
+      if (next) selectTrial(next.trial_id);
+    }
+
+    function jumpToTrial() {
+      const raw = el("jumpInput").value.trim();
+      if (!raw) return;
+      const visible = filteredTrials();
+      let trial = null;
+      if (/^\d+$/.test(raw)) {
+        const index = Number(raw) - 1;
+        if (index >= 0 && index < visible.length) {
+          trial = visible[index];
+        } else if (index >= 0 && index < state.trials.length) {
+          trial = state.trials[index];
+        }
+      }
+      if (!trial) {
+        const lower = raw.toLowerCase();
+        trial = state.trials.find((item) => String(item.trial_id || "").toLowerCase() === lower)
+          || state.trials.find((item) => String(item.trial_id || "").toLowerCase().includes(lower))
+          || state.trials.find((item) => String(item.scene_id || "").toLowerCase() === lower)
+          || state.trials.find((item) => String(item.scene_id || "").toLowerCase().includes(lower))
+          || state.trials.find((item) => String(item.prompt || "").toLowerCase().includes(lower));
+      }
+      if (!trial) {
+        setStatus(`No trial matched "${raw}"`);
+        return;
+      }
+      selectTrial(trial.trial_id);
+    }
+
+    function attachEvents() {
+      el("loadBtn").addEventListener("click", () => loadAudit(false).catch((err) => setStatus(err.message)));
+      el("refreshBtn").addEventListener("click", () => loadAudit(true).catch((err) => setStatus(err.message)));
+      el("saveBtn").addEventListener("click", () => saveAudit());
+      el("prevBtn").addEventListener("click", () => moveSelection(-1));
+      el("nextBtn").addEventListener("click", () => moveSelection(1));
+      el("jumpBtn").addEventListener("click", () => jumpToTrial());
+      el("jumpInput").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") jumpToTrial();
+      });
+      ["methodFilter", "promptFilter", "outcomeFilter", "reviewFilter", "reasonFilter", "searchInput"].forEach((id) => {
+        el(id).addEventListener("input", () => renderTrialList());
+      });
+      window.addEventListener("resize", () => drawOverlay());
+      document.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+          event.preventDefault();
+          saveAudit();
+        } else if (!["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName || "")) {
+          if (event.key === "ArrowLeft") moveSelection(-1);
+          if (event.key === "ArrowRight") moveSelection(1);
+        }
+      });
+    }
+
+    function initFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("experiment")) {
+        el("experimentInput").value = params.get("experiment");
+      }
+      if (params.get("filter")) {
+        el("filterInput").value = params.get("filter");
+      }
+    }
+
+    setupFilters();
+    attachEvents();
+    initFromUrl();
+    loadAudit(false).catch((err) => setStatus(err.message));
+  </script>
+</body>
+</html>

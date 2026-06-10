@@ -1,0 +1,14 @@
+{
+  "created_at_epoch_s": 1779212690.586476,
+  "seed": 20260520,
+  "removed_trial_id": "trial_20260514_212634_86dd36",
+  "removed_method": "random_candidate",
+  "removed_prompt_type": "partial",
+  "removed_outcome": "unresolved",
+  "removed_reason": "include_in_audit_false",
+  "inserted_trial_id": "trial_20260517_171125_cd5865",
+  "inserted_method": "random_candidate",
+  "inserted_prompt_type": "partial",
+  "inserted_outcome": "correct",
+  "candidate_count": 8
+}

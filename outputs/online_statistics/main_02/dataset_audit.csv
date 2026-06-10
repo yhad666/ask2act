@@ -1,0 +1,8 @@
+metric,value
+records,228
+methods,4
+scenes,20
+prompt_types,3
+records_per_method_min,57
+records_per_method_max,57
+records_per_method_prompt_cell,19

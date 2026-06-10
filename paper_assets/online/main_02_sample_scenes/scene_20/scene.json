@@ -1,0 +1,14 @@
+{
+  "experiment_id": "main_02",
+  "scene_id": "scene_20",
+  "scene_type": "mixed",
+  "object_categories": [],
+  "notes": "",
+  "observation_id": null,
+  "observation_source": "metadata_only",
+  "observation_mime_type": null,
+  "observation_path": null,
+  "observation_metadata": {},
+  "updated_at_epoch_s": 1779880695.974961,
+  "created_at_epoch_s": 1779880695.974961
+}

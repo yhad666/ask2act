@@ -1,0 +1,11 @@
+candidate_count,trials,asked_trials,asked_rate_pct,avg_candidate_count_asked,median_candidate_count_asked,actual_total_questions_asked_trials,actual_mean_q_asked_trials,ideal_half_total_q_asked_trials,ideal_half_mean_q_asked_trials,split04_total_q_asked_trials,split04_mean_q_asked_trials,mixed_expected_total_q_asked_trials,mixed_expected_mean_q_asked_trials,actual_minus_split04_total,actual_over_split04,actual_minus_mixed_expected_total,actual_over_mixed_expected
+0,5,0,0.0,,,0,,0,,0,,0.0,,0,,0.0,
+1,810,16,1.9753,1.0,1.0,16,1.0,0,0.0,0,0.0,0.0,0.0,16,,16.0,
+2,189,100,52.9101,2.0,2.0,102,1.02,100,1.0,100,1.0,100.0,1.0,2,1.02,2.0,1.02
+3,92,52,56.5217,3.0,3.0,97,1.8654,104,2.0,104,2.0,86.6667,1.6667,-7,0.9327,10.3333,1.1192
+4,142,82,57.7465,4.0,4.0,184,2.2439,164,2.0,164,2.0,180.4,2.2,20,1.122,3.6,1.02
+5,28,17,60.7143,5.0,5.0,44,2.5882,51,3.0,51,3.0,45.696,2.688,-7,0.8627,-1.696,0.9629
+6,152,86,56.5789,6.0,6.0,278,3.2326,258,3.0,258,3.0,271.072,3.152,20,1.0775,6.928,1.0256
+7,72,41,56.9444,7.0,7.0,149,3.6341,123,3.0,123,3.0,145.7819,3.5557,26,1.2114,3.2181,1.0221
+8,21,14,66.6667,8.0,8.0,44,3.1429,42,3.0,56,4.0,55.2994,3.95,-12,0.7857,-11.2994,0.7957
+15,1,0,0.0,,,0,,0,,0,,0.0,,0,,0.0,

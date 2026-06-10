@@ -1,0 +1,7 @@
+Prompt-pool sensitivity interpretation:
+
+- Flagged and removed 73 scene_id x prompt_type pools with unique prompts < 3 or duplicate rate > 0.50.
+- Records changed from 1512 to 514.
+- All planned EFE/non-interactive accuracy contrasts remained significant after prompt-pool sensitivity filtering.
+- EFE remained statistically comparable in accuracy to other interactive baselines after filtering.
+- Ambiguous question-count sensitivity could not be evaluated because filtering removed all complete paired ambiguous scenes.

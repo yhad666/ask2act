@@ -1,0 +1,13 @@
+context,method,asked_trials,n_scenes_with_asked_trials,trial_level_mean_Q_asked_only,trial_level_median_Q_asked_only,avg_candidate_count_asked_only
+overall_asked_only,first_question,101,36,2.366336633663366,2.0,4.217821782178218
+overall_asked_only,random_question,101,35,2.386138613861386,2.0,4.198019801980198
+overall_asked_only,vlm_best_question,102,36,2.303921568627451,2.0,4.147058823529412
+overall_asked_only,proposed_efe,104,36,1.9134615384615385,2.0,4.105769230769231
+ambiguous_asked_only,first_question,67,35,2.8805970149253732,3.0,4.731343283582089
+ambiguous_asked_only,random_question,66,34,2.9393939393939394,3.0,4.878787878787879
+ambiguous_asked_only,vlm_best_question,66,33,2.9242424242424243,3.0,4.863636363636363
+ambiguous_asked_only,proposed_efe,66,36,2.257575757575758,2.0,4.7727272727272725
+partial_asked_only,first_question,31,22,1.3225806451612903,1.0,3.2580645161290325
+partial_asked_only,random_question,33,24,1.3636363636363635,1.0,2.9696969696969697
+partial_asked_only,vlm_best_question,32,24,1.1875,1.0,2.78125
+partial_asked_only,proposed_efe,38,24,1.3157894736842106,1.0,2.9473684210526314

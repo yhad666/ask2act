@@ -1,0 +1,4 @@
+context,n_complete_scenes,friedman_statistic,p_raw
+overall_asked_only,35,24.18214285714285,2.2885489449051213e-05
+ambiguous_asked_only,31,26.84279475982538,6.351466791330481e-06
+partial_asked_only,19,2.1136363636362883,0.5491589641595362

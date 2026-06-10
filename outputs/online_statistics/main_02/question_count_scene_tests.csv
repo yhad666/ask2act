@@ -1,0 +1,7 @@
+context,method_A,method_B,n_scenes,mean_A,mean_B,median_A,median_B,mean_diff_A_minus_B,median_diff_A_minus_B,ci_low,ci_high,p_raw,test,metric,asked_only,percent_reduction_A_vs_B,p_holm
+overall,proposed_efe,vlm_best_question,20,0.5999999999999999,0.7916666666666666,0.6666666666666666,0.6666666666666666,-0.19166666666666668,0.0,-0.3916666666666667,-0.016458333333334456,0.10791015625,exact_sign_flip,num_questions_all,False,24.210526315789487,0.10791015625
+overall,proposed_efe,vlm_best_question,16,1.9375,2.28125,2.0,2.0,-0.34375,0.0,-0.75,0.03125,0.15625,exact_sign_flip,num_questions_asked_only,True,15.068493150684931,0.15625
+ambiguous,proposed_efe,vlm_best_question,18,1.7222222222222223,2.2222222222222223,2.0,2.0,-0.5,0.0,-0.8333333333333334,-0.16666666666666666,0.03125,exact_sign_flip,num_questions_all,False,22.5,0.03125
+ambiguous,proposed_efe,vlm_best_question,16,1.9375,2.4375,2.0,2.0,-0.5,0.0,-0.875,-0.125,0.0546875,exact_sign_flip,num_questions_asked_only,True,20.512820512820515,0.0546875
+partial,proposed_efe,vlm_best_question,18,0.05555555555555555,0.1111111111111111,0.0,0.0,-0.05555555555555555,0.0,-0.2777777777777778,0.1111111111111111,1.0,exact_sign_flip,num_questions_all,False,50.0,1.0
+partial,proposed_efe,vlm_best_question,0,,,,,,,,,,not_enough_pairs,num_questions_asked_only,True,,

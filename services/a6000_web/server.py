@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import csv
 from collections import Counter
 import io
 import json
@@ -13,7 +14,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -38,6 +39,7 @@ from .schemas import (
     OfflineTrialManualSelectRequest,
     OfflineTrialStartRequest,
     OfflineTrialStepRequest,
+    OnlineAuditUpdateRequest,
     OnlineExperimentRequest,
     OnlineGraspTuningRequest,
     OnlineHeadPoseRequest,
@@ -146,6 +148,20 @@ AUDIT_FAILURE_REASON_ALIASES = {
     "backend_or_timeout": "vlm_error",
     "invalid_trial": "other",
 }
+ONLINE_AUDIT_DEFAULT_DATASET = "balanced_method_prompt_trials_main02"
+ONLINE_AUDIT_FAILURE_REASONS = [
+    {"id": "", "label": "none"},
+    {"id": "target_resolution_error", "label": "目标选择错误"},
+    {"id": "ambiguity_not_solved", "label": "没有solve ambiguity"},
+    {"id": "gd_missing_target_candidate", "label": "GroundingDINO没有包含目标candidate"},
+    {"id": "gd_label_error", "label": "GroundingDINO label错误"},
+    {"id": "vlm_error", "label": "VLM问题错误"},
+    {"id": "grasp_planning_error", "label": "抓取规划错误"},
+    {"id": "grasp_execution_error", "label": "机器人执行错误"},
+    {"id": "physical_grasp_failed", "label": "物理抓取失败"},
+    {"id": "user_error", "label": "用户失误"},
+    {"id": "other", "label": "其他"},
+]
 
 TRIAL_LIST_FIELDS = {
     "trial_id",
@@ -220,7 +236,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 async def close_http_connections(request, call_next):
     response = await call_next(request)
     response.headers["Connection"] = "close"
-    if request.url.path.startswith("/api/") or request.url.path == "/offline":
+    if request.url.path.startswith("/api/") or request.url.path in {"/offline", "/offline/audit", "/online", "/online/audit"}:
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
@@ -1464,6 +1480,428 @@ def _online_metrics(experiment_id: str) -> Dict[str, Any]:
     }
 
 
+def _safe_dataset_name(dataset: str | None) -> str:
+    value = (dataset or ONLINE_AUDIT_DEFAULT_DATASET).strip() or ONLINE_AUDIT_DEFAULT_DATASET
+    value = value[:-4] if value.endswith(".csv") else value
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("._") or ONLINE_AUDIT_DEFAULT_DATASET
+
+
+def _online_analysis_dir(experiment_id: str) -> Path:
+    return online_store._exp_dir(experiment_id) / "analysis"
+
+
+def _online_audit_dataset_path(experiment_id: str, dataset: str | None = None) -> Path:
+    return _online_analysis_dir(experiment_id) / f"{_safe_dataset_name(dataset)}.csv"
+
+
+def _online_audit_override_path(experiment_id: str, dataset: str | None = None) -> Path:
+    return _online_analysis_dir(experiment_id) / f"online_audit_overrides_{_safe_dataset_name(dataset)}.json"
+
+
+def _csv_blank_to_none(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped or stripped.lower() in {"nan", "none", "null"}:
+            return None
+        return stripped
+    return value
+
+
+def _csv_bool(value: Any) -> bool | None:
+    value = _csv_blank_to_none(value)
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _csv_float(value: Any) -> float | None:
+    value = _csv_blank_to_none(value)
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _csv_int(value: Any) -> int | None:
+    value = _csv_float(value)
+    if value is None:
+        return None
+    return int(value)
+
+
+def _load_online_audit_rows(experiment_id: str, dataset: str | None = None) -> list[Dict[str, Any]]:
+    path = _online_audit_dataset_path(experiment_id, dataset)
+    if not path.exists():
+        raise FileNotFoundError(f"online audit dataset not found: {path}")
+    rows: list[Dict[str, Any]] = []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for raw in reader:
+            row = {key: _csv_blank_to_none(value) for key, value in raw.items()}
+            for key in ["raw_order", "candidate_count", "expected_display_id", "num_questions"]:
+                row[key] = _csv_int(row.get(key))
+            for key in [
+                "started_at_epoch_s",
+                "finished_at_epoch_s",
+                "latency_s",
+                "resolution_latency_s",
+                "total_time_s",
+                "analysis_time_s",
+            ]:
+                row[key] = _csv_float(row.get(key))
+            for key in [
+                "target_selection_eval",
+                "target_selection_success",
+                "target_selection_fail",
+                "grasp_attempted",
+                "physical_grasp_success",
+                "correct_object_grasp_success",
+                "wrong_object_grasp",
+                "wrong_target_grasp_prevented",
+                "task_success",
+                "physical_success",
+                "wrong_target_or_object",
+                "asked_question",
+                "audit_success_override",
+                "include_in_cleaned_analysis",
+            ]:
+                row[key] = bool(_csv_bool(row.get(key)))
+            rows.append(row)
+    return rows
+
+
+def _load_online_audit_overrides(experiment_id: str, dataset: str | None = None) -> Dict[str, Any]:
+    path = _online_audit_override_path(experiment_id, dataset)
+    if not path.exists():
+        return {"dataset": _safe_dataset_name(dataset), "trials": {}, "history": []}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data.get("trials"), dict):
+        data["trials"] = {}
+    if not isinstance(data.get("history"), list):
+        data["history"] = []
+    return data
+
+
+def _write_online_audit_overrides(experiment_id: str, data: Dict[str, Any], dataset: str | None = None) -> None:
+    path = _online_audit_override_path(experiment_id, dataset)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data["dataset"] = _safe_dataset_name(dataset)
+    data["updated_at_epoch_s"] = time.time()
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+
+
+def _online_metric_outcome_from_row(row: Dict[str, Any]) -> str | None:
+    outcome = row.get("target_selection_outcome")
+    if outcome in {"correct", "wrong", "unresolved"}:
+        return str(outcome)
+    outcome = row.get("outcome")
+    if outcome in {"correct", "wrong", "unresolved", "skipped_wrong_target"}:
+        return "wrong" if outcome == "skipped_wrong_target" else str(outcome)
+    return None
+
+
+def _apply_online_audit_to_row(row: Dict[str, Any], audit: Dict[str, Any] | None) -> Dict[str, Any]:
+    out = dict(row)
+    audit = dict(audit or {})
+    if audit.get("target_selection_outcome") in {"correct", "wrong", "unresolved"}:
+        out["target_selection_outcome"] = audit["target_selection_outcome"]
+    if audit.get("prompt_type") in {"clear", "ambiguous", "partial"}:
+        out["prompt_type"] = audit["prompt_type"]
+    if audit.get("scene_type"):
+        out["scene_type"] = audit["scene_type"]
+    for key in ["grasp_attempted", "physical_grasp_success", "correct_object_grasp_success", "wrong_object_grasp"]:
+        if key in audit and audit.get(key) is not None:
+            out[key] = bool(audit[key])
+    metric_outcome = _online_metric_outcome_from_row(out)
+    out["target_metric_outcome"] = metric_outcome
+    out["target_selection_eval"] = metric_outcome is not None
+    out["target_selection_success"] = metric_outcome == "correct"
+    out["target_selection_fail"] = metric_outcome in {"wrong", "unresolved"}
+    out["physical_success"] = bool(out.get("physical_grasp_success"))
+    out["task_success"] = bool(out.get("correct_object_grasp_success"))
+    out["wrong_target_or_object"] = bool(out.get("wrong_object_grasp")) or metric_outcome == "wrong"
+    out["include_in_audit"] = audit.get("include_in_audit", True) is not False
+    out["audit"] = audit
+    return out
+
+
+def _online_audit_trials(experiment_id: str, dataset: str | None = None) -> list[Dict[str, Any]]:
+    rows = _load_online_audit_rows(experiment_id, dataset)
+    overrides = _load_online_audit_overrides(experiment_id, dataset).get("trials", {})
+    return [_apply_online_audit_to_row(row, overrides.get(str(row.get("trial_id"))) or {}) for row in rows]
+
+
+def _online_audit_included(trials: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+    return [trial for trial in trials if trial.get("include_in_audit") is not False and trial.get("target_selection_eval")]
+
+
+def _online_audit_summary(items: list[Dict[str, Any]]) -> Dict[str, Any]:
+    included = _online_audit_included(items)
+    n = len(included)
+    target_correct = sum(1 for item in included if item.get("target_selection_success"))
+    target_fail = sum(1 for item in included if item.get("target_selection_fail"))
+    attempted = [item for item in included if item.get("grasp_attempted")]
+    physical_success = sum(1 for item in attempted if item.get("physical_success"))
+    task_success = sum(1 for item in included if item.get("task_success"))
+    wrong_object = sum(1 for item in included if item.get("wrong_object_grasp"))
+    wrong_prevented = sum(1 for item in included if item.get("wrong_target_grasp_prevented"))
+    asked = [float(item.get("num_questions") or 0) for item in included if float(item.get("num_questions") or 0) > 0]
+    all_questions = [float(item.get("num_questions") or 0) for item in included]
+    times = [float(item.get("analysis_time_s")) for item in included if item.get("analysis_time_s") is not None]
+    reviewed = sum(1 for item in included if isinstance(item.get("audit"), dict) and item["audit"].get("reviewed"))
+    return {
+        "n": n,
+        "excluded": len(items) - n,
+        "reviewed": reviewed,
+        "unreviewed": n - reviewed,
+        "target_correct": target_correct,
+        "target_wrong_or_unresolved": target_fail,
+        "target_selection_accuracy_pct": round(100.0 * target_correct / n, 2) if n else None,
+        "target_selection_fail_pct": round(100.0 * target_fail / n, 2) if n else None,
+        "grasp_attempted": len(attempted),
+        "physical_grasp_success": physical_success,
+        "physical_grasp_success_pct": round(100.0 * physical_success / len(attempted), 2) if attempted else None,
+        "correct_object_grasp_success": task_success,
+        "task_success_pct": round(100.0 * task_success / n, 2) if n else None,
+        "wrong_object_grasp": wrong_object,
+        "wrong_object_grasp_pct": round(100.0 * wrong_object / n, 2) if n else None,
+        "wrong_target_prevented": wrong_prevented,
+        "wrong_target_prevented_pct": round(100.0 * wrong_prevented / n, 2) if n else None,
+        "asked_n": len(asked),
+        "asked_pct": round(100.0 * len(asked) / n, 2) if n else None,
+        "avg_questions_all": round(_mean_float(all_questions), 2) if all_questions else None,
+        "avg_questions_when_asked": round(_mean_float(asked), 2) if asked else None,
+        "avg_time_s": round(_mean_float(times), 2) if times else None,
+        "median_time_s": round(_median_float(times), 2) if times else None,
+    }
+
+
+def _online_audit_metrics(trials: list[Dict[str, Any]]) -> Dict[str, Any]:
+    methods = ["top_score", "random_candidate", "vlm_best_question", "proposed_efe"]
+    prompt_types = ["clear", "ambiguous", "partial"]
+    scene_types = sorted({str(item.get("scene_type") or "") for item in trials if item.get("scene_type")})
+    included = _online_audit_included(trials)
+    reason_counts: Dict[str, int] = {}
+    reason_by_method: Dict[str, Dict[str, int]] = {}
+    for item in included:
+        if item.get("target_selection_success") and item.get("task_success"):
+            continue
+        audit = item.get("audit") if isinstance(item.get("audit"), dict) else {}
+        reason = _normalize_failure_reason(audit.get("failure_reason")) or "none"
+        reason_counts[reason] = reason_counts.get(reason, 0) + 1
+        method = str(item.get("method") or "unknown")
+        reason_by_method.setdefault(method, {})
+        reason_by_method[method][reason] = reason_by_method[method].get(reason, 0) + 1
+    method_prompt_scene_type = []
+    for method in methods:
+        for prompt_type in prompt_types:
+            for scene_type in scene_types:
+                subset = [
+                    item
+                    for item in trials
+                    if item.get("method") == method
+                    and item.get("prompt_type") == prompt_type
+                    and item.get("scene_type") == scene_type
+                ]
+                summary = _online_audit_summary(subset)
+                method_prompt_scene_type.append(
+                    {
+                        "method": method,
+                        "prompt_type": prompt_type,
+                        "scene_type": scene_type,
+                        **summary,
+                    }
+                )
+    return {
+        "overall": _online_audit_summary(trials),
+        "by_method": {method: _online_audit_summary([item for item in trials if item.get("method") == method]) for method in methods},
+        "by_prompt_type": {
+            prompt_type: _online_audit_summary([item for item in trials if item.get("prompt_type") == prompt_type])
+            for prompt_type in prompt_types
+        },
+        "by_method_prompt_type": {
+            method: {
+                prompt_type: _online_audit_summary(
+                    [item for item in trials if item.get("method") == method and item.get("prompt_type") == prompt_type]
+                )
+                for prompt_type in prompt_types
+            }
+            for method in methods
+        },
+        "by_scene_type": {
+            scene_type: _online_audit_summary([item for item in trials if item.get("scene_type") == scene_type])
+            for scene_type in scene_types
+        },
+        "by_method_prompt_scene_type": method_prompt_scene_type,
+        "reason_counts": reason_counts,
+        "reason_by_method": reason_by_method,
+    }
+
+
+def _online_audit_trial_list_item(trial: Dict[str, Any]) -> Dict[str, Any]:
+    audit = trial.get("audit") if isinstance(trial.get("audit"), dict) else {}
+    return {
+        "trial_id": trial.get("trial_id"),
+        "scene_id": trial.get("scene_id"),
+        "scene_type": trial.get("scene_type"),
+        "prompt": trial.get("prompt"),
+        "prompt_type": trial.get("prompt_type"),
+        "method": trial.get("method"),
+        "target_selection_outcome": trial.get("target_selection_outcome"),
+        "task_success": bool(trial.get("task_success")),
+        "physical_grasp_success": bool(trial.get("physical_grasp_success")),
+        "grasp_attempted": bool(trial.get("grasp_attempted")),
+        "candidate_count": trial.get("candidate_count"),
+        "num_questions": trial.get("num_questions"),
+        "analysis_time_s": trial.get("analysis_time_s"),
+        "include_in_audit": trial.get("include_in_audit") is not False,
+        "audit_reviewed": bool(audit.get("reviewed")),
+        "failure_reason": audit.get("failure_reason") or "",
+        "audit_note": audit.get("audit_note") or "",
+    }
+
+
+def _online_deep_failure_analysis(trials: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+    failed = [
+        item
+        for item in _online_audit_included(trials)
+        if not (item.get("target_selection_success") and item.get("task_success"))
+    ]
+    groups: Dict[tuple[str, str], list[Dict[str, Any]]] = {}
+    for item in failed:
+        audit = item.get("audit") if isinstance(item.get("audit"), dict) else {}
+        reason = _normalize_failure_reason(audit.get("failure_reason")) or "none"
+        method = str(item.get("method") or "unknown")
+        groups.setdefault((reason, method), []).append(item)
+    out = []
+    for (reason, method), items in sorted(groups.items(), key=lambda kv: len(kv[1]), reverse=True):
+        out.append(
+            {
+                "reason": reason,
+                "method": method,
+                "count": len(items),
+                "prompt_type_counts": dict(Counter(str(item.get("prompt_type") or "") for item in items)),
+                "scene_type_counts": dict(Counter(str(item.get("scene_type") or "") for item in items)),
+                "examples": [
+                    {
+                        "trial_id": item.get("trial_id"),
+                        "scene_id": item.get("scene_id"),
+                        "prompt": item.get("prompt"),
+                        "target_selection_outcome": item.get("target_selection_outcome"),
+                        "task_success": bool(item.get("task_success")),
+                        "detail": (item.get("audit") or {}).get("failure_reason_detail") if isinstance(item.get("audit"), dict) else "",
+                    }
+                    for item in items[:5]
+                ],
+            }
+        )
+    return out
+
+
+def _online_audit_bundle(experiment_id: str, dataset: str | None = None) -> Dict[str, Any]:
+    dataset_name = _safe_dataset_name(dataset)
+    trials = _online_audit_trials(experiment_id, dataset_name)
+    overrides = _load_online_audit_overrides(experiment_id, dataset_name)
+    return {
+        "experiment": online_store.read_experiment(experiment_id),
+        "root": str(ONLINE_EXPERIMENT_ROOT),
+        "dataset": {
+            "id": dataset_name,
+            "path": str(_online_audit_dataset_path(experiment_id, dataset_name)),
+            "override_path": str(_online_audit_override_path(experiment_id, dataset_name)),
+            "trial_count": len(trials),
+            "override_count": len(overrides.get("trials", {})),
+        },
+        "trials": [_online_audit_trial_list_item(trial) for trial in trials],
+        "metrics": _online_audit_metrics(trials),
+        "failure_reasons": ONLINE_AUDIT_FAILURE_REASONS,
+        "deep_failure_analysis": _online_deep_failure_analysis(trials),
+    }
+
+
+def _online_audit_trial_detail(experiment_id: str, trial_id: str, dataset: str | None = None) -> Dict[str, Any]:
+    dataset_name = _safe_dataset_name(dataset)
+    trials = _online_audit_trials(experiment_id, dataset_name)
+    trial = next((item for item in trials if item.get("trial_id") == trial_id), None)
+    if trial is None:
+        raise KeyError(trial_id)
+    raw_trial = None
+    raw_path = trial.get("raw_path")
+    if raw_path:
+        path = Path(str(raw_path))
+        if not path.is_absolute():
+            path = Path.cwd() / path
+        if path.exists():
+            raw_trial = json.loads(path.read_text(encoding="utf-8"))
+    scene_image_url = None
+    for candidate_scene_id in [str(trial.get("scene_id") or ""), str(trial.get("original_scene_id") or "")]:
+        if not candidate_scene_id:
+            continue
+        try:
+            online_store.scene_view(experiment_id, candidate_scene_id, include_image=False)
+            scene_image_url = f"/api/online/experiments/{experiment_id}/scenes/{candidate_scene_id}/image"
+            break
+        except Exception:
+            continue
+    return {
+        "trial": trial,
+        "raw_trial": raw_trial,
+        "scene_image_url": scene_image_url,
+        "failure_reasons": ONLINE_AUDIT_FAILURE_REASONS,
+        "metrics": _online_audit_metrics(trials),
+    }
+
+
+def _apply_online_audit_update(
+    experiment_id: str,
+    trial_id: str,
+    request: OnlineAuditUpdateRequest,
+    dataset: str | None = None,
+) -> Dict[str, Any]:
+    dataset_name = _safe_dataset_name(dataset)
+    rows = _load_online_audit_rows(experiment_id, dataset_name)
+    if not any(str(row.get("trial_id")) == trial_id for row in rows):
+        raise KeyError(trial_id)
+    data = _load_online_audit_overrides(experiment_id, dataset_name)
+    trials = data.setdefault("trials", {})
+    audit = dict(trials.get(trial_id) or {})
+    before = {key: value for key, value in audit.items() if key != "history"}
+    updates = request.model_dump(exclude_unset=True) if hasattr(request, "model_dump") else request.dict(exclude_unset=True)
+    for key, value in updates.items():
+        if key == "failure_reason":
+            value = _normalize_failure_reason(value)
+        audit[key] = value
+    audit["reviewed"] = True
+    audit["reviewed_at_epoch_s"] = time.time()
+    history = audit.get("history") if isinstance(audit.get("history"), list) else []
+    history.append(
+        {
+            "at_epoch_s": audit["reviewed_at_epoch_s"],
+            "reviewer": audit.get("reviewer") or "",
+            "before": before,
+            "after": {key: audit.get(key) for key in sorted(audit.keys()) if key != "history"},
+        }
+    )
+    audit["history"] = history
+    trials[trial_id] = audit
+    data.setdefault("history", []).append(
+        {
+            "at_epoch_s": audit["reviewed_at_epoch_s"],
+            "trial_id": trial_id,
+            "reviewer": audit.get("reviewer") or "",
+            "changed_fields": sorted(updates.keys()),
+        }
+    )
+    _write_online_audit_overrides(experiment_id, data, dataset_name)
+    return _online_audit_trial_detail(experiment_id, trial_id, dataset_name)
+
+
 def _online_trial_list_view(experiment_id: str, *, limit: int | None = None) -> list[Dict[str, Any]]:
     trials = online_store.list_trials(experiment_id)
     if limit is not None:
@@ -2082,6 +2520,19 @@ def online_index():
         "  </script>\n"
     )
     html = html.replace("  <script>\n", bootstrap_script + "  <script>\n", 1)
+    return HTMLResponse(
+        html,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
+
+@app.get("/online/audit")
+def online_audit_index():
+    html = (STATIC_DIR / "online_audit.html").read_text(encoding="utf-8")
     return HTMLResponse(
         html,
         headers={
@@ -2844,6 +3295,50 @@ def get_online_metrics(experiment_id: str):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@app.get("/api/online/experiments/{experiment_id}/audit")
+def get_online_audit(experiment_id: str, dataset: str | None = Query(default=None)):
+    try:
+        return _online_audit_bundle(experiment_id, dataset)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/online/experiments/{experiment_id}/audit/trials/{trial_id}")
+def get_online_audit_trial(experiment_id: str, trial_id: str, dataset: str | None = Query(default=None)):
+    try:
+        return _online_audit_trial_detail(experiment_id, trial_id, dataset)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"trial not found: {trial_id}") from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/online/experiments/{experiment_id}/audit/trials/{trial_id}")
+def update_online_audit_trial(
+    experiment_id: str,
+    trial_id: str,
+    request: OnlineAuditUpdateRequest = Body(...),
+    dataset: str | None = Query(default=None),
+):
+    try:
+        detail = _apply_online_audit_update(experiment_id, trial_id, request, dataset)
+        trials = _online_audit_trials(experiment_id, dataset)
+        trial = next(item for item in trials if item.get("trial_id") == trial_id)
+        return {
+            "ok": True,
+            "trial": detail["trial"],
+            "raw_trial": detail.get("raw_trial"),
+            "scene_image_url": detail.get("scene_image_url"),
+            "trial_list_item": _online_audit_trial_list_item(trial),
+            "metrics": _online_audit_metrics(trials),
+            "deep_failure_analysis": _online_deep_failure_analysis(trials),
+        }
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"trial not found: {trial_id}") from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.get("/api/offline/experiments")
 def list_offline_experiments():
     return {"experiments": _offline_experiment_summaries(trial_limit=30), "root": str(OFFLINE_EXPERIMENT_ROOT)}
@@ -3277,3 +3772,4 @@ def confirm_session(session_id: str, request: ConfirmSessionRequest):
     )
     record_path = _write_session_record(session)
     return build_session_view(session)
+    OnlineAuditUpdateRequest,

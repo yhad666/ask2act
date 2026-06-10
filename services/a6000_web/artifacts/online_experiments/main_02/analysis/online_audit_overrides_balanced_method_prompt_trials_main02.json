@@ -1,0 +1,5027 @@
+{
+  "dataset": "balanced_method_prompt_trials_main02",
+  "trials": {
+    "online_trial_20260521_200743_3ed25e": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509664.6410263,
+      "history": [
+        {
+          "at_epoch_s": 1780507078.68009,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507078.68009,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        },
+        {
+          "at_epoch_s": 1780509657.539311,
+          "reviewer": "",
+          "before": {
+            "target_selection_outcome": "wrong",
+            "grasp_attempted": true,
+            "physical_grasp_success": true,
+            "correct_object_grasp_success": true,
+            "wrong_object_grasp": false,
+            "include_in_audit": true,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "audit_note": "",
+            "prompt_type": "ambiguous",
+            "scene_type": "cup_only",
+            "reviewer": "",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507078.68009
+          },
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509657.539311,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        },
+        {
+          "at_epoch_s": 1780509664.6410263,
+          "reviewer": "",
+          "before": {
+            "target_selection_outcome": "wrong",
+            "grasp_attempted": false,
+            "physical_grasp_success": false,
+            "correct_object_grasp_success": false,
+            "wrong_object_grasp": false,
+            "include_in_audit": true,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "audit_note": "",
+            "prompt_type": "ambiguous",
+            "scene_type": "cup_only",
+            "reviewer": "",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509657.539311
+          },
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509664.6410263,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_203701_4cfd03": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "clear",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507302.853976,
+      "history": [
+        {
+          "at_epoch_s": 1780507302.853976,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507302.853976,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_212636_29b415": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "clear",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507512.5190797,
+      "history": [
+        {
+          "at_epoch_s": 1780507512.5190797,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507512.5190797,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_184717_2c9fed": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507634.8021276,
+      "history": [
+        {
+          "at_epoch_s": 1780507634.8021276,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507634.8021276,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_184845_fb083b": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507641.4389608,
+      "history": [
+        {
+          "at_epoch_s": 1780507641.4389608,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507641.4389608,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_184954_b9e170": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507647.314889,
+      "history": [
+        {
+          "at_epoch_s": 1780507647.314889,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507647.314889,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_185559_309254": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507691.3508196,
+      "history": [
+        {
+          "at_epoch_s": 1780507691.3508196,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507691.3508196,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_192332_2bf631": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "clear",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507721.5567434,
+      "history": [
+        {
+          "at_epoch_s": 1780507721.5567434,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507721.5567434,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_192548_370d63": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507756.8922865,
+      "history": [
+        {
+          "at_epoch_s": 1780507756.8922865,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507756.8922865,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_194036_5a2221": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507823.4042,
+      "history": [
+        {
+          "at_epoch_s": 1780507823.4042,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507823.4042,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_195143_13438b": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507870.584648,
+      "history": [
+        {
+          "at_epoch_s": 1780507870.584648,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507870.584648,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_195408_189544": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507880.2466981,
+      "history": [
+        {
+          "at_epoch_s": 1780507880.2466981,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507880.2466981,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_195738_74e280": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507918.898291,
+      "history": [
+        {
+          "at_epoch_s": 1780507918.898291,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507918.898291,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_211907_1b127b": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507983.0212538,
+      "history": [
+        {
+          "at_epoch_s": 1780507983.0212538,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507983.0212538,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_211942_a04874": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507990.4628422,
+      "history": [
+        {
+          "at_epoch_s": 1780507990.4628422,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507990.4628422,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_212013_296560": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780507999.1526794,
+      "history": [
+        {
+          "at_epoch_s": 1780507999.1526794,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780507999.1526794,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_212456_3dc199": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508008.0461273,
+      "history": [
+        {
+          "at_epoch_s": 1780508008.0461273,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508008.0461273,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_212524_241542": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "physical_grasp_failed",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508049.8903859,
+      "history": [
+        {
+          "at_epoch_s": 1780508049.8903859,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "physical_grasp_failed",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508049.8903859,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_212804_8d30b7": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508283.5138733,
+      "history": [
+        {
+          "at_epoch_s": 1780508074.9733772,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508074.9733772,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        },
+        {
+          "at_epoch_s": 1780508283.5138733,
+          "reviewer": "",
+          "before": {
+            "target_selection_outcome": "wrong",
+            "grasp_attempted": false,
+            "physical_grasp_success": false,
+            "correct_object_grasp_success": false,
+            "wrong_object_grasp": false,
+            "include_in_audit": true,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "audit_note": "",
+            "prompt_type": "partial",
+            "scene_type": "utensil_only",
+            "reviewer": "",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508074.9733772
+          },
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508283.5138733,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_212829_584ca2": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508290.4536715,
+      "history": [
+        {
+          "at_epoch_s": 1780508080.0758622,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508080.0758622,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        },
+        {
+          "at_epoch_s": 1780508290.4536715,
+          "reviewer": "",
+          "before": {
+            "target_selection_outcome": "wrong",
+            "grasp_attempted": false,
+            "physical_grasp_success": false,
+            "correct_object_grasp_success": false,
+            "wrong_object_grasp": false,
+            "include_in_audit": true,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "audit_note": "",
+            "prompt_type": "partial",
+            "scene_type": "utensil_only",
+            "reviewer": "",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508080.0758622
+          },
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508290.4536715,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_212849_aa5b20": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508088.7491982,
+      "history": [
+        {
+          "at_epoch_s": 1780508088.7491982,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508088.7491982,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_212911_3edceb": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508298.578624,
+      "history": [
+        {
+          "at_epoch_s": 1780508298.578624,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508298.578624,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_213613_187641": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "physical_grasp_failed",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "clear",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508353.913842,
+      "history": [
+        {
+          "at_epoch_s": 1780508353.913842,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "physical_grasp_failed",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508353.913842,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_213832_baf679": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "physical_grasp_failed",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "clear",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508358.1108,
+      "history": [
+        {
+          "at_epoch_s": 1780508358.1108,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "physical_grasp_failed",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508358.1108,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_214507_f37685": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "physical_grasp_failed",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508373.2287269,
+      "history": [
+        {
+          "at_epoch_s": 1780508373.2287269,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "physical_grasp_failed",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508373.2287269,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_214620_ebf6cf": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508391.9630344,
+      "history": [
+        {
+          "at_epoch_s": 1780508391.9630344,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508391.9630344,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_214659_e9cd29": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508398.8942726,
+      "history": [
+        {
+          "at_epoch_s": 1780508398.8942726,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508398.8942726,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_215636_b18713": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508415.724864,
+      "history": [
+        {
+          "at_epoch_s": 1780508415.724864,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508415.724864,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_215727_5f0aef": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508422.1292531,
+      "history": [
+        {
+          "at_epoch_s": 1780508422.1292531,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508422.1292531,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_215818_6a25df": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508429.430169,
+      "history": [
+        {
+          "at_epoch_s": 1780508429.430169,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508429.430169,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_220004_3bda3a": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "physical_grasp_failed",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508442.708752,
+      "history": [
+        {
+          "at_epoch_s": 1780508442.708752,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "physical_grasp_failed",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508442.708752,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_220609_76b224": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "physical_grasp_failed",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "clear",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508518.279173,
+      "history": [
+        {
+          "at_epoch_s": 1780508518.279173,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "physical_grasp_failed",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508518.279173,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_190010_2cb980": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508532.7300472,
+      "history": [
+        {
+          "at_epoch_s": 1780508532.7300472,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508532.7300472,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_190045_4a4d83": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508536.6041772,
+      "history": [
+        {
+          "at_epoch_s": 1780508536.6041772,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508536.6041772,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_190323_c17b8a": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508554.5130806,
+      "history": [
+        {
+          "at_epoch_s": 1780508554.5130806,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508554.5130806,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_190507_37b290": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508574.2124274,
+      "history": [
+        {
+          "at_epoch_s": 1780508574.2124274,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508574.2124274,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_191733_7f122e": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508582.2777278,
+      "history": [
+        {
+          "at_epoch_s": 1780508582.2777278,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508582.2777278,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_191756_6d355b": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508592.4317002,
+      "history": [
+        {
+          "at_epoch_s": 1780508592.4317002,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508592.4317002,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_200615_b08bbb": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508639.9651942,
+      "history": [
+        {
+          "at_epoch_s": 1780508639.9651942,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508639.9651942,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_201351_ea2644": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "physical_grasp_failed",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "clear",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508659.9840257,
+      "history": [
+        {
+          "at_epoch_s": 1780508659.9840257,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "physical_grasp_failed",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508659.9840257,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_202103_4450e3": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508878.8117948,
+      "history": [
+        {
+          "at_epoch_s": 1780508878.8117948,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508878.8117948,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_202131_7633a4": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508885.4649594,
+      "history": [
+        {
+          "at_epoch_s": 1780508885.4649594,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508885.4649594,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_202208_a4056d": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508898.0449889,
+      "history": [
+        {
+          "at_epoch_s": 1780508898.0449889,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508898.0449889,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_202338_63a62a": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508901.9750855,
+      "history": [
+        {
+          "at_epoch_s": 1780508901.9750855,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508901.9750855,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_203331_a1230b": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508914.2934039,
+      "history": [
+        {
+          "at_epoch_s": 1780508914.2934039,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508914.2934039,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_203411_921f52": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508920.3131766,
+      "history": [
+        {
+          "at_epoch_s": 1780508920.3131766,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508920.3131766,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_203730_a63ed2": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508928.267479,
+      "history": [
+        {
+          "at_epoch_s": 1780508928.267479,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508928.267479,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_203756_74f632": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508932.4317398,
+      "history": [
+        {
+          "at_epoch_s": 1780508932.4317398,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508932.4317398,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_204606_a09fcb": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508949.345837,
+      "history": [
+        {
+          "at_epoch_s": 1780508949.345837,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508949.345837,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_204637_30327b": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508954.6304674,
+      "history": [
+        {
+          "at_epoch_s": 1780508954.6304674,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508954.6304674,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_204955_a35e64": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "clear",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780508986.3615434,
+      "history": [
+        {
+          "at_epoch_s": 1780508986.3615434,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780508986.3615434,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_213303_1cb094": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "clear",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509066.1144886,
+      "history": [
+        {
+          "at_epoch_s": 1780509043.170226,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509043.170226,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        },
+        {
+          "at_epoch_s": 1780509066.1144886,
+          "reviewer": "",
+          "before": {
+            "target_selection_outcome": "wrong",
+            "grasp_attempted": false,
+            "physical_grasp_success": false,
+            "correct_object_grasp_success": false,
+            "wrong_object_grasp": false,
+            "include_in_audit": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "audit_note": "",
+            "prompt_type": "clear",
+            "scene_type": "utensil_only",
+            "reviewer": "",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509043.170226
+          },
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509066.1144886,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260523_213153_684a8c": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "clear",
+      "scene_type": "utensil_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509078.632607,
+      "history": [
+        {
+          "at_epoch_s": 1780509078.632607,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "clear",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509078.632607,
+            "reviewer": "",
+            "scene_type": "utensil_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_202640_4cbda6": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509277.9450674,
+      "history": [
+        {
+          "at_epoch_s": 1780509277.9450674,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509277.9450674,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_202800_35549b": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "target_resolution_error",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509292.6348512,
+      "history": [
+        {
+          "at_epoch_s": 1780509292.6348512,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "target_resolution_error",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509292.6348512,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_202639_aded02": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509347.5898285,
+      "history": [
+        {
+          "at_epoch_s": 1780509347.5898285,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509347.5898285,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_192723_c0e23a": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": true,
+      "correct_object_grasp_success": true,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509409.0539687,
+      "history": [
+        {
+          "at_epoch_s": 1780509409.0539687,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": true,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509409.0539687,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260527_194422_6151c1": {
+      "target_selection_outcome": "correct",
+      "grasp_attempted": true,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "physical_grasp_failed",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "mixed",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509557.4634871,
+      "history": [
+        {
+          "at_epoch_s": 1780509557.4634871,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "physical_grasp_failed",
+            "failure_reason_detail": "",
+            "grasp_attempted": true,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509557.4634871,
+            "reviewer": "",
+            "scene_type": "mixed",
+            "target_selection_outcome": "correct",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_194344_2690b8": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509620.5437603,
+      "history": [
+        {
+          "at_epoch_s": 1780509620.5437603,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509620.5437603,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_194436_698633": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509628.1850264,
+      "history": [
+        {
+          "at_epoch_s": 1780509628.1850264,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509628.1850264,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_200257_022682": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509639.1207592,
+      "history": [
+        {
+          "at_epoch_s": 1780509639.1207592,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509639.1207592,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_200327_69c909": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509642.9263475,
+      "history": [
+        {
+          "at_epoch_s": 1780509642.9263475,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509642.9263475,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_200924_30e29f": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509649.8105047,
+      "history": [
+        {
+          "at_epoch_s": 1780509649.8105047,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509649.8105047,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_204148_bd7713": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509688.8549945,
+      "history": [
+        {
+          "at_epoch_s": 1780509684.1693876,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509684.1693876,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        },
+        {
+          "at_epoch_s": 1780509688.8549945,
+          "reviewer": "",
+          "before": {
+            "target_selection_outcome": "wrong",
+            "grasp_attempted": false,
+            "physical_grasp_success": false,
+            "correct_object_grasp_success": false,
+            "wrong_object_grasp": false,
+            "include_in_audit": true,
+            "failure_reason": "",
+            "failure_reason_detail": "",
+            "audit_note": "",
+            "prompt_type": "partial",
+            "scene_type": "cup_only",
+            "reviewer": "",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509684.1693876
+          },
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509688.8549945,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_204225_1266e9": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509704.5025692,
+      "history": [
+        {
+          "at_epoch_s": 1780509704.5025692,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509704.5025692,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_204314_24bc46": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509708.5920708,
+      "history": [
+        {
+          "at_epoch_s": 1780509708.5920708,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509708.5920708,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_204337_665231": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509717.1422763,
+      "history": [
+        {
+          "at_epoch_s": 1780509717.1422763,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509717.1422763,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_204426_a5b455": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509732.7123747,
+      "history": [
+        {
+          "at_epoch_s": 1780509721.3726761,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509721.3726761,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        },
+        {
+          "at_epoch_s": 1780509732.7123747,
+          "reviewer": "",
+          "before": {
+            "target_selection_outcome": "wrong",
+            "grasp_attempted": false,
+            "physical_grasp_success": false,
+            "correct_object_grasp_success": false,
+            "wrong_object_grasp": false,
+            "include_in_audit": true,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "audit_note": "",
+            "prompt_type": "ambiguous",
+            "scene_type": "cup_only",
+            "reviewer": "",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509721.3726761
+          },
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509732.7123747,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_204510_7672e5": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509737.3806682,
+      "history": [
+        {
+          "at_epoch_s": 1780509725.994666,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509725.994666,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        },
+        {
+          "at_epoch_s": 1780509737.3806682,
+          "reviewer": "",
+          "before": {
+            "target_selection_outcome": "wrong",
+            "grasp_attempted": false,
+            "physical_grasp_success": false,
+            "correct_object_grasp_success": false,
+            "wrong_object_grasp": false,
+            "include_in_audit": true,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "audit_note": "",
+            "prompt_type": "ambiguous",
+            "scene_type": "cup_only",
+            "reviewer": "",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509725.994666
+          },
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509737.3806682,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_211149_de342c": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509747.5689363,
+      "history": [
+        {
+          "at_epoch_s": 1780509747.5689363,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509747.5689363,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_211225_3cb083": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "gd_missing_target_candidate",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "partial",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509759.3851154,
+      "history": [
+        {
+          "at_epoch_s": 1780509759.3851154,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "gd_missing_target_candidate",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "partial",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509759.3851154,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_213728_8c6d2e": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509780.9310167,
+      "history": [
+        {
+          "at_epoch_s": 1780509780.9310167,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509780.9310167,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260521_213812_6231d4": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "cup_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509785.1309419,
+      "history": [
+        {
+          "at_epoch_s": 1780509785.1309419,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509785.1309419,
+            "reviewer": "",
+            "scene_type": "cup_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_185844_ec2cad": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509790.8497052,
+      "history": [
+        {
+          "at_epoch_s": 1780509790.8497052,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509790.8497052,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_185927_f4b46e": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509796.9797003,
+      "history": [
+        {
+          "at_epoch_s": 1780509796.9797003,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509796.9797003,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_193953_e4d244": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509819.7498777,
+      "history": [
+        {
+          "at_epoch_s": 1780509817.048811,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509817.048811,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        },
+        {
+          "at_epoch_s": 1780509819.7498777,
+          "reviewer": "",
+          "before": {
+            "target_selection_outcome": "wrong",
+            "grasp_attempted": false,
+            "physical_grasp_success": false,
+            "correct_object_grasp_success": false,
+            "wrong_object_grasp": false,
+            "include_in_audit": true,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "audit_note": "",
+            "prompt_type": "ambiguous",
+            "scene_type": "bottle_only",
+            "reviewer": "",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509817.048811
+          },
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509819.7498777,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_194352_cc0d57": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509824.7647665,
+      "history": [
+        {
+          "at_epoch_s": 1780509824.7647665,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509824.7647665,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    },
+    "online_trial_20260522_204443_deebfd": {
+      "target_selection_outcome": "wrong",
+      "grasp_attempted": false,
+      "physical_grasp_success": false,
+      "correct_object_grasp_success": false,
+      "wrong_object_grasp": false,
+      "include_in_audit": true,
+      "failure_reason": "ambiguity_not_solved",
+      "failure_reason_detail": "",
+      "audit_note": "",
+      "prompt_type": "ambiguous",
+      "scene_type": "bottle_only",
+      "reviewer": "",
+      "reviewed": true,
+      "reviewed_at_epoch_s": 1780509833.300352,
+      "history": [
+        {
+          "at_epoch_s": 1780509833.300352,
+          "reviewer": "",
+          "before": {},
+          "after": {
+            "audit_note": "",
+            "correct_object_grasp_success": false,
+            "failure_reason": "ambiguity_not_solved",
+            "failure_reason_detail": "",
+            "grasp_attempted": false,
+            "include_in_audit": true,
+            "physical_grasp_success": false,
+            "prompt_type": "ambiguous",
+            "reviewed": true,
+            "reviewed_at_epoch_s": 1780509833.300352,
+            "reviewer": "",
+            "scene_type": "bottle_only",
+            "target_selection_outcome": "wrong",
+            "wrong_object_grasp": false
+          }
+        }
+      ]
+    }
+  },
+  "history": [
+    {
+      "at_epoch_s": 1780507078.68009,
+      "trial_id": "online_trial_20260521_200743_3ed25e",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507302.853976,
+      "trial_id": "online_trial_20260521_203701_4cfd03",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507512.5190797,
+      "trial_id": "online_trial_20260521_212636_29b415",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507634.8021276,
+      "trial_id": "online_trial_20260522_184717_2c9fed",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507641.4389608,
+      "trial_id": "online_trial_20260522_184845_fb083b",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507647.314889,
+      "trial_id": "online_trial_20260522_184954_b9e170",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507691.3508196,
+      "trial_id": "online_trial_20260522_185559_309254",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507721.5567434,
+      "trial_id": "online_trial_20260522_192332_2bf631",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507756.8922865,
+      "trial_id": "online_trial_20260522_192548_370d63",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507823.4042,
+      "trial_id": "online_trial_20260522_194036_5a2221",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507870.584648,
+      "trial_id": "online_trial_20260522_195143_13438b",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507880.2466981,
+      "trial_id": "online_trial_20260522_195408_189544",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507918.898291,
+      "trial_id": "online_trial_20260522_195738_74e280",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507983.0212538,
+      "trial_id": "online_trial_20260523_211907_1b127b",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507990.4628422,
+      "trial_id": "online_trial_20260523_211942_a04874",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780507999.1526794,
+      "trial_id": "online_trial_20260523_212013_296560",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508008.0461273,
+      "trial_id": "online_trial_20260523_212456_3dc199",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508049.8903859,
+      "trial_id": "online_trial_20260523_212524_241542",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508074.9733772,
+      "trial_id": "online_trial_20260523_212804_8d30b7",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508080.0758622,
+      "trial_id": "online_trial_20260523_212829_584ca2",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508088.7491982,
+      "trial_id": "online_trial_20260523_212849_aa5b20",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508283.5138733,
+      "trial_id": "online_trial_20260523_212804_8d30b7",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508290.4536715,
+      "trial_id": "online_trial_20260523_212829_584ca2",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508298.578624,
+      "trial_id": "online_trial_20260523_212911_3edceb",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508353.913842,
+      "trial_id": "online_trial_20260523_213613_187641",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508358.1108,
+      "trial_id": "online_trial_20260523_213832_baf679",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508373.2287269,
+      "trial_id": "online_trial_20260523_214507_f37685",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508391.9630344,
+      "trial_id": "online_trial_20260523_214620_ebf6cf",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508398.8942726,
+      "trial_id": "online_trial_20260523_214659_e9cd29",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508415.724864,
+      "trial_id": "online_trial_20260523_215636_b18713",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508422.1292531,
+      "trial_id": "online_trial_20260523_215727_5f0aef",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508429.430169,
+      "trial_id": "online_trial_20260523_215818_6a25df",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508442.708752,
+      "trial_id": "online_trial_20260523_220004_3bda3a",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508518.279173,
+      "trial_id": "online_trial_20260523_220609_76b224",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508532.7300472,
+      "trial_id": "online_trial_20260527_190010_2cb980",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508536.6041772,
+      "trial_id": "online_trial_20260527_190045_4a4d83",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508554.5130806,
+      "trial_id": "online_trial_20260527_190323_c17b8a",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508574.2124274,
+      "trial_id": "online_trial_20260527_190507_37b290",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508582.2777278,
+      "trial_id": "online_trial_20260527_191733_7f122e",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508592.4317002,
+      "trial_id": "online_trial_20260527_191756_6d355b",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508639.9651942,
+      "trial_id": "online_trial_20260527_200615_b08bbb",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508659.9840257,
+      "trial_id": "online_trial_20260527_201351_ea2644",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508878.8117948,
+      "trial_id": "online_trial_20260527_202103_4450e3",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508885.4649594,
+      "trial_id": "online_trial_20260527_202131_7633a4",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508898.0449889,
+      "trial_id": "online_trial_20260527_202208_a4056d",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508901.9750855,
+      "trial_id": "online_trial_20260527_202338_63a62a",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508914.2934039,
+      "trial_id": "online_trial_20260527_203331_a1230b",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508920.3131766,
+      "trial_id": "online_trial_20260527_203411_921f52",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508928.267479,
+      "trial_id": "online_trial_20260527_203730_a63ed2",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508932.4317398,
+      "trial_id": "online_trial_20260527_203756_74f632",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508949.345837,
+      "trial_id": "online_trial_20260527_204606_a09fcb",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508954.6304674,
+      "trial_id": "online_trial_20260527_204637_30327b",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780508986.3615434,
+      "trial_id": "online_trial_20260527_204955_a35e64",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509043.170226,
+      "trial_id": "online_trial_20260523_213303_1cb094",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509066.1144886,
+      "trial_id": "online_trial_20260523_213303_1cb094",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509078.632607,
+      "trial_id": "online_trial_20260523_213153_684a8c",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509277.9450674,
+      "trial_id": "online_trial_20260522_202640_4cbda6",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509292.6348512,
+      "trial_id": "online_trial_20260522_202800_35549b",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509347.5898285,
+      "trial_id": "online_trial_20260521_202639_aded02",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509409.0539687,
+      "trial_id": "online_trial_20260522_192723_c0e23a",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509557.4634871,
+      "trial_id": "online_trial_20260527_194422_6151c1",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509620.5437603,
+      "trial_id": "online_trial_20260521_194344_2690b8",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509628.1850264,
+      "trial_id": "online_trial_20260521_194436_698633",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509639.1207592,
+      "trial_id": "online_trial_20260521_200257_022682",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509642.9263475,
+      "trial_id": "online_trial_20260521_200327_69c909",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509649.8105047,
+      "trial_id": "online_trial_20260521_200924_30e29f",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509657.539311,
+      "trial_id": "online_trial_20260521_200743_3ed25e",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509664.6410263,
+      "trial_id": "online_trial_20260521_200743_3ed25e",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509684.1693876,
+      "trial_id": "online_trial_20260521_204148_bd7713",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509688.8549945,
+      "trial_id": "online_trial_20260521_204148_bd7713",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509704.5025692,
+      "trial_id": "online_trial_20260521_204225_1266e9",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509708.5920708,
+      "trial_id": "online_trial_20260521_204314_24bc46",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509717.1422763,
+      "trial_id": "online_trial_20260521_204337_665231",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509721.3726761,
+      "trial_id": "online_trial_20260521_204426_a5b455",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509725.994666,
+      "trial_id": "online_trial_20260521_204510_7672e5",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509732.7123747,
+      "trial_id": "online_trial_20260521_204426_a5b455",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509737.3806682,
+      "trial_id": "online_trial_20260521_204510_7672e5",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509747.5689363,
+      "trial_id": "online_trial_20260521_211149_de342c",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509759.3851154,
+      "trial_id": "online_trial_20260521_211225_3cb083",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509780.9310167,
+      "trial_id": "online_trial_20260521_213728_8c6d2e",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509785.1309419,
+      "trial_id": "online_trial_20260521_213812_6231d4",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509790.8497052,
+      "trial_id": "online_trial_20260522_185844_ec2cad",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509796.9797003,
+      "trial_id": "online_trial_20260522_185927_f4b46e",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509817.048811,
+      "trial_id": "online_trial_20260522_193953_e4d244",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509819.7498777,
+      "trial_id": "online_trial_20260522_193953_e4d244",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509824.7647665,
+      "trial_id": "online_trial_20260522_194352_cc0d57",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    },
+    {
+      "at_epoch_s": 1780509833.300352,
+      "trial_id": "online_trial_20260522_204443_deebfd",
+      "reviewer": "",
+      "changed_fields": [
+        "audit_note",
+        "correct_object_grasp_success",
+        "failure_reason",
+        "failure_reason_detail",
+        "grasp_attempted",
+        "include_in_audit",
+        "physical_grasp_success",
+        "prompt_type",
+        "reviewer",
+        "scene_type",
+        "target_selection_outcome",
+        "wrong_object_grasp"
+      ]
+    }
+  ],
+  "updated_at_epoch_s": 1780509833.300431
+}

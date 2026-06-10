@@ -1,0 +1,8 @@
+method,trials,asked_trials,asked_rate_pct,avg_candidate_count_asked,median_candidate_count_asked,actual_total_questions_asked_trials,actual_mean_q_asked_trials,ideal_half_total_q_asked_trials,ideal_half_mean_q_asked_trials,split04_total_q_asked_trials,split04_mean_q_asked_trials,mixed_expected_total_q_asked_trials,mixed_expected_mean_q_asked_trials,actual_minus_split04_total,actual_over_split04,actual_minus_mixed_expected_total,actual_over_mixed_expected
+first_question,216,101,46.7593,4.2178,4.0,239,2.3663,212,2.099,216,2.1386,223.0124,2.208,23,1.1065,15.9876,1.0717
+proposed_efe,216,104,48.1481,4.1058,4.0,199,1.9135,211,2.0288,215,2.0673,221.3811,2.1287,-16,0.9256,-22.3811,0.8989
+random_candidate,216,0,0.0,,,0,,0,,0,,0.0,,0,,0.0,
+random_question,216,101,46.7593,4.198,4.0,241,2.3861,208,2.0594,212,2.099,219.8561,2.1768,29,1.1368,21.1439,1.0962
+top_score,216,0,0.0,,,0,,0,,0,,0.0,,0,,0.0,
+vlm_best_question,216,102,47.2222,4.1471,4.0,235,2.3039,211,2.0686,213,2.0882,220.6665,2.1634,22,1.1033,14.3335,1.065
+vlm_direct,216,0,0.0,,,0,,0,,0,,0.0,,0,,0.0,

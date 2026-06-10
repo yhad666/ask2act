@@ -1,0 +1,12 @@
+artifact,path,role,paper_use
+Offline cleaned trial-level dataset,outputs/statistics/cleaned_trial_level_for_statistics.csv,Main cleaned balanced offline data used for statistics.,Offline result tables and significance tests.
+Offline significance report,outputs/statistics/significance_report.md,Scene-clustered/prompt-feature adjusted statistical report.,Statistical methods/results section.
+Offline detailed methods report,outputs/statistics/offline_significance_detailed_methods_report.md,"Detailed formulas, rationale, implementation notes, and failure analysis.",Methods appendix / reviewer response.
+Offline table summary,outputs/research_reports/offline_online_table_summary.md,Consolidated offline and online tables.,Fast table lookup for manuscript drafting.
+Online cleaned trial-level dataset,outputs/online_statistics/main_02/cleaned_online_main02_for_statistics.csv,"Main cleaned balanced online dataset, N=228.",Online result tables and significance tests.
+Online significance report,outputs/online_statistics/main_02/online_main02_significance_report.md,Online target/grasp/task success significance analysis.,Online results section.
+Online grasp policy evaluation,outputs/online_statistics/main_02/grasp_policy_evaluation.md,Failure analysis and policy-level interpretation of grasping results.,Robot policy limitations / discussion.
+CP calibration outputs,paper_assets/cp_gate/calibration_results/,"Tau, detection tables, labeled annotations, and evaluation curves.",Candidate generation calibration section.
+CP sample images,paper_assets/cp_gate/sample_images/,Representative raw and DINO-visualized calibration images.,Detection / calibration figures.
+Offline scene observations,paper_assets/offline/sample_scenes/,Compact copy of all 36 offline observation images and metadata.,Scene composition figures and dataset description.
+Online main_02 scene observations,paper_assets/online/main_02_sample_scenes/,Reference scene observations and metadata for online experiment.,Real-robot experiment figure examples.

@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ask2Act Online Audit</title>
+  <style>
+    body { margin:0; font-family:"Avenir Next","Segoe UI",sans-serif; background:#f5f7f6; color:#142f2c; }
+    .shell { max-width:1920px; margin:0 auto; padding:20px; box-sizing:border-box; }
+    .topbar { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:16px; }
+    h1 { margin:0; font-size:32px; letter-spacing:0; }
+    h2 { margin:0 0 12px; font-size:20px; letter-spacing:0; }
+    h3 { margin:14px 0 8px; font-size:15px; }
+    a { color:#0d5e58; }
+    .meta { color:#607a74; font-size:13px; line-height:1.45; overflow-wrap:anywhere; }
+    .grid { display:grid; grid-template-columns:minmax(330px,390px) minmax(0,1fr) minmax(360px,430px); gap:16px; align-items:start; }
+    .panel { min-width:0; background:white; border:1px solid #dbe8e3; border-radius:8px; padding:16px; box-shadow:0 8px 24px rgba(20,47,44,0.05); overflow:hidden; }
+    .stack { min-width:0; display:grid; gap:16px; }
+    label { display:block; font-size:13px; color:#55716b; margin:10px 0 5px; }
+    input, select, textarea { width:100%; box-sizing:border-box; border:1px solid #cddbd6; border-radius:6px; padding:10px 11px; font:inherit; background:#fbfdfc; color:#142f2c; }
+    textarea { min-height:80px; resize:vertical; }
+    button { border:0; border-radius:6px; padding:10px 13px; cursor:pointer; font:inherit; }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .primary { background:#0d5e58; color:white; }
+    .secondary { background:#e2f2df; color:#174d45; }
+    .ghost { background:white; border:1px solid #cddbd6; color:#174d45; }
+    .danger { background:#b95750; color:white; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+    .banner { padding:10px 12px; border-radius:6px; margin-bottom:12px; }
+    .banner.ok { background:#e6f6ed; color:#155b47; }
+    .banner.err { background:#fdeceb; color:#9b3329; }
+    .banner.info { background:#e9f1f5; color:#244b5a; }
+    .hidden { display:none; }
+    .kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:12px; }
+    .kpi { background:#123f3b; color:white; border-radius:6px; padding:12px; min-height:58px; }
+    .kpi span { display:block; font-size:12px; opacity:.75; }
+    .kpi strong { display:block; font-size:20px; margin-top:3px; }
+    .list { display:grid; gap:8px; max-height:690px; overflow:auto; min-width:0; }
+    .item { min-width:0; border:1px solid #e1ebe7; border-radius:6px; padding:9px 10px; background:#fbfdfc; overflow-wrap:anywhere; cursor:pointer; }
+    .item.active { border-color:#0d5e58; background:#edf7f2; }
+    .item.excluded { opacity:.55; }
+    .badge { display:inline-block; border-radius:999px; background:#edf5f1; padding:4px 8px; margin:0 4px 4px 0; font-size:12px; color:#395b55; }
+    .badge.fail { background:#fdeceb; color:#8f2f28; }
+    .badge.ok { background:#e6f6ed; color:#155b47; }
+    .badge.reviewed { background:#e7edf9; color:#2d4675; }
+    img { width:100%; max-height:760px; object-fit:contain; background:#edf2ef; border-radius:6px; }
+    table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:13px; }
+    th, td { border-bottom:1px solid #e1ebe7; text-align:left; padding:7px 5px; vertical-align:top; overflow-wrap:anywhere; }
+    th { color:#55716b; font-weight:600; }
+    pre { white-space:pre-wrap; word-break:break-word; background:#f7faf8; border:1px solid #e1ebe7; border-radius:6px; padding:10px; max-height:280px; overflow:auto; font-size:12px; }
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .three { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    @media (max-width:1320px) { .grid { grid-template-columns:minmax(320px,380px) minmax(0,1fr); } .grid > .stack:last-child { grid-column:1 / -1; } .kpis { grid-template-columns:repeat(3,1fr); } }
+    @media (max-width:900px) { .grid,.two,.three { grid-template-columns:1fr; } .kpis { grid-template-columns:repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div>
+        <h1>Online Main 02 Audit</h1>
+        <div class="meta">Balanced 228-trial audit view. Saves human corrections as analysis-layer overrides only.</div>
+      </div>
+      <div class="actions" style="margin-top:0;">
+        <a href="/online">Online</a>
+        <a href="/offline/audit">Offline Audit</a>
+      </div>
+    </div>
+    <div id="banner" class="banner hidden"></div>
+
+    <div class="kpis">
+      <div class="kpi"><span>Included</span><strong id="kpiN">-</strong></div>
+      <div class="kpi"><span>Reviewed</span><strong id="kpiReviewed">-</strong></div>
+      <div class="kpi"><span>Target Acc</span><strong id="kpiTarget">-</strong></div>
+      <div class="kpi"><span>Physical Grasp</span><strong id="kpiPhysical">-</strong></div>
+      <div class="kpi"><span>Task Success</span><strong id="kpiTask">-</strong></div>
+      <div class="kpi"><span>Mean Q</span><strong id="kpiQ">-</strong></div>
+    </div>
+
+    <div class="grid">
+      <aside class="panel">
+        <h2>Trials</h2>
+        <div class="two">
+          <div>
+            <label>Experiment</label>
+            <input id="experimentInput" value="main_02" />
+          </div>
+          <div>
+            <label>Dataset</label>
+            <input id="datasetInput" value="balanced_method_prompt_trials_main02" />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="loadBtn" class="primary">Load</button>
+          <button id="refreshBtn" class="secondary">Refresh</button>
+        </div>
+        <div class="three">
+          <div>
+            <label>Method</label>
+            <select id="methodFilter"><option value="">all</option></select>
+          </div>
+          <div>
+            <label>Prompt</label>
+            <select id="promptFilter"><option value="">all</option></select>
+          </div>
+          <div>
+            <label>Review</label>
+            <select id="reviewFilter">
+              <option value="">all</option>
+              <option value="unreviewed">unreviewed</option>
+              <option value="reviewed">reviewed</option>
+              <option value="failed">failed</option>
+              <option value="excluded">excluded</option>
+            </select>
+          </div>
+        </div>
+        <label>Search</label>
+        <input id="searchInput" placeholder="trial, scene, prompt" />
+        <div class="two">
+          <div>
+            <label>Index</label>
+            <input id="indexInput" type="number" min="1" value="1" />
+          </div>
+          <div class="actions" style="align-items:end;">
+            <button id="goIndexBtn" class="ghost">Go</button>
+            <button id="prevBtn" class="ghost">Prev</button>
+            <button id="nextBtn" class="ghost">Next</button>
+          </div>
+        </div>
+        <div id="trialCountText" class="meta" style="margin:10px 0;">No data.</div>
+        <div id="trialList" class="list"><div class="item meta">Load audit data.</div></div>
+      </aside>
+
+      <main class="stack">
+        <section class="panel">
+          <h2>Trial Detail</h2>
+          <img id="sceneImage" alt="online scene" />
+          <div id="imageMeta" class="meta" style="margin-top:8px;">No trial selected.</div>
+          <h3>Selected Trial</h3>
+          <div id="trialSummary" class="meta">No trial selected.</div>
+          <h3>Candidates</h3>
+          <div id="candidateBox" class="meta">No candidates loaded.</div>
+          <h3>Question History</h3>
+          <div id="questionBox" class="meta">No questions.</div>
+          <h3>Raw / Corrected Row</h3>
+          <pre id="rawBox">No data.</pre>
+        </section>
+
+        <section class="panel">
+          <h2>Metrics</h2>
+          <div id="metricsBox" class="meta">No metrics.</div>
+        </section>
+      </main>
+
+      <aside class="stack">
+        <section class="panel">
+          <h2>Audit</h2>
+          <label><input id="includeInput" type="checkbox" style="width:auto;" checked /> Include in audit metrics</label>
+          <div class="two">
+            <div>
+              <label>Target Selection</label>
+              <select id="targetOutcomeInput">
+                <option value="">unchanged</option>
+                <option value="correct">correct</option>
+                <option value="wrong">wrong</option>
+                <option value="unresolved">unresolved</option>
+              </select>
+            </div>
+            <div>
+              <label>Failure Reason</label>
+              <select id="reasonInput"><option value="">none</option></select>
+            </div>
+          </div>
+          <div class="two">
+            <label><input id="graspAttemptedInput" type="checkbox" style="width:auto;" /> Grasp attempted</label>
+            <label><input id="physicalSuccessInput" type="checkbox" style="width:auto;" /> Physical grasp success</label>
+          </div>
+          <div class="two">
+            <label><input id="taskSuccessInput" type="checkbox" style="width:auto;" /> Correct-object task success</label>
+            <label><input id="wrongObjectInput" type="checkbox" style="width:auto;" /> Wrong-object grasp</label>
+          </div>
+          <div class="two">
+            <div>
+              <label>Prompt Type</label>
+              <select id="promptTypeInput">
+                <option value="">unchanged</option>
+                <option value="clear">clear</option>
+                <option value="ambiguous">ambiguous</option>
+                <option value="partial">partial</option>
+              </select>
+            </div>
+            <div>
+              <label>Scene Type</label>
+              <select id="sceneTypeInput">
+                <option value="">unchanged</option>
+                <option value="cup_only">cup_only</option>
+                <option value="bottle_only">bottle_only</option>
+                <option value="utensil_only">utensil_only</option>
+                <option value="mixed">mixed</option>
+              </select>
+            </div>
+          </div>
+          <label>Reason detail</label>
+          <textarea id="reasonDetailInput" placeholder="What happened?"></textarea>
+          <label>Audit note</label>
+          <textarea id="auditNoteInput" placeholder="Human correction or comments"></textarea>
+          <label>Reviewer</label>
+          <input id="reviewerInput" placeholder="name" />
+          <div class="actions">
+            <button id="saveBtn" class="primary">Save audit</button>
+            <button id="markOkBtn" class="secondary">Mark all success</button>
+            <button id="markTargetWrongBtn" class="danger">Target wrong</button>
+          </div>
+          <h3>Audit History</h3>
+          <pre id="historyBox">No trial selected.</pre>
+        </section>
+
+        <section class="panel">
+          <h2>Failure Analysis</h2>
+          <div id="failureBox" class="meta">No data.</div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var state = { trials: [], filtered: [], selectedId: "", detail: null, metrics: null, reasons: [] };
+      function el(id) { return document.getElementById(id); }
+      function val(id) { return el(id).value; }
+      function setVal(id, v) { el(id).value = v == null ? "" : String(v); }
+      function setText(id, v) { el(id).textContent = v == null ? "" : String(v); }
+      function pct(v) { return v == null ? "-" : Number(v).toFixed(2) + "%"; }
+      function num(v) { return v == null ? "-" : String(v); }
+      function htmlEscape(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+          return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+        });
+      }
+      function banner(kind, msg) {
+        var b = el("banner");
+        if (!msg) { b.className = "banner hidden"; b.textContent = ""; return; }
+        b.className = "banner " + kind;
+        b.textContent = msg;
+      }
+      function experimentId() { return val("experimentInput") || "main_02"; }
+      function datasetId() { return val("datasetInput") || "balanced_method_prompt_trials_main02"; }
+      function apiBase() {
+        return "/api/online/experiments/" + encodeURIComponent(experimentId()) + "/audit";
+      }
+      async function getJson(path) {
+        var r = await fetch(path, {cache:"no-store"});
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      }
+      async function postJson(path, payload) {
+        var r = await fetch(path, {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify(payload)
+        });
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      }
+      function renderReasonOptions() {
+        var opts = ['<option value="">none</option>'];
+        state.reasons.forEach(function (r) {
+          if (!r.id) return;
+          opts.push('<option value="' + htmlEscape(r.id || "") + '">' + htmlEscape(r.label || r.id || "none") + '</option>');
+        });
+        el("reasonInput").innerHTML = opts.join("");
+      }
+      function renderFilterOptions() {
+        var methods = Array.from(new Set(state.trials.map(function (t) { return t.method; }).filter(Boolean))).sort();
+        var prompts = Array.from(new Set(state.trials.map(function (t) { return t.prompt_type; }).filter(Boolean))).sort();
+        el("methodFilter").innerHTML = '<option value="">all</option>' + methods.map(function (m) { return '<option value="' + htmlEscape(m) + '">' + htmlEscape(m) + '</option>'; }).join("");
+        el("promptFilter").innerHTML = '<option value="">all</option>' + prompts.map(function (p) { return '<option value="' + htmlEscape(p) + '">' + htmlEscape(p) + '</option>'; }).join("");
+      }
+      function isFail(t) { return !(t.target_selection_outcome === "correct" && t.task_success); }
+      function applyFilters() {
+        var method = val("methodFilter");
+        var prompt = val("promptFilter");
+        var review = val("reviewFilter");
+        var q = val("searchInput").toLowerCase();
+        state.filtered = state.trials.filter(function (t) {
+          if (method && t.method !== method) return false;
+          if (prompt && t.prompt_type !== prompt) return false;
+          if (review === "reviewed" && !t.audit_reviewed) return false;
+          if (review === "unreviewed" && t.audit_reviewed) return false;
+          if (review === "excluded" && t.include_in_audit !== false) return false;
+          if (review === "failed" && !isFail(t)) return false;
+          if (q) {
+            var hay = [t.trial_id, t.scene_id, t.scene_type, t.prompt, t.method, t.prompt_type, t.failure_reason].join(" ").toLowerCase();
+            if (hay.indexOf(q) < 0) return false;
+          }
+          return true;
+        });
+        renderList();
+      }
+      function renderList() {
+        setText("trialCountText", state.filtered.length + " shown / " + state.trials.length + " total");
+        if (!state.filtered.length) {
+          el("trialList").innerHTML = '<div class="item meta">No matching trials.</div>';
+          return;
+        }
+        el("trialList").innerHTML = state.filtered.map(function (t, i) {
+          var cls = "item" + (t.trial_id === state.selectedId ? " active" : "") + (t.include_in_audit === false ? " excluded" : "");
+          var ok = t.target_selection_outcome === "correct" && t.task_success;
+          return '<div class="' + cls + '" data-id="' + htmlEscape(t.trial_id) + '">' +
+            '<strong>' + (i + 1) + ". " + htmlEscape(t.scene_id) + " / " + htmlEscape(t.method) + '</strong><br>' +
+            '<span class="badge">' + htmlEscape(t.prompt_type) + '</span>' +
+            '<span class="badge ' + (ok ? "ok" : "fail") + '">' + htmlEscape(t.target_selection_outcome || "-") + " / task " + (t.task_success ? "ok" : "fail") + '</span>' +
+            (t.audit_reviewed ? '<span class="badge reviewed">reviewed</span>' : '') +
+            '<div class="meta">' + htmlEscape(t.prompt || "") + '</div>' +
+            '</div>';
+        }).join("");
+        Array.prototype.forEach.call(el("trialList").querySelectorAll("[data-id]"), function (node) {
+          node.addEventListener("click", function () { selectTrial(node.getAttribute("data-id")); });
+        });
+      }
+      function renderMetrics(metrics) {
+        state.metrics = metrics;
+        var o = metrics && metrics.overall ? metrics.overall : {};
+        setText("kpiN", num(o.n));
+        setText("kpiReviewed", num(o.reviewed));
+        setText("kpiTarget", pct(o.target_selection_accuracy_pct));
+        setText("kpiPhysical", pct(o.physical_grasp_success_pct));
+        setText("kpiTask", pct(o.task_success_pct));
+        setText("kpiQ", num(o.avg_questions_when_asked));
+        function table(title, rows, cols) {
+          var out = '<h3>' + htmlEscape(title) + '</h3><table><thead><tr>' + cols.map(function (c) { return '<th>' + htmlEscape(c[0]) + '</th>'; }).join("") + '</tr></thead><tbody>';
+          rows.forEach(function (r) {
+            out += '<tr>' + cols.map(function (c) {
+              var v = typeof c[1] === "function" ? c[1](r) : r[c[1]];
+              return '<td>' + htmlEscape(v == null ? "-" : v) + '</td>';
+            }).join("") + '</tr>';
+          });
+          return out + '</tbody></table>';
+        }
+        var methodRows = Object.keys(metrics.by_method || {}).map(function (m) {
+          var r = metrics.by_method[m]; r.name = m; return r;
+        });
+        var promptRows = Object.keys(metrics.by_prompt_type || {}).map(function (p) {
+          var r = metrics.by_prompt_type[p]; r.name = p; return r;
+        });
+        var sceneRows = Object.keys(metrics.by_scene_type || {}).map(function (s) {
+          var r = metrics.by_scene_type[s]; r.name = s; return r;
+        });
+        var methodPromptRows = [];
+        Object.keys(metrics.by_method_prompt_type || {}).forEach(function (m) {
+          Object.keys(metrics.by_method_prompt_type[m] || {}).forEach(function (p) {
+            var r = Object.assign({}, metrics.by_method_prompt_type[m][p] || {});
+            r.method = m;
+            r.prompt_type = p;
+            methodPromptRows.push(r);
+          });
+        });
+        var methodPromptSceneRows = metrics.by_method_prompt_scene_type || [];
+        var metricCols = [
+          ["N","n"],
+          ["Target Acc",function(r){return pct(r.target_selection_accuracy_pct);}],
+          ["Task",function(r){return pct(r.task_success_pct);}],
+          ["Phys",function(r){return pct(r.physical_grasp_success_pct);}],
+          ["Asked",function(r){return pct(r.asked_pct);}],
+          ["Avg Q", "avg_questions_when_asked"],
+          ["Wrong/Unres", "target_wrong_or_unresolved"]
+        ];
+        el("metricsBox").innerHTML =
+          table("By Method", methodRows, [["Method","name"],["N","n"],["Target Acc",function(r){return pct(r.target_selection_accuracy_pct);}],["Task",function(r){return pct(r.task_success_pct);}],["Phys",function(r){return pct(r.physical_grasp_success_pct);}],["Avg Q", "avg_questions_when_asked"]]) +
+          table("By Prompt Type", promptRows, [["Prompt","name"],["N","n"],["Target Acc",function(r){return pct(r.target_selection_accuracy_pct);}],["Task",function(r){return pct(r.task_success_pct);}],["Asked",function(r){return pct(r.asked_pct);}]]) +
+          table("By Scene Type", sceneRows, [["Scene","name"],["N","n"],["Target Acc",function(r){return pct(r.target_selection_accuracy_pct);}],["Task",function(r){return pct(r.task_success_pct);}]]) +
+          table("Method x Prompt Type", methodPromptRows, [["Method","method"],["Prompt","prompt_type"]].concat(metricCols)) +
+          table("Method x Prompt Type x Scene Type", methodPromptSceneRows, [["Method","method"],["Prompt","prompt_type"],["Scene","scene_type"]].concat(metricCols));
+      }
+      function renderFailure(groups) {
+        if (!groups || !groups.length) {
+          el("failureBox").textContent = "No failures.";
+          return;
+        }
+        el("failureBox").innerHTML = groups.slice(0, 16).map(function (g) {
+          return '<div class="item" style="cursor:default;"><strong>' + htmlEscape(g.reason) + ' / ' + htmlEscape(g.method) + '</strong>' +
+            '<div class="meta">count=' + g.count + ' prompt=' + htmlEscape(JSON.stringify(g.prompt_type_counts || {})) + '</div>' +
+            '<div class="meta">' + htmlEscape((g.examples || []).map(function(e){return e.scene_id + ": " + e.prompt;}).join(" | ")) + '</div></div>';
+        }).join("");
+      }
+      async function loadAudit(keep) {
+        banner("info", "Loading online audit data...");
+        var data = await getJson(apiBase() + "?dataset=" + encodeURIComponent(datasetId()));
+        state.trials = data.trials || [];
+        state.reasons = data.failure_reasons || [];
+        renderReasonOptions();
+        renderFilterOptions();
+        renderMetrics(data.metrics || {});
+        renderFailure(data.deep_failure_analysis || []);
+        if (!keep || !state.selectedId || !state.trials.some(function(t){return t.trial_id === state.selectedId;})) {
+          state.selectedId = state.trials[0] ? state.trials[0].trial_id : "";
+        }
+        applyFilters();
+        if (state.selectedId) await selectTrial(state.selectedId);
+        banner("ok", "Loaded " + state.trials.length + " balanced trials.");
+      }
+      function fillAuditForm(trial) {
+        var a = trial.audit || {};
+        el("includeInput").checked = trial.include_in_audit !== false;
+        setVal("targetOutcomeInput", a.target_selection_outcome || trial.target_selection_outcome || "");
+        el("graspAttemptedInput").checked = !!trial.grasp_attempted;
+        el("physicalSuccessInput").checked = !!trial.physical_grasp_success;
+        el("taskSuccessInput").checked = !!trial.correct_object_grasp_success;
+        el("wrongObjectInput").checked = !!trial.wrong_object_grasp;
+        setVal("reasonInput", a.failure_reason || "");
+        setVal("promptTypeInput", a.prompt_type || trial.prompt_type || "");
+        setVal("sceneTypeInput", a.scene_type || trial.scene_type || "");
+        setVal("reasonDetailInput", a.failure_reason_detail || "");
+        setVal("auditNoteInput", a.audit_note || "");
+        setVal("reviewerInput", a.reviewer || localStorage.getItem("onlineAuditReviewer") || "");
+        setText("historyBox", JSON.stringify((a.history || []).slice().reverse(), null, 2));
+      }
+      function renderDetail(detail) {
+        state.detail = detail;
+        var t = detail.trial || {};
+        var raw = detail.raw_trial || {};
+        var sess = raw.session_snapshot || {};
+        el("sceneImage").src = detail.scene_image_url ? detail.scene_image_url + "?t=" + Date.now() : "";
+        setText("imageMeta", detail.scene_image_url ? "Scene image from " + (t.original_scene_id || t.scene_id) : "No scene image found.");
+        el("trialSummary").innerHTML =
+          '<strong>' + htmlEscape(t.trial_id) + '</strong><br>' +
+          htmlEscape(t.scene_id) + " / " + htmlEscape(t.scene_type) + " / " + htmlEscape(t.method) + " / " + htmlEscape(t.prompt_type) + '<br>' +
+          '<span class="badge">target ' + htmlEscape(t.target_selection_outcome || "-") + '</span>' +
+          '<span class="badge">task ' + (t.task_success ? "success" : "fail") + '</span>' +
+          '<span class="badge">physical ' + (t.physical_grasp_success ? "success" : "fail") + '</span>' +
+          '<div style="margin-top:8px;">' + htmlEscape(t.prompt || "") + '</div>';
+        var candidates = sess.candidates || [];
+        if (!candidates.length && raw.resolved_candidate_id) candidates = [{id: raw.resolved_candidate_id, label: "resolved"}];
+        el("candidateBox").innerHTML = candidates.length ? candidates.map(function (c) {
+          return '<div class="item" style="cursor:default;"><strong>' + htmlEscape(c.display_id || c.id || "-") + " " + htmlEscape(c.label || "") + '</strong>' +
+            '<div class="meta">score=' + htmlEscape(c.score == null ? "-" : c.score) + ' bbox=' + htmlEscape(JSON.stringify(c.bbox_xyxy || c.bbox || [])) + '</div></div>';
+        }).join("") : "No candidates in raw session snapshot.";
+        var qh = sess.question_history || [];
+        el("questionBox").innerHTML = qh.length ? qh.map(function (q, i) {
+          return '<div class="item" style="cursor:default;"><strong>Q' + (i + 1) + '</strong> ' + htmlEscape(q.text || q.question || "") + '<div class="meta">answer=' + htmlEscape(q.answer || q.user_answer || "-") + '</div></div>';
+        }).join("") : "No questions.";
+        setText("rawBox", JSON.stringify({corrected_trial:t, raw_trial_summary:{
+          status: raw.status,
+          outcome: raw.outcome,
+          target_selection_outcome: raw.target_selection_outcome,
+          grasp_attempted: raw.grasp_attempted,
+          physical_grasp_success: raw.physical_grasp_success,
+          correct_object_grasp_success: raw.correct_object_grasp_success,
+          wrong_object_grasp: raw.wrong_object_grasp,
+          execution_result: raw.execution_result,
+          grasp_plan_result: raw.grasp_plan_result
+        }}, null, 2));
+        fillAuditForm(t);
+      }
+      async function selectTrial(id) {
+        state.selectedId = id;
+        renderList();
+        var idx = state.filtered.findIndex(function (t) { return t.trial_id === id; });
+        if (idx >= 0) setVal("indexInput", idx + 1);
+        var detail = await getJson(apiBase() + "/trials/" + encodeURIComponent(id) + "?dataset=" + encodeURIComponent(datasetId()));
+        renderDetail(detail);
+      }
+      async function saveAudit(extra) {
+        if (!state.selectedId) return;
+        var reviewer = val("reviewerInput");
+        if (reviewer) localStorage.setItem("onlineAuditReviewer", reviewer);
+        var payload = Object.assign({
+          include_in_audit: el("includeInput").checked,
+          target_selection_outcome: val("targetOutcomeInput") || undefined,
+          grasp_attempted: el("graspAttemptedInput").checked,
+          physical_grasp_success: el("physicalSuccessInput").checked,
+          correct_object_grasp_success: el("taskSuccessInput").checked,
+          wrong_object_grasp: el("wrongObjectInput").checked,
+          failure_reason: val("reasonInput"),
+          failure_reason_detail: val("reasonDetailInput"),
+          audit_note: val("auditNoteInput"),
+          prompt_type: val("promptTypeInput") || undefined,
+          scene_type: val("sceneTypeInput") || undefined,
+          reviewer: reviewer
+        }, extra || {});
+        banner("info", "Saving audit...");
+        var data = await postJson(apiBase() + "/trials/" + encodeURIComponent(state.selectedId) + "?dataset=" + encodeURIComponent(datasetId()), payload);
+        renderDetail(data);
+        renderMetrics(data.metrics || {});
+        renderFailure(data.deep_failure_analysis || []);
+        await loadAudit(true);
+        banner("ok", "Saved and metrics updated.");
+      }
+      function go(delta) {
+        if (!state.filtered.length) return;
+        var idx = state.filtered.findIndex(function (t) { return t.trial_id === state.selectedId; });
+        idx = Math.max(0, Math.min(state.filtered.length - 1, (idx < 0 ? 0 : idx) + delta));
+        selectTrial(state.filtered[idx].trial_id).catch(function(e){banner("err", e.message);});
+      }
+      function goIndex() {
+        var idx = Math.max(1, Number(val("indexInput") || 1)) - 1;
+        if (state.filtered[idx]) selectTrial(state.filtered[idx].trial_id).catch(function(e){banner("err", e.message);});
+      }
+      ["methodFilter","promptFilter","reviewFilter","searchInput"].forEach(function (id) {
+        el(id).addEventListener("input", applyFilters);
+      });
+      el("loadBtn").addEventListener("click", function(){ loadAudit(false).catch(function(e){banner("err", e.message);}); });
+      el("refreshBtn").addEventListener("click", function(){ loadAudit(true).catch(function(e){banner("err", e.message);}); });
+      el("prevBtn").addEventListener("click", function(){ go(-1); });
+      el("nextBtn").addEventListener("click", function(){ go(1); });
+      el("goIndexBtn").addEventListener("click", goIndex);
+      el("saveBtn").addEventListener("click", function(){ saveAudit().catch(function(e){banner("err", e.message);}); });
+      el("markOkBtn").addEventListener("click", function(){
+        saveAudit({target_selection_outcome:"correct", grasp_attempted:true, physical_grasp_success:true, correct_object_grasp_success:true, wrong_object_grasp:false, failure_reason:""}).catch(function(e){banner("err", e.message);});
+      });
+      el("markTargetWrongBtn").addEventListener("click", function(){
+        saveAudit({target_selection_outcome:"wrong", grasp_attempted:false, physical_grasp_success:false, correct_object_grasp_success:false, wrong_object_grasp:false, failure_reason:"target_resolution_error"}).catch(function(e){banner("err", e.message);});
+      });
+      loadAudit(false).catch(function(e){banner("err", e.message);});
+    })();
+  </script>
+</body>
+</html>

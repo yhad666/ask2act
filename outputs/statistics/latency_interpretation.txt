@@ -1,0 +1,7 @@
+Latency interpretation:
+
+- Latency is long-tailed; scene-level Wilcoxon tests and median/IQR summaries are used.
+- ambiguous: no Holm-corrected significant latency difference; report descriptive latency cautiously.
+- overall: no Holm-corrected significant latency difference; report descriptive latency cautiously.
+- partial: EFE had higher scene-level mean latency than first_question (Holm p=0.01014).
+- partial: EFE had higher scene-level mean latency than vlm_best_question (Holm p=0.03492).

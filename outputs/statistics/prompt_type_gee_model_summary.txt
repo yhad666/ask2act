@@ -1,0 +1,29 @@
+                               GEE Regression Results                              
+===================================================================================
+Dep. Variable:                     correct   No. Observations:                 1512
+Model:                                 GEE   No. clusters:                       36
+Method:                        Generalized   Min. cluster size:                  35
+                      Estimating Equations   Max. cluster size:                  62
+Family:                           Binomial   Mean cluster size:                42.0
+Dependence structure:         Independence   Num. iterations:                     2
+Date:                     Fri, 05 Jun 2026   Scale:                           1.000
+Covariance type:                    robust   Time:                         03:32:09
+=======================================================================================================================================
+                                                                          coef    std err          z      P>|z|      [0.025      0.975]
+---------------------------------------------------------------------------------------------------------------------------------------
+Intercept                                                               5.1191      0.591      8.665      0.000       3.961       6.277
+C(prompt_type, Treatment(reference="clear"))[T.ambiguous]              -3.3359      0.330    -10.116      0.000      -3.982      -2.690
+C(prompt_type, Treatment(reference="clear"))[T.partial]                -2.7747      0.367     -7.554      0.000      -3.495      -2.055
+C(method, Treatment(reference="proposed_efe"))[T.first_question]       -0.1446      0.192     -0.753      0.451      -0.521       0.232
+C(method, Treatment(reference="proposed_efe"))[T.random_candidate]     -2.7637      0.280     -9.870      0.000      -3.313      -2.215
+C(method, Treatment(reference="proposed_efe"))[T.random_question]      -0.1964      0.180     -1.090      0.276      -0.550       0.157
+C(method, Treatment(reference="proposed_efe"))[T.top_score]            -2.7517      0.272    -10.128      0.000      -3.284      -2.219
+C(method, Treatment(reference="proposed_efe"))[T.vlm_best_question]    -0.0014      0.180     -0.008      0.994      -0.354       0.351
+C(method, Treatment(reference="proposed_efe"))[T.vlm_direct]           -2.7633      0.318     -8.686      0.000      -3.387      -2.140
+C(scene_type)[T.cup_only]                                              -0.0719      0.474     -0.152      0.880      -1.002       0.858
+C(scene_type)[T.mixed]                                                  0.5097      0.509      1.001      0.317      -0.489       1.508
+C(scene_type)[T.utensil_only]                                          -0.2334      0.480     -0.486      0.627      -1.174       0.707
+==============================================================================
+Skew:                         -0.6807   Kurtosis:                       1.5102
+Centered skew:                -0.5777   Centered kurtosis:              1.2653
+==============================================================================

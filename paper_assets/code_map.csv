@@ -1,0 +1,18 @@
+component,path,role,paper_section
+CP calibration,paper_assets/cp_gate/source/compute_tau_balanced.py,Computes tau_final from labeled false-positive and true-positive DINO score distributions.,GroundingDINO calibration / CP gate
+CP inference,paper_assets/cp_gate/source/infer_with_tau.py,Runs GroundingDINO and filters detections using tau_final.,GroundingDINO calibration / CP gate
+Phrase extraction,services/a6000_web/phrase_extractor.py,Extracts noun-like phrases and object terms from natural-language instructions.,Language-to-detection prompt construction
+GroundingDINO runtime,services/a6000_web/detection.py,"Builds dot-separated DINO prompts, runs detection, applies thresholds/NMS/fallbacks, and renders candidate overlays.",Candidate generation
+Candidate schema,services/a6000_web/schemas.py,"Defines Candidate, ScoredQuestion, ResolvedTarget, trial requests, and session state.",System representation
+VLM protocol,services/a6000_web/clarification.py,"Constructs VLM JSON payloads, extracts/repairs final JSON, maintains candidate state, and scores questions.",VLM clarification protocol
+VLM prompt,paper_assets/prompts/vlm_system_prompt.txt,"Full system prompt defining allowed outputs, Candidate_State, yes/no splits, and forbidden question topics.",Prompt engineering
+EFE question ranking,services/a6000_web/clarification.py,Ranks proposed questions by balanced yes/no split and small diversity/repetition penalties.,Proposed method
+Offline/online API,services/a6000_web/server.py,"Implements trial startup, method dispatch, online confirmation gate, auditing endpoints, and experiment UI APIs.",Experimental platform
+Experiment storage,services/a6000_web/offline_experiments.py,Stores scene/trial JSON and metrics for offline and online experiments.,Data collection
+Offline statistics,scripts/run_significance_tests.py,Runs scene-clustered GEE accuracy tests and scene-level question/latency tests.,Offline evaluation
+Online cleaning,scripts/clean_online_main02.py,Applies online main_02 cleaning rules and balances method x prompt-type cells.,Online evaluation
+Online statistics,scripts/run_online_main02_statistics.py,"Computes online target, grasp, task-success, failure, and scene-level significance tables.",Online evaluation
+Real grasp runtime,services/a6000_web/grasp_runtime.py,"Converts selected target bbox into SAM/bbox point cloud, geometric grasp, and dispatch payload.",Robot execution
+Point cloud generation,simulation/ask2act_grasp/perception/point_cloud_gen.py,Back-projects RGB-D/depth into target point clouds from bbox or segmentation mask.,Robot perception
+Motion planner,simulation/ask2act_grasp/planning/motion_planner.py,"Solves Stretch top-down grasp motion with SimpleIK, wrist yaw, and tuning offsets.",Robot manipulation
+Robot dispatch,real/stretch_transport/scripts/dispatch_grasp.py,Executes planned waypoints on Stretch through the transport server.,Robot deployment

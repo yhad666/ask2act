@@ -211,6 +211,21 @@ class OnlineTrialFinishRequest(BaseModel):
     note: Optional[str] = None
 
 
+class OnlineAuditUpdateRequest(BaseModel):
+    target_selection_outcome: Optional[Literal["correct", "wrong", "unresolved"]] = None
+    grasp_attempted: Optional[bool] = None
+    physical_grasp_success: Optional[bool] = None
+    correct_object_grasp_success: Optional[bool] = None
+    wrong_object_grasp: Optional[bool] = None
+    include_in_audit: Optional[bool] = None
+    failure_reason: Optional[str] = None
+    failure_reason_detail: Optional[str] = None
+    audit_note: Optional[str] = None
+    prompt_type: Optional[Literal["clear", "ambiguous", "partial"]] = None
+    scene_type: Optional[str] = None
+    reviewer: Optional[str] = None
+
+
 class OnlineHeadPoseRequest(BaseModel):
     head_pan_rad: float
     head_tilt_rad: float

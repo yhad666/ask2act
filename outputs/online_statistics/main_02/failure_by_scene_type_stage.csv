@@ -1,0 +1,13 @@
+scene_type,failure_stage,count,share_all
+bottle_only,grasp_execution_failure,9,0.039473684210526314
+bottle_only,none,45,0.19736842105263158
+bottle_only,target_resolution_failure,5,0.021929824561403508
+cup_only,grasp_execution_failure,2,0.008771929824561403
+cup_only,none,40,0.17543859649122806
+cup_only,target_resolution_failure,16,0.07017543859649122
+mixed,grasp_execution_failure,2,0.008771929824561403
+mixed,none,35,0.15350877192982457
+mixed,target_resolution_failure,15,0.06578947368421052
+utensil_only,grasp_execution_failure,6,0.02631578947368421
+utensil_only,none,35,0.15350877192982457
+utensil_only,target_resolution_failure,18,0.07894736842105263
