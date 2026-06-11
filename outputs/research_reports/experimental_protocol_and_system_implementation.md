@@ -18,6 +18,8 @@ This report explains how the offline and online experiments were implemented tec
 | Real grasp runtime | `services/a6000_web/grasp_runtime.py` | RGB-D loading, SAM mask, point cloud, geometric grasp, dispatch payload. |
 | Motion planner | `simulation/ask2act_grasp/planning/motion_planner.py` | Stretch top-down IK, wrist yaw, compensation, waypoint plan. |
 | Robot dispatch | `real/stretch_transport/scripts/dispatch_grasp.py` | Runs Stretch waypoints on the robot server side. |
+| Robot platform/config | `services/a6000_web/a6000_real.env`, `real/stretch_transport/robot_server.env` | A6000-side and robot-side real-runtime parameters. |
+| Hardware model | `simulation/ask2act_grasp/stretch3_specs.py` | Stretch joint limits, velocities, forces, and gripper geometry used by the planner. |
 | Older CP gate | `/home/haoandong/workspace/project/cp_gate` | Historical conformal/calibrated threshold scripts for DINO score filtering. |
 
 ## 2. Offline Experiment Protocol
@@ -2025,7 +2027,33 @@ grasp_z = max(center_z, object_top_z - max_top_grasp_delta_m)
 
 Utensil/fork/spoon behavior depends on whether the geometric grasp is classified as slender or the requested open width is below the wrist-yaw threshold. In that case the planner tries to align the wrist yaw to the geometric grip angle instead of using a cup-like default.
 
-## 9. End-to-End System Summary
+## 9. Robot Hardware, Platform, and Runtime Parameters
+
+A separate paper-ready platform summary is available at:
+
+```text
+outputs/research_reports/robot_hardware_platform_and_parameters.md
+```
+
+The online experiments used a Stretch SE3 / Stretch 3-class mobile manipulator with a head-mounted Intel RealSense D435i RGB-D camera. The robot-side service ran a ZeroMQ transport server on port 5557 and executed only waypoint trajectories produced by the A6000-side planner.
+
+Key runtime configuration:
+
+| Area | Configuration |
+| --- | --- |
+| A6000 web service | FastAPI on `0.0.0.0:7862`, launched through `services/a6000_web/run_real_service.sh`. |
+| VLM endpoint | OpenAI-compatible local endpoint `http://127.0.0.1:8000/v1`, model id `mimo-vl`. |
+| Detector/SAM GPU | `cuda:1` for GroundingDINO and SAM in the recorded real-runtime env. |
+| Robot transport | A6000 connects to `tcp://stretch-se3-3056.local:5557`; robot binds `tcp://0.0.0.0:5557`. |
+| Camera | RealSense D435i, 1280 x 720 RGB-D capture, 15 fps capture configuration, 10 fps video preview. |
+| Default head pose | pan `-1.57 rad`, tilt `-0.68 rad`, with online UI override support. |
+| Real grasp mode | `ASK2ACT_PIPELINE_MODE=real_pointcloud`; SAM mask enabled with bbox fallback logic. |
+| Execution safety | `ASK2ACT_AUTO_EXECUTE_ON_RESOLVE=0`; operator target confirmation required before physical grasp. |
+| Online max rounds | `ASK2ACT_ONLINE_MAX_ROUNDS=6`. |
+
+The grasp planner uses Stretch joint limits and gripper geometry from `simulation/ask2act_grasp/stretch3_specs.py`, SimpleIK top-down solving, calibrated rubber-contact offsets, side-aware target biases, slender-object wrist-yaw alignment, and optional base preposition/reobserve/replan behavior.
+
+## 10. End-to-End System Summary
 
 The whole system is a target-resolution-first robot pipeline:
 

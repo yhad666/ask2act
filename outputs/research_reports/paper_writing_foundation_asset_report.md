@@ -13,6 +13,7 @@ This report is a map of the important code, data, prompts, figures, and represen
 - `paper_assets/cp_gate/`: CP calibration scripts, calibration tables, and representative images from the earlier project.
 - `outputs/research_reports/offline_online_table_summary.md`: compact table summary.
 - `outputs/research_reports/experimental_protocol_and_system_implementation.md`: detailed system/protocol explanation.
+- `outputs/research_reports/robot_hardware_platform_and_parameters.md`: robot hardware, platform, and runtime-parameter summary.
 
 ## Directory Scale
 
@@ -36,6 +37,7 @@ The full historical `calib_data` directory is intentionally not copied because i
 | Offline experiment | outputs/statistics and paper_assets/offline/sample_scenes | Use cleaned 1512-record dataset, 7 methods, scene-clustered statistics, and offline failure analysis. |
 | Online experiment | outputs/online_statistics/main_02 and paper_assets/online/main_02_sample_scenes | Use cleaned 228-record main_02 data, target-confirmation gate, and task/grasp success metrics. |
 | Real robot grasping | services/a6000_web/grasp_runtime.py, simulation/ask2act_grasp, and real/stretch_transport | Explain selected target to SAM/bbox point cloud, geometric grasp, top-down Stretch planning, and execution feedback. |
+| Robot hardware and runtime parameters | outputs/research_reports/robot_hardware_platform_and_parameters.md plus services/a6000_web/a6000_real.env and real/stretch_transport/robot_server.env | Describe the Stretch platform, D435i camera, A6000/robot split, ZMQ transport, safety gates, and tuned grasp parameters. |
 
 ## Important Code Map
 
@@ -58,6 +60,10 @@ The full historical `calib_data` directory is intentionally not copied because i
 | Point cloud generation | simulation/ask2act_grasp/perception/point_cloud_gen.py | Back-projects RGB-D/depth into target point clouds from bbox or segmentation mask. | Robot perception |
 | Motion planner | simulation/ask2act_grasp/planning/motion_planner.py | Solves Stretch top-down grasp motion with SimpleIK, wrist yaw, and tuning offsets. | Robot manipulation |
 | Robot dispatch | real/stretch_transport/scripts/dispatch_grasp.py | Executes planned waypoints on Stretch through the transport server. | Robot deployment |
+| A6000 real runtime env | services/a6000_web/a6000_real.env | Records real-runtime VLM, detector, SAM, transport, grasp-planner, and web-service parameters. | Experimental platform / robot configuration |
+| Robot server runtime env | real/stretch_transport/robot_server.env | Records Stretch transport, camera, head-pose, gripper, home, timeout, and base-motion parameters. | Experimental platform / robot configuration |
+| Stretch hardware specs | simulation/ask2act_grasp/stretch3_specs.py | Defines Stretch joint limits, nominal velocities/forces, top-down offsets, and gripper geometry. | Robot hardware / manipulation |
+| Head camera extrinsics | real/stretch_transport/head_camera_extrinsics.json | Stores the default head-camera transform used by real-pointcloud planning. | Robot perception / calibration |
 
 ## Important Data and Figures
 
@@ -70,6 +76,7 @@ The full historical `calib_data` directory is intentionally not copied because i
 | Online cleaned trial-level dataset | outputs/online_statistics/main_02/cleaned_online_main02_for_statistics.csv | Main cleaned balanced online dataset, N=228. | Online result tables and significance tests. |
 | Online significance report | outputs/online_statistics/main_02/online_main02_significance_report.md | Online target/grasp/task success significance analysis. | Online results section. |
 | Online grasp policy evaluation | outputs/online_statistics/main_02/grasp_policy_evaluation.md | Failure analysis and policy-level interpretation of grasping results. | Robot policy limitations / discussion. |
+| Robot platform and parameters report | outputs/research_reports/robot_hardware_platform_and_parameters.md | Consolidated robot hardware, camera, compute, transport, safety, and grasp-tuning configuration. | Experimental platform, implementation details, and appendix parameter table. |
 | CP calibration outputs | paper_assets/cp_gate/calibration_results/ | Tau, detection tables, labeled annotations, and evaluation curves. | Candidate generation calibration section. |
 | CP sample images | paper_assets/cp_gate/sample_images/ | Representative raw and DINO-visualized calibration images. | Detection / calibration figures. |
 | Offline scene observations | paper_assets/offline/sample_scenes/ | Compact copy of all 36 offline observation images and metadata. | Scene composition figures and dataset description. |
@@ -93,8 +100,9 @@ The full historical `calib_data` directory is intentionally not copied because i
 2. Use `outputs/statistics/offline_significance_detailed_methods_report.md` for exact offline statistical formulas and implementation details.
 3. Use `outputs/online_statistics/main_02/online_main02_significance_report.md` for online statistical evidence.
 4. Use `outputs/online_statistics/main_02/grasp_policy_evaluation.md` for grasping-policy limitations and failure analysis.
-5. Use `paper_assets/code_map.csv` when writing the methods section and deciding which code to cite or inspect.
-6. Use `paper_assets/asset_manifest.csv` when you need exact file provenance, sizes, and checksums.
+5. Use `outputs/research_reports/robot_hardware_platform_and_parameters.md` for the robot platform, hardware, camera, and runtime-parameter section.
+6. Use `paper_assets/code_map.csv` when writing the methods section and deciding which code to cite or inspect.
+7. Use `paper_assets/asset_manifest.csv` when you need exact file provenance, sizes, and checksums.
 
 ## Large Artifacts Not Copied
 

@@ -16,3 +16,7 @@ Real grasp runtime,services/a6000_web/grasp_runtime.py,"Converts selected target
 Point cloud generation,simulation/ask2act_grasp/perception/point_cloud_gen.py,Back-projects RGB-D/depth into target point clouds from bbox or segmentation mask.,Robot perception
 Motion planner,simulation/ask2act_grasp/planning/motion_planner.py,"Solves Stretch top-down grasp motion with SimpleIK, wrist yaw, and tuning offsets.",Robot manipulation
 Robot dispatch,real/stretch_transport/scripts/dispatch_grasp.py,Executes planned waypoints on Stretch through the transport server.,Robot deployment
+A6000 real runtime env,services/a6000_web/a6000_real.env,"Records real-runtime VLM, detector, SAM, transport, grasp-planner, and web-service parameters.",Experimental platform / robot configuration
+Robot server runtime env,real/stretch_transport/robot_server.env,"Records Stretch transport, camera, head-pose, gripper, home, timeout, and base-motion parameters.",Experimental platform / robot configuration
+Stretch hardware specs,simulation/ask2act_grasp/stretch3_specs.py,"Defines Stretch joint limits, nominal velocities/forces, top-down offsets, and gripper geometry.",Robot hardware / manipulation
+Head camera extrinsics,real/stretch_transport/head_camera_extrinsics.json,Stores the default head-camera transform used by real-pointcloud planning.,Robot perception / calibration

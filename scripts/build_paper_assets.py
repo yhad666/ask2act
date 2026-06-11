@@ -325,6 +325,30 @@ def build_code_map() -> list[dict[str, str]]:
             "role": "Executes planned waypoints on Stretch through the transport server.",
             "paper_section": "Robot deployment",
         },
+        {
+            "component": "A6000 real runtime env",
+            "path": "services/a6000_web/a6000_real.env",
+            "role": "Records real-runtime VLM, detector, SAM, transport, grasp-planner, and web-service parameters.",
+            "paper_section": "Experimental platform / robot configuration",
+        },
+        {
+            "component": "Robot server runtime env",
+            "path": "real/stretch_transport/robot_server.env",
+            "role": "Records Stretch transport, camera, head-pose, gripper, home, timeout, and base-motion parameters.",
+            "paper_section": "Experimental platform / robot configuration",
+        },
+        {
+            "component": "Stretch hardware specs",
+            "path": "simulation/ask2act_grasp/stretch3_specs.py",
+            "role": "Defines Stretch joint limits, nominal velocities/forces, top-down offsets, and gripper geometry.",
+            "paper_section": "Robot hardware / manipulation",
+        },
+        {
+            "component": "Head camera extrinsics",
+            "path": "real/stretch_transport/head_camera_extrinsics.json",
+            "role": "Stores the default head-camera transform used by real-pointcloud planning.",
+            "paper_section": "Robot perception / calibration",
+        },
     ]
     return rows
 
@@ -372,6 +396,12 @@ def build_data_map() -> list[dict[str, str]]:
             "path": "outputs/online_statistics/main_02/grasp_policy_evaluation.md",
             "role": "Failure analysis and policy-level interpretation of grasping results.",
             "paper_use": "Robot policy limitations / discussion.",
+        },
+        {
+            "artifact": "Robot platform and parameters report",
+            "path": "outputs/research_reports/robot_hardware_platform_and_parameters.md",
+            "role": "Consolidated robot hardware, camera, compute, transport, safety, and grasp-tuning configuration.",
+            "paper_use": "Experimental platform, implementation details, and appendix parameter table.",
         },
         {
             "artifact": "CP calibration outputs",
@@ -453,6 +483,11 @@ def build_report(manifest: list[dict[str, str]], code_rows: list[dict[str, str]]
             "what_to_use": "services/a6000_web/grasp_runtime.py, simulation/ask2act_grasp, and real/stretch_transport",
             "writing_angle": "Explain selected target to SAM/bbox point cloud, geometric grasp, top-down Stretch planning, and execution feedback.",
         },
+        {
+            "component": "Robot hardware and runtime parameters",
+            "what_to_use": "outputs/research_reports/robot_hardware_platform_and_parameters.md plus services/a6000_web/a6000_real.env and real/stretch_transport/robot_server.env",
+            "writing_angle": "Describe the Stretch platform, D435i camera, A6000/robot split, ZMQ transport, safety gates, and tuned grasp parameters.",
+        },
     ]
 
     dir_summaries = [
@@ -478,6 +513,7 @@ def build_report(manifest: list[dict[str, str]], code_rows: list[dict[str, str]]
         "- `paper_assets/cp_gate/`: CP calibration scripts, calibration tables, and representative images from the earlier project.",
         "- `outputs/research_reports/offline_online_table_summary.md`: compact table summary.",
         "- `outputs/research_reports/experimental_protocol_and_system_implementation.md`: detailed system/protocol explanation.",
+        "- `outputs/research_reports/robot_hardware_platform_and_parameters.md`: robot hardware, platform, and runtime-parameter summary.",
         "",
         "## Directory Scale",
         "",
@@ -516,8 +552,9 @@ def build_report(manifest: list[dict[str, str]], code_rows: list[dict[str, str]]
         "2. Use `outputs/statistics/offline_significance_detailed_methods_report.md` for exact offline statistical formulas and implementation details.",
         "3. Use `outputs/online_statistics/main_02/online_main02_significance_report.md` for online statistical evidence.",
         "4. Use `outputs/online_statistics/main_02/grasp_policy_evaluation.md` for grasping-policy limitations and failure analysis.",
-        "5. Use `paper_assets/code_map.csv` when writing the methods section and deciding which code to cite or inspect.",
-        "6. Use `paper_assets/asset_manifest.csv` when you need exact file provenance, sizes, and checksums.",
+        "5. Use `outputs/research_reports/robot_hardware_platform_and_parameters.md` for the robot platform, hardware, camera, and runtime-parameter section.",
+        "6. Use `paper_assets/code_map.csv` when writing the methods section and deciding which code to cite or inspect.",
+        "7. Use `paper_assets/asset_manifest.csv` when you need exact file provenance, sizes, and checksums.",
         "",
         "## Large Artifacts Not Copied",
         "",
@@ -560,6 +597,7 @@ def main() -> None:
         "- `data_products.csv` for cleaned datasets and result tables.",
         "- `prompts/vlm_system_prompt.txt` for the full VLM protocol prompt.",
         "- `cp_gate/` for the earlier CP / calibrated DINO thresholding materials.",
+        "- `../outputs/research_reports/robot_hardware_platform_and_parameters.md` for robot hardware and runtime parameters.",
         "",
         "Large raw artifacts are intentionally not mirrored here. See `outputs/research_reports/paper_writing_foundation_asset_report.md` for details.",
         "",

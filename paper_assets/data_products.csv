@@ -6,6 +6,7 @@ Offline table summary,outputs/research_reports/offline_online_table_summary.md,C
 Online cleaned trial-level dataset,outputs/online_statistics/main_02/cleaned_online_main02_for_statistics.csv,"Main cleaned balanced online dataset, N=228.",Online result tables and significance tests.
 Online significance report,outputs/online_statistics/main_02/online_main02_significance_report.md,Online target/grasp/task success significance analysis.,Online results section.
 Online grasp policy evaluation,outputs/online_statistics/main_02/grasp_policy_evaluation.md,Failure analysis and policy-level interpretation of grasping results.,Robot policy limitations / discussion.
+Robot platform and parameters report,outputs/research_reports/robot_hardware_platform_and_parameters.md,"Consolidated robot hardware, camera, compute, transport, safety, and grasp-tuning configuration.","Experimental platform, implementation details, and appendix parameter table."
 CP calibration outputs,paper_assets/cp_gate/calibration_results/,"Tau, detection tables, labeled annotations, and evaluation curves.",Candidate generation calibration section.
 CP sample images,paper_assets/cp_gate/sample_images/,Representative raw and DINO-visualized calibration images.,Detection / calibration figures.
 Offline scene observations,paper_assets/offline/sample_scenes/,Compact copy of all 36 offline observation images and metadata.,Scene composition figures and dataset description.
